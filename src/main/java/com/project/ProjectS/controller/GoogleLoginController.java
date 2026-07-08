@@ -24,7 +24,7 @@ public class GoogleLoginController {
     @GetMapping("/user")
     public LoginResponseDTO login(
             @AuthenticationPrincipal OAuth2User oauthUser) {
-
+    	System.out.println("Google Controller Called");
         GoogleUserDTO googleUser =
                 googleOAuthService.getGoogleUser(oauthUser);
 

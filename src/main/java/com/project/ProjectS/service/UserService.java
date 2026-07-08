@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.project.ProjectS.model.LoginRequestDTO;
 import com.project.ProjectS.model.UserDTO;
 import com.project.ProjectS.repository.UserDAO;
 
@@ -75,6 +76,13 @@ public class UserService {
     public void delete(Integer id) {
 
         userDAO.delete(id);
+
+    }
+    public UserDTO login(LoginRequestDTO request) {
+
+        return userDAO.findByEmailAndPassword(
+                request.getEmail(),
+                request.getPassword());
 
     }
 

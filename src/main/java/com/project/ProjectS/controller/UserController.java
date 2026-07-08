@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.project.ProjectS.model.LoginRequestDTO;
 import com.project.ProjectS.model.UserDTO;
 import com.project.ProjectS.service.UserService;
 
@@ -75,6 +76,22 @@ public class UserController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body("Google user registered successfully.");
+
+    }
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequestDTO request) {
+
+        UserDTO user = userService.login(request);
+
+        if (user == null) {
+
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid Email or Password");
+
+        }
+
+        return ResponseEntity.ok(user);
 
     }
 }

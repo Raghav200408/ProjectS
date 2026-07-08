@@ -253,4 +253,47 @@ VALUES
         );
 
     }
+    public UserDTO findByEmailAndPassword(String email, String password) {
+
+        String sql = """
+                SELECT u.user_id,
+                       u.name,
+                       u.designation,
+                       u.address,
+                       u.employee_id,
+                       u.student_code,
+                       u.class_name,
+                       u.college,
+                       u.branch,
+                       u.section,
+                       u.email,
+                       u.phone_number,
+                       u.password,
+                       u.guardian_name,
+                       u.guardian_phone_number,
+                       u.role_id,
+                       u.login_type,
+                       r.role_name
+                FROM users u
+                JOIN roles r
+                ON u.role_id = r.role_id
+                WHERE u.email = ?
+                AND u.password = ?
+                """;
+
+        try {
+
+            return jdbcTemplate.queryForObject(
+                    sql,
+                    new BeanPropertyRowMapper<>(UserDTO.class),
+                    email,
+                    password);
+
+        } catch (Exception e) {
+
+            return null;
+
+        }
+
+    }
 }
