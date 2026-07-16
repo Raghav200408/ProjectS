@@ -1,9 +1,14 @@
 package com.project.ProjectS.model;
-
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 public class LoginRequestDTO {
 
+    @Email(message = "Invalid email")
     private String email;
+
+    @NotBlank(message = "Password is required")
     private String password;
+
 
     public LoginRequestDTO() {
     }
