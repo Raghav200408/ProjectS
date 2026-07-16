@@ -43,7 +43,7 @@ public class CustomOAuth2SuccessHandler
 	    );
 
 	    response.sendRedirect(
-	            "http://localhost:5174/oauth2/success?token=" + token
+	            "http://localhost:5173/oauth2/success?token=" + token
 	    );
 	}
 }
