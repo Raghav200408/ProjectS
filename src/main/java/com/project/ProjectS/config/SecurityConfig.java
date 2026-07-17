@@ -80,7 +80,8 @@ public class SecurityConfig {
                 			    "/api/users/register",
                 			    "/api/users/login",
                 			    "/oauth2/**",
-                			    "/login/**"
+                			    "/login/**",
+								"/api/table-names/**"
                 			).permitAll()
                 	    .requestMatchers(
                 	            "/api/users/me"

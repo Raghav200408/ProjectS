@@ -64,7 +64,9 @@
     <dependency>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
-        <scope>runtime</scope>
+<!--        <version>42.7.7</version>-->
+
+        <!--        <scope>runtime</scope>-->
     </dependency>
 
     <dependency>
@@ -72,11 +74,22 @@
         <artifactId>commons-io</artifactId>
         <version>2.18.0</version>
     </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
 
-    <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-    </dependency>
+        <!-- Spring Data JPA -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
     <!-- JWT API -->
 <dependency>
     <groupId>io.jsonwebtoken</groupId>
@@ -119,7 +132,37 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
+            <plugin>
+                <groupId>org.hibernate.tool</groupId>
+                <artifactId>hibernate-tools-maven</artifactId>
+                <version>6.5.2.Final</version>
+                <dependencies>
+                <dependency>
+                    <groupId>org.postgresql</groupId>
+                    <artifactId>postgresql</artifactId>
+                    <version>42.7.7</version>
+                </dependency>
+            </dependencies>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>hbm2java</goal>
+                        </goals>
+                    </execution>
+                </executions>
+
+                <configuration>
+
+                    <propertyFile>src/main/resources/hibernate.properties</propertyFile>
+                    <packageName>com.project.ProjectS.JPAEntities</packageName>
+                    <jdk5>true</jdk5>
+                    <ejb3>true</ejb3>
+                </configuration>
+            </plugin>
 		</plugins>
 	</build>
+
 
 </project>
