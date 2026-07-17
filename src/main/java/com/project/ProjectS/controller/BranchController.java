@@ -1,47 +1,46 @@
 package com.project.ProjectS.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
-import com.project.ProjectS.model.BranchDTO;
-import com.project.ProjectS.service.BranchService;
-
 import java.util.List;
 
+import org.springframework.web.bind.annotation.*;
+
+import com.project.ProjectS.model.BranchRequestDTO;
+import com.project.ProjectS.model.BranchResponseDTO;
+import com.project.ProjectS.service.BranchService;
+
+import lombok.RequiredArgsConstructor;
+
 @RestController
+@RequestMapping("/branch")
+@RequiredArgsConstructor
 public class BranchController {
 
-    @Autowired
-    private BranchService branchService;
+    private final BranchService service;
 
-    // Save Branch
-    @PostMapping("/saveBranch")
-    public BranchDTO saveBranch(@RequestBody BranchDTO branch) {
-        return branchService.saveBranch(branch);
+    @PostMapping
+    public BranchResponseDTO saveBranch(@RequestBody BranchRequestDTO request) {
+        return service.saveBranch(request);
     }
 
-    // Get All Branches
-    @GetMapping("/getAllBranches")
-    public List<BranchDTO> getAllBranches() {
-        return branchService.getAllBranches();
-    }
-    
-    // Get Branch By Id
-    @GetMapping("/getBranchById/{id}")
-    public BranchDTO getBranchById(@PathVariable Long id) {
-        return branchService.getBranchById(id);
+    @GetMapping
+    public List<BranchResponseDTO> getAllBranches() {
+        return service.getAllBranches();
     }
 
-    // Update Branch
-    @PutMapping("/updateBranch")
-    public BranchDTO updateBranch(@RequestBody BranchDTO branch) {
-        return branchService.updateBranch(branch);
+    @GetMapping("/{id}")
+    public BranchResponseDTO getBranchById(@PathVariable Long id) {
+        return service.getBranchById(id);
     }
 
-    // Delete Branch
-    @DeleteMapping("/deleteBranch/{id}")
+    @PutMapping("/{id}")
+    public BranchResponseDTO updateBranch(@PathVariable Long id,
+                                          @RequestBody BranchRequestDTO request) {
+        return service.updateBranch(id, request);
+    }
+
+    @DeleteMapping("/{id}")
     public String deleteBranch(@PathVariable Long id) {
-        branchService.deleteBranch(id);
-        return "Branch deleted successfully";
+        return service.deleteBranch(id);
     }
+
 }
