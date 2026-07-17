@@ -1,45 +1,48 @@
 package com.project.ProjectS.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.List;
+
 import org.springframework.web.bind.annotation.*;
 
-import com.project.ProjectS.model.CollegeDTO;
 import com.project.ProjectS.service.CollegeService;
 
+import lombok.RequiredArgsConstructor;
+
 @RestController
+@RequestMapping("/college")
+@RequiredArgsConstructor
 public class CollegeController {
 
-    @Autowired
-    private CollegeService collegeService;
+    private final CollegeService service;
 
-    // Save College
-    @PostMapping("/saveCollege")
-    public CollegeDTO saveCollege(@RequestBody CollegeDTO college) {
-        return collegeService.saveCollege(college);
+    // Create College
+    @PostMapping
+    public com.project.ProjectS.model.CollegeResponseDTO saveCollege(@RequestBody com.project.ProjectS.model                .CollegeRequestDTO request) {
+        return service.saveCollege(request);
     }
 
     // Get All Colleges
-    @GetMapping("/getAllColleges")
-    public Iterable<CollegeDTO> getAllColleges() {
-        return collegeService.getAllColleges();
+    @GetMapping
+    public List<com.project.ProjectS.model.CollegeResponseDTO> getAllColleges() {
+        return service.getAllColleges();
     }
 
     // Get College By Id
-    @GetMapping("/getCollegeById/{id}")
-    public CollegeDTO getCollegeById(@PathVariable Long id) {
-        return collegeService.getCollegeById(id);
+    @GetMapping("/{id}")
+    public com.project.ProjectS.model.CollegeResponseDTO getCollegeById(@PathVariable Long id) {
+        return service.getCollegeById(id);
     }
 
     // Update College
-    @PutMapping("/updateCollege")
-    public CollegeDTO updateCollege(@RequestBody CollegeDTO college) {
-        return collegeService.updateCollege(college);
+    @PutMapping("/{id}")
+    public com.project.ProjectS.model.CollegeResponseDTO updateCollege(@PathVariable Long id,
+                                                                                @RequestBody com.project.ProjectS.model.CollegeRequestDTO request) {
+        return service.updateCollege(id, request);
     }
 
     // Delete College
-    @DeleteMapping("/deleteCollege/{id}")
+    @DeleteMapping("/{id}")
     public String deleteCollege(@PathVariable Long id) {
-        collegeService.deleteCollege(id);
-        return "College deleted successfully";
+        return service.deleteCollege(id);
     }
 }

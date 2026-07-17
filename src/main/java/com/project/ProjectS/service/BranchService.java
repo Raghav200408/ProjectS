@@ -1,110 +1,92 @@
 package com.project.ProjectS.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 
-import com.project.ProjectS.model.BranchDTO;
-import com.project.ProjectS.repository.BranchDAO;
+import com.project.ProjectS.entity.Branch;
+import com.project.ProjectS.entity.College;
+import com.project.ProjectS.mapper.BranchMapper;
+import com.project.ProjectS.model.BranchRequestDTO;
+import com.project.ProjectS.model.BranchResponseDTO;
+import com.project.ProjectS.repository.BranchRepository;
+import com.project.ProjectS.repository.CollegeRepository;
 
-import java.util.List;
-import org.springframework.jdbc.core.JdbcTemplate;
-
-
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class BranchService {
 
-    @Autowired
-    private BranchDAO branchDAO;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private final BranchRepository branchRepository;
+    private final CollegeRepository collegeRepository;
+    private final BranchMapper branchMapper;
 
-    // Save Branch
- // Save Branch
-    public BranchDTO saveBranch(BranchDTO branch) {
+    // Create
+    public BranchResponseDTO saveBranch(BranchRequestDTO request) {
 
-        BranchDTO savedBranch = branchDAO.save(branch);
+        College college = collegeRepository.findById(request.getCollegeId())
+                .orElseThrow(() -> new RuntimeException("College not found"));
 
-        return getBranchById(savedBranch.getBranchId());
+        Branch branch = Branch.builder()
+                .college(college)
+                .branchName(request.getBranchName())
+                .address(request.getAddress())
+                .phoneNumber(request.getPhoneNumber())
+                .email(request.getEmail())
+                .activeRow(request.getActiveRow())
+                .build();
+
+        Branch saved = branchRepository.save(branch);
+
+        return branchMapper.toResponseDTO(saved);
     }
 
-    // Get All Branches
-    public List<BranchDTO> getAllBranches() {
-
-        String sql = """
-            SELECT
-                b.branch_id,
-                b.college_id,
-                c.institute_name,
-                b.branch_name,
-                b.address,
-                b.phone_number,
-                b.email
-            FROM branch b
-            INNER JOIN college c
-            ON b.college_id = c.college_id
-            """;
-
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-
-            BranchDTO branch = new BranchDTO();
-
-            branch.setBranchId(rs.getLong("branch_id"));
-            branch.setCollegeId(rs.getLong("college_id"));
-            branch.setCollegeName(rs.getString("institute_name"));
-            branch.setBranchName(rs.getString("branch_name"));
-            branch.setAddress(rs.getString("address"));
-            branch.setPhoneNumber(rs.getString("phone_number"));
-            branch.setEmail(rs.getString("email"));
-
-            return branch;
-        });
+    // Get All
+    public List<BranchResponseDTO> getAllBranches() {
+        return branchRepository.findAll()
+                .stream()
+                .map(branchMapper::toResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    // Get Branch By Id
-    public BranchDTO getBranchById(Long id) {
+    // Get By Id
+    public BranchResponseDTO getBranchById(Long id) {
 
-        String sql = """
-            SELECT
-                b.branch_id,
-                b.college_id,
-                c.institute_name AS college_name,
-                b.branch_name,
-                b.address,
-                b.phone_number,
-                b.email
-            FROM branch b
-            INNER JOIN college c
-                ON b.college_id = c.college_id
-            WHERE b.branch_id = ?
-            """;
+        Branch branch = branchRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
 
-        return jdbcTemplate.queryForObject(sql, new Object[]{id}, (rs, rowNum) -> {
-
-            BranchDTO branch = new BranchDTO();
-
-            branch.setBranchId(rs.getLong("branch_id"));
-            branch.setCollegeId(rs.getLong("college_id"));
-            branch.setCollegeName(rs.getString("college_name"));
-            branch.setBranchName(rs.getString("branch_name"));
-            branch.setAddress(rs.getString("address"));
-            branch.setPhoneNumber(rs.getString("phone_number"));
-            branch.setEmail(rs.getString("email"));
-
-            return branch;
-        });
+        return branchMapper.toResponseDTO(branch);
     }
 
-    // Update Branch
-    	public BranchDTO updateBranch(BranchDTO branch) {
+    // Update
+    public BranchResponseDTO updateBranch(Long id, BranchRequestDTO request) {
 
-    	    branchDAO.save(branch);
+        Branch branch = branchRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
 
-    	    return getBranchById(branch.getBranchId());
-    	}
+        College college = collegeRepository.findById(request.getCollegeId())
+                .orElseThrow(() -> new RuntimeException("College not found"));
 
-    // Delete Branch
-    public void deleteBranch(Long id) {
-        branchDAO.deleteById(id);
+        branch.setCollege(college);
+        branch.setBranchName(request.getBranchName());
+        branch.setAddress(request.getAddress());
+        branch.setPhoneNumber(request.getPhoneNumber());
+        branch.setEmail(request.getEmail());
+        branch.setActiveRow(request.getActiveRow());
+
+        Branch updated = branchRepository.save(branch);
+
+        return branchMapper.toResponseDTO(updated);
     }
+
+    // Delete
+    public String deleteBranch(Long id) {
+
+        branchRepository.deleteById(id);
+
+        return "Branch deleted successfully.";
+    }
+
 }

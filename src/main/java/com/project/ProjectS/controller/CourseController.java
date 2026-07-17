@@ -2,41 +2,45 @@ package com.project.ProjectS.controller;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import com.project.ProjectS.model.CourseDTO;
+import com.project.ProjectS.model.CourseRequestDTO;
+import com.project.ProjectS.model.CourseResponseDTO;
 import com.project.ProjectS.service.CourseService;
 
+import lombok.RequiredArgsConstructor;
+
 @RestController
+@RequestMapping("/course")
+@RequiredArgsConstructor
 public class CourseController {
 
-    @Autowired
-    private CourseService courseService;
+    private final CourseService courseService;
 
-    @PostMapping("/saveCourse")
-    public CourseDTO saveCourse(@RequestBody CourseDTO course) {
-        return courseService.saveCourse(course);
+    @PostMapping
+    public CourseResponseDTO saveCourse(@RequestBody CourseRequestDTO request) {
+        return courseService.saveCourse(request);
     }
 
-    @GetMapping("/getAllCourses")
-    public List<CourseDTO> getAllCourses() {
+    @GetMapping
+    public List<CourseResponseDTO> getAllCourses() {
         return courseService.getAllCourses();
     }
 
-    @GetMapping("/getCourseById/{id}")
-    public CourseDTO getCourseById(@PathVariable Long id) {
+    @GetMapping("/{id}")
+    public CourseResponseDTO getCourseById(@PathVariable Long id) {
         return courseService.getCourseById(id);
     }
 
-    @PutMapping("/updateCourse")
-    public CourseDTO updateCourse(@RequestBody CourseDTO course) {
-        return courseService.updateCourse(course);
+    @PutMapping("/{id}")
+    public CourseResponseDTO updateCourse(@PathVariable Long id,
+                                          @RequestBody CourseRequestDTO request) {
+        return courseService.updateCourse(id, request);
     }
 
-    @DeleteMapping("/deleteCourse/{id}")
+    @DeleteMapping("/{id}")
     public String deleteCourse(@PathVariable Long id) {
-        courseService.deleteCourse(id);
-        return "Course deleted successfully";
+        return courseService.deleteCourse(id);
     }
+
 }

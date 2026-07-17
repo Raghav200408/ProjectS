@@ -1,99 +1,84 @@
 package com.project.ProjectS.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 
-import com.project.ProjectS.model.CourseDTO;
-import com.project.ProjectS.repository.CourseDAO;
+import com.project.ProjectS.entity.Branch;
+import com.project.ProjectS.entity.Course;
+import com.project.ProjectS.mapper.CourseMapper;
+import com.project.ProjectS.model.CourseRequestDTO;
+import com.project.ProjectS.model.CourseResponseDTO;
+import com.project.ProjectS.repository.BranchRepository;
+import com.project.ProjectS.repository.CourseRepository;
 
-import java.util.List;
-import org.springframework.jdbc.core.JdbcTemplate;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class CourseService {
 
-    @Autowired
-    private CourseDAO courseDAO;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private final CourseRepository courseRepository;
+    private final BranchRepository branchRepository;
+    private final CourseMapper courseMapper;
 
-    public CourseDTO saveCourse(CourseDTO course) {
-        return courseDAO.save(course);
+    // Create
+    public CourseResponseDTO saveCourse(CourseRequestDTO request) {
+
+        Branch branch = branchRepository.findById(request.getBranchId())
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
+
+        Course course = courseMapper.toEntity(request, branch);
+
+        Course saved = courseRepository.save(course);
+
+        return courseMapper.toResponseDTO(saved);
     }
 
-    public List<CourseDTO> getAllCourses() {
+    // Get All
+    public List<CourseResponseDTO> getAllCourses() {
 
-        String sql = """
-            SELECT
-                c.course_id,
-                c.branch_id,
-                b.branch_name,
-                col.institute_name AS college_name,
-                c.course_name,
-                c.description
-            FROM course c
-            INNER JOIN branch b
-                ON c.branch_id = b.branch_id
-            INNER JOIN college col
-                ON b.college_id = col.college_id
-            """;
-
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-
-            CourseDTO course = new CourseDTO();
-
-            course.setCourseId(rs.getLong("course_id"));
-            course.setBranchId(rs.getLong("branch_id"));
-            course.setBranchName(rs.getString("branch_name"));
-            course.setCollegeName(rs.getString("college_name"));
-            course.setCourseName(rs.getString("course_name"));
-            course.setDescription(rs.getString("description"));
-
-            return course;
-        });
+        return courseRepository.findAll()
+                .stream()
+                .map(courseMapper::toResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public CourseDTO getCourseById(Long id) {
+    // Get By Id
+    public CourseResponseDTO getCourseById(Long id) {
 
-        String sql = """
-            SELECT
-                c.course_id,
-                c.branch_id,
-                b.branch_name,
-                col.institute_name AS college_name,
-                c.course_name,
-                c.description
-            FROM course c
-            INNER JOIN branch b
-                ON c.branch_id = b.branch_id
-            INNER JOIN college col
-                ON b.college_id = col.college_id
-            WHERE c.course_id = ?
-            """;
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Course not found"));
 
-        return jdbcTemplate.queryForObject(sql, new Object[]{id}, (rs, rowNum) -> {
-
-            CourseDTO course = new CourseDTO();
-
-            course.setCourseId(rs.getLong("course_id"));
-            course.setBranchId(rs.getLong("branch_id"));
-            course.setBranchName(rs.getString("branch_name"));
-            course.setCollegeName(rs.getString("college_name"));
-            course.setCourseName(rs.getString("course_name"));
-            course.setDescription(rs.getString("description"));
-
-            return course;
-        });
+        return courseMapper.toResponseDTO(course);
     }
 
-    public CourseDTO updateCourse(CourseDTO course) {
+    // Update
+    public CourseResponseDTO updateCourse(Long id, CourseRequestDTO request) {
 
-        courseDAO.save(course);
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Course not found"));
 
-        return getCourseById(course.getCourseId());
+        Branch branch = branchRepository.findById(request.getBranchId())
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
+
+        course.setBranch(branch);
+        course.setName(request.getName());
+        course.setRowStatus(request.getRowStatus());
+        course.setActiveRow(request.getActiveRow());
+
+        Course updated = courseRepository.save(course);
+
+        return courseMapper.toResponseDTO(updated);
     }
 
-    public void deleteCourse(Long id) {
-        courseDAO.deleteById(id);
+    // Delete
+    public String deleteCourse(Long id) {
+
+        courseRepository.deleteById(id);
+
+        return "Course deleted successfully.";
     }
+
 }
