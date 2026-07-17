@@ -13,7 +13,12 @@ import com.project.ProjectS.security.jwt.JwtUtil;
 import com.project.ProjectS.service.GoogleOAuthService;
 import com.project.ProjectS.service.UserService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
+@Tag(name = "Google Authentication", description = "Google OAuth Login APIs")
 public class GoogleLoginController {
 
     @Autowired
@@ -22,6 +27,7 @@ public class GoogleLoginController {
     @Autowired
     private UserService userService;
 
+<<<<<<< Updated upstream
     @Autowired
     private JwtUtil jwtUtil;
 
@@ -35,14 +41,27 @@ public class GoogleLoginController {
 
         GoogleUserDTO googleUser =
                 googleOAuthService.getGoogleUser(oauthUser);
+=======
+    @Operation(
+        summary = "Get logged-in Google user details",
+        description = "Returns the registered user if found; otherwise returns Google user information."
+    )
+    @ApiResponse(responseCode = "200", description = "Login successful")
+    @GetMapping("/user")
+    public LoginResponseDTO login(@AuthenticationPrincipal OAuth2User oauthUser) {
+>>>>>>> Stashed changes
 
-        UserDTO existingUser =
-                userService.findByEmail(googleUser.getEmail());
+        System.out.println("Google Controller Called");
+
+        GoogleUserDTO googleUser = googleOAuthService.getGoogleUser(oauthUser);
+
+        UserDTO existingUser = userService.findByEmail(googleUser.getEmail());
 
         LoginResponseDTO response =
                 new LoginResponseDTO();
 
         if (existingUser != null) {
+<<<<<<< Updated upstream
 
             String role = switch (existingUser.getRoleId()) {
                 case 1 -> "ROLE_SUPER_ADMIN";
@@ -60,11 +79,13 @@ public class GoogleLoginController {
             response.setUser(existingUser);
             response.setToken(token);
 
+=======
+            response.setRegistered(true);
+            response.setUser(existingUser);
+>>>>>>> Stashed changes
         } else {
-
             response.setRegistered(false);
             response.setGoogleUser(googleUser);
-
         }
 
         return response;

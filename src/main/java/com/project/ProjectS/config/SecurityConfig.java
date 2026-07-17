@@ -57,7 +57,30 @@ public class SecurityConfig {
 
         http
 
+<<<<<<< Updated upstream
                 .csrf(csrf -> csrf.disable())
+=======
+            .authorizeHttpRequests(auth -> auth
+            	    .requestMatchers(
+            	        "/",
+            	        "/login**",
+            	        "/error",
+            	        "/user",
+            	        "/api/users/register",
+            	        "/api/users/login",
+            	        "/api/users/google-register",
+            	        "/oauth2/**",
+
+            	        // Swagger
+            	        "/swagger-ui.html",
+            	        "/swagger-ui/**",
+            	        "/v3/api-docs/**",
+            	        "/v3/api-docs",
+            	        "/webjars/**"
+            	    ).permitAll()
+            	    .anyRequest().authenticated()
+            	)
+>>>>>>> Stashed changes
 
                 .cors(Customizer.withDefaults())
 
