@@ -6,28 +6,28 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "courses")
+@Table(name = "section")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Course {
+public class Section {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "course_id")
-    private Long courseId;
+    @Column(name = "section_id")
+    private Long sectionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "branch_id", nullable = false)
-    private Branch branch;
+    @JoinColumn(name = "course_id", nullable = false)
+    private Course course;
 
-    @Column(name = "name")
-    private String name;
+    @Column(name = "section_name")
+    private String sectionName;
 
-    @Column(name = "row_status")
-    private Integer rowStatus;
+    @Column(name = "description")
+    private String description;
 
     @Column(name = "active_row")
     private Boolean activeRow;

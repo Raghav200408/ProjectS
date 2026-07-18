@@ -9,18 +9,22 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CourseResponseDTO {
+public class SectionResponseDTO {
+
+    private Long sectionId;
 
     private Long courseId;
 
-    private Long branchId;
-    private String branchName;
+    private String courseName;
 
-    private String name;
-    private Integer rowStatus;
+    private String sectionName;
+
+    private String description;
+
     private Boolean activeRow;
 
     private LocalDateTime createdAt;
+
     private LocalDateTime updatedAt;
 
 }
