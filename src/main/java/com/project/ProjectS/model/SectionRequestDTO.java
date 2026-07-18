@@ -7,11 +7,14 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CourseRequestDTO {
+public class SectionRequestDTO {
 
-    private Long branchId;
-    private String name;
-    private Integer rowStatus;
+    private Long courseId;
+
+    private String sectionName;
+
+    private String description;
+
     private Boolean activeRow;
 
 }

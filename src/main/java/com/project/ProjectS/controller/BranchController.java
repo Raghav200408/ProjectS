@@ -12,10 +12,13 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/branch")
-@RequiredArgsConstructor
 public class BranchController {
 
     private final BranchService service;
+
+    public BranchController(BranchService service) {
+        this.service = service;
+    }
 
     @PostMapping
     public BranchResponseDTO saveBranch(@RequestBody BranchRequestDTO request) {
