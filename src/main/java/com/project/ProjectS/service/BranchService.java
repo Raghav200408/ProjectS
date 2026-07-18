@@ -1,110 +1,109 @@
 package com.project.ProjectS.service;
 
+import com.project.ProjectS.entity.Branch;
+import com.project.ProjectS.entity.College;
+import com.project.ProjectS.model.BranchRequestDTO;
+import com.project.ProjectS.model.BranchResponseDTO;
+import com.project.ProjectS.repository.BranchRepository;
+import com.project.ProjectS.repository.CollegeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.project.ProjectS.model.BranchDTO;
-import com.project.ProjectS.repository.BranchDAO;
-
 import java.util.List;
-import org.springframework.jdbc.core.JdbcTemplate;
-
-
+import java.util.stream.Collectors;
 
 @Service
 public class BranchService {
 
     @Autowired
-    private BranchDAO branchDAO;
+    private BranchRepository branchRepository;
+
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private CollegeRepository collegeRepository;
 
-    // Save Branch
- // Save Branch
-    public BranchDTO saveBranch(BranchDTO branch) {
+    public String create(BranchRequestDTO request) {
 
-        BranchDTO savedBranch = branchDAO.save(branch);
+        if (branchRepository.existsByBranchName(request.getBranchName())) {
+            throw new RuntimeException("Branch already exists");
+        }
 
-        return getBranchById(savedBranch.getBranchId());
+        College college = collegeRepository.findById(request.getCollegeId())
+                .orElseThrow(() -> new RuntimeException("College not found"));
+
+        Branch entity = new Branch();
+
+        entity.setCollege(college);
+        entity.setBranchName(request.getBranchName());
+        entity.setAddress(request.getAddress());
+        entity.setPhoneNumber(request.getPhoneNumber());
+        entity.setEmail(request.getEmail());
+
+        branchRepository.save(entity);
+
+        return "Branch created successfully";
     }
 
-    // Get All Branches
-    public List<BranchDTO> getAllBranches() {
+    public List<BranchResponseDTO> getAll() {
 
-        String sql = """
-            SELECT
-                b.branch_id,
-                b.college_id,
-                c.institute_name,
-                b.branch_name,
-                b.address,
-                b.phone_number,
-                b.email
-            FROM branch b
-            INNER JOIN college c
-            ON b.college_id = c.college_id
-            """;
-
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-
-            BranchDTO branch = new BranchDTO();
-
-            branch.setBranchId(rs.getLong("branch_id"));
-            branch.setCollegeId(rs.getLong("college_id"));
-            branch.setCollegeName(rs.getString("institute_name"));
-            branch.setBranchName(rs.getString("branch_name"));
-            branch.setAddress(rs.getString("address"));
-            branch.setPhoneNumber(rs.getString("phone_number"));
-            branch.setEmail(rs.getString("email"));
-
-            return branch;
-        });
+        return branchRepository.findAll()
+                .stream()
+                .map(this::convert)
+                .collect(Collectors.toList());
     }
 
-    // Get Branch By Id
-    public BranchDTO getBranchById(Long id) {
+    public Branch getById(Long id) {
 
-        String sql = """
-            SELECT
-                b.branch_id,
-                b.college_id,
-                c.institute_name AS college_name,
-                b.branch_name,
-                b.address,
-                b.phone_number,
-                b.email
-            FROM branch b
-            INNER JOIN college c
-                ON b.college_id = c.college_id
-            WHERE b.branch_id = ?
-            """;
-
-        return jdbcTemplate.queryForObject(sql, new Object[]{id}, (rs, rowNum) -> {
-
-            BranchDTO branch = new BranchDTO();
-
-            branch.setBranchId(rs.getLong("branch_id"));
-            branch.setCollegeId(rs.getLong("college_id"));
-            branch.setCollegeName(rs.getString("college_name"));
-            branch.setBranchName(rs.getString("branch_name"));
-            branch.setAddress(rs.getString("address"));
-            branch.setPhoneNumber(rs.getString("phone_number"));
-            branch.setEmail(rs.getString("email"));
-
-            return branch;
-        });
+        return branchRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
     }
 
-    // Update Branch
-    	public BranchDTO updateBranch(BranchDTO branch) {
+    public String update(Long id, BranchRequestDTO request) {
 
-    	    branchDAO.save(branch);
+        Branch entity = branchRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
 
-    	    return getBranchById(branch.getBranchId());
-    	}
+        College college = collegeRepository.findById(request.getCollegeId())
+                .orElseThrow(() -> new RuntimeException("College not found"));
 
-    // Delete Branch
-    public void deleteBranch(Long id) {
-        branchDAO.deleteById(id);
+        entity.setCollege(college);
+        entity.setBranchName(request.getBranchName());
+        entity.setAddress(request.getAddress());
+        entity.setPhoneNumber(request.getPhoneNumber());
+        entity.setEmail(request.getEmail());
+
+        branchRepository.save(entity);
+
+        return "Branch updated successfully";
+    }
+
+    public String delete(Long id) {
+
+        Branch entity = branchRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Branch not found"));
+
+        branchRepository.delete(entity);
+
+        return "Branch deleted successfully";
+    }
+
+    private BranchResponseDTO convert(Branch entity) {
+
+        BranchResponseDTO dto = new BranchResponseDTO();
+
+        dto.setBranchId(entity.getBranchId());
+
+        dto.setCollegeId(entity.getCollege().getCollegeId());
+        dto.setCollegeName(entity.getCollege().getInstituteName());
+
+        dto.setBranchName(entity.getBranchName());
+        dto.setAddress(entity.getAddress());
+        dto.setPhoneNumber(entity.getPhoneNumber());
+        dto.setEmail(entity.getEmail());
+
+        dto.setActiveRow(entity.getActiveRow());
+        dto.setCreatedAt(entity.getCreatedAt());
+        dto.setUpdatedAt(entity.getUpdatedAt());
+
+        return dto;
     }
 }

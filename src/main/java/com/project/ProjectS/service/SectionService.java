@@ -1,108 +1,106 @@
 package com.project.ProjectS.service;
 
+import com.project.ProjectS.entity.Course;
+import com.project.ProjectS.entity.Section;
+import com.project.ProjectS.model.SectionRequestDTO;
+import com.project.ProjectS.model.SectionResponseDTO;
+import com.project.ProjectS.repository.CourseRepository;
+import com.project.ProjectS.repository.SectionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.project.ProjectS.model.SectionDTO;
-import com.project.ProjectS.repository.SectionDAO;
-
 import java.util.List;
-import org.springframework.jdbc.core.JdbcTemplate;
+import java.util.stream.Collectors;
 
 @Service
 public class SectionService {
 
     @Autowired
-    private SectionDAO sectionDAO;
-    
+    private SectionRepository sectionRepository;
+
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private CourseRepository courseRepository;
 
-    public SectionDTO saveSection(SectionDTO section) {
-        return sectionDAO.save(section);
+    public String create(SectionRequestDTO request) {
+
+        if (sectionRepository.existsBySectionName(request.getSectionName())) {
+            throw new RuntimeException("Section already exists");
+        }
+
+        Course course = courseRepository.findById(request.getCourseId())
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+
+        Section entity = new Section();
+
+        entity.setCourse(course);
+        entity.setSectionName(request.getSectionName());
+        entity.setDescription(request.getDescription());
+
+        sectionRepository.save(entity);
+
+        return "Section created successfully";
     }
 
-    public List<SectionDTO> getAllSections() {
+    public List<SectionResponseDTO> getAll() {
 
-        String sql = """
-            SELECT
-                s.section_id,
-                s.course_id,
-                c.course_name,
-                b.branch_name,
-                col.institute_name AS college_name,
-                s.section_name,
-                s.description
-            FROM section s
-            INNER JOIN course c
-                ON s.course_id = c.course_id
-            INNER JOIN branch b
-                ON c.branch_id = b.branch_id
-            INNER JOIN college col
-                ON b.college_id = col.college_id
-            """;
-
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-
-            SectionDTO section = new SectionDTO();
-
-            section.setSectionId(rs.getLong("section_id"));
-            section.setCourseId(rs.getLong("course_id"));
-            section.setCourseName(rs.getString("course_name"));
-            section.setBranchName(rs.getString("branch_name"));
-            section.setCollegeName(rs.getString("college_name"));
-            section.setSectionName(rs.getString("section_name"));
-            section.setDescription(rs.getString("description"));
-
-            return section;
-        });
+        return sectionRepository.findAll()
+                .stream()
+                .map(this::convert)
+                .collect(Collectors.toList());
     }
 
-    public SectionDTO getSectionById(Long id) {
+    public SectionResponseDTO getById(Long id) {
 
-        String sql = """
-            SELECT
-                s.section_id,
-                s.course_id,
-                c.course_name,
-                b.branch_name,
-                col.institute_name AS college_name,
-                s.section_name,
-                s.description
-            FROM section s
-            INNER JOIN course c
-                ON s.course_id = c.course_id
-            INNER JOIN branch b
-                ON c.branch_id = b.branch_id
-            INNER JOIN college col
-                ON b.college_id = col.college_id
-            WHERE s.section_id = ?
-            """;
+        Section entity = sectionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Section not found"));
 
-        return jdbcTemplate.queryForObject(sql, new Object[]{id}, (rs, rowNum) -> {
-
-            SectionDTO section = new SectionDTO();
-
-            section.setSectionId(rs.getLong("section_id"));
-            section.setCourseId(rs.getLong("course_id"));
-            section.setCourseName(rs.getString("course_name"));
-            section.setBranchName(rs.getString("branch_name"));
-            section.setCollegeName(rs.getString("college_name"));
-            section.setSectionName(rs.getString("section_name"));
-            section.setDescription(rs.getString("description"));
-
-            return section;
-        });
+        return convert(entity);
     }
 
-    public SectionDTO updateSection(SectionDTO section) {
+    public String update(Long id, SectionRequestDTO request) {
 
-        sectionDAO.save(section);
+        Section entity = sectionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Section not found"));
 
-        return getSectionById(section.getSectionId());
+        Course course = courseRepository.findById(request.getCourseId())
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+
+        entity.setCourse(course);
+        entity.setSectionName(request.getSectionName());
+        entity.setDescription(request.getDescription());
+
+        sectionRepository.save(entity);
+
+        return "Section updated successfully";
     }
 
-    public void deleteSection(Long id) {
-        sectionDAO.deleteById(id);
+    public String delete(Long id) {
+
+        Section entity = sectionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Section not found"));
+
+        sectionRepository.delete(entity);
+
+        return "Section deleted successfully";
+    }
+
+    private SectionResponseDTO convert(Section entity) {
+
+        SectionResponseDTO dto = new SectionResponseDTO();
+
+        dto.setSectionId(entity.getSectionId());
+
+        dto.setCourseId(entity.getCourse().getCourseId());
+        dto.setCourseName(entity.getCourse().getName());
+
+        dto.setSectionName(entity.getSectionName());
+        dto.setDescription(entity.getDescription());
+
+        dto.setActiveRow(entity.getActiveRow());
+
+        dto.setCreatedAt(entity.getCreatedAt());
+        dto.setUpdatedAt(entity.getUpdatedAt());
+
+        return dto;
     }
 }

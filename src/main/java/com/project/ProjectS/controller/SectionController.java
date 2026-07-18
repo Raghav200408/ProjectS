@@ -1,42 +1,57 @@
 package com.project.ProjectS.controller;
 
-import java.util.List;
-
+import com.project.ProjectS.model.SectionRequestDTO;
+import com.project.ProjectS.model.SectionResponseDTO;
+import com.project.ProjectS.service.SectionService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.project.ProjectS.model.SectionDTO;
-import com.project.ProjectS.service.SectionService;
+import java.util.List;
 
 @RestController
+@RequestMapping("/api/section")
 public class SectionController {
 
     @Autowired
-    private SectionService sectionService;
+    private SectionService service;
 
-    @PostMapping("/saveSection")
-    public SectionDTO saveSection(@RequestBody SectionDTO section) {
-        return sectionService.saveSection(section);
+    @PostMapping
+    public ResponseEntity<String> create(
+            @Valid @RequestBody SectionRequestDTO request) {
+
+        String response = service.create(request);
+
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @GetMapping("/getAllSections")
-    public List<SectionDTO> getAllSections() {
-        return sectionService.getAllSections();
+    @GetMapping
+    public List<SectionResponseDTO> getAll() {
+
+        return service.getAll();
     }
 
-    @GetMapping("/getSectionById/{id}")
-    public SectionDTO getSectionById(@PathVariable Long id) {
-        return sectionService.getSectionById(id);
+    @GetMapping("/{id}")
+    public SectionResponseDTO getById(@PathVariable Long id) {
+
+        return service.getById(id);
     }
 
-    @PutMapping("/updateSection")
-    public SectionDTO updateSection(@RequestBody SectionDTO section) {
-        return sectionService.updateSection(section);
+    @PutMapping("/{id}")
+    public ResponseEntity<String> update(
+            @PathVariable Long id,
+            @Valid @RequestBody SectionRequestDTO request) {
+
+        String response = service.update(id, request);
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @DeleteMapping("/deleteSection/{id}")
-    public String deleteSection(@PathVariable Long id) {
-        sectionService.deleteSection(id);
-        return "Section deleted successfully";
+    @DeleteMapping("/{id}")
+    public String delete(@PathVariable Long id) {
+
+        return service.delete(id);
     }
 }
