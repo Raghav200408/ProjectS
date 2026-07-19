@@ -74,14 +74,19 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                		.requestMatchers(
-                			    "/",
-                			    "/error",
-                			    "/api/users/register",
-                			    "/api/users/login",
-                			    "/oauth2/**",
-                			    "/login/**"
-                			).permitAll()
+						.requestMatchers(
+								"/",
+								"/error",
+								"/api/users/register",
+								"/api/users/login",
+								"/oauth2/**",
+								"/login/**",
+
+								"/api/college/**",
+								"/api/branch/**",
+								"/api/course/**",
+								"/api/section/**"
+						).permitAll()
                 	    .requestMatchers(
                 	            "/api/users/me"
                 	    ).authenticated()

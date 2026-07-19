@@ -1,42 +1,57 @@
 package com.project.ProjectS.controller;
 
-import java.util.List;
-
+import com.project.ProjectS.model.CourseRequestDTO;
+import com.project.ProjectS.model.CourseResponseDTO;
+import com.project.ProjectS.service.CourseService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.project.ProjectS.model.CourseDTO;
-import com.project.ProjectS.service.CourseService;
+import java.util.List;
 
 @RestController
+@RequestMapping("/api/course")
 public class CourseController {
 
     @Autowired
-    private CourseService courseService;
+    private CourseService service;
 
-    @PostMapping("/saveCourse")
-    public CourseDTO saveCourse(@RequestBody CourseDTO course) {
-        return courseService.saveCourse(course);
+    @PostMapping
+    public ResponseEntity<String> create(
+            @Valid @RequestBody CourseRequestDTO request) {
+
+        String response = service.create(request);
+
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @GetMapping("/getAllCourses")
-    public List<CourseDTO> getAllCourses() {
-        return courseService.getAllCourses();
+    @GetMapping
+    public List<CourseResponseDTO> getAll() {
+
+        return service.getAll();
     }
 
-    @GetMapping("/getCourseById/{id}")
-    public CourseDTO getCourseById(@PathVariable Long id) {
-        return courseService.getCourseById(id);
+    @GetMapping("/{id}")
+    public CourseResponseDTO getById(@PathVariable Long id) {
+
+        return service.getById(id);
     }
 
-    @PutMapping("/updateCourse")
-    public CourseDTO updateCourse(@RequestBody CourseDTO course) {
-        return courseService.updateCourse(course);
+    @PutMapping("/{id}")
+    public ResponseEntity<String> update(
+            @PathVariable Long id,
+            @Valid @RequestBody CourseRequestDTO request) {
+
+        String response = service.update(id, request);
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @DeleteMapping("/deleteCourse/{id}")
-    public String deleteCourse(@PathVariable Long id) {
-        courseService.deleteCourse(id);
-        return "Course deleted successfully";
+    @DeleteMapping("/{id}")
+    public String delete(@PathVariable Long id) {
+
+        return service.delete(id);
     }
 }

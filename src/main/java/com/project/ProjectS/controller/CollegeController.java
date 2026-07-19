@@ -1,45 +1,56 @@
 package com.project.ProjectS.controller;
 
+import com.project.ProjectS.entity.College;
+import com.project.ProjectS.model.CollegeRequestDTO;
+import com.project.ProjectS.model.CollegeResponseDTO;
+import com.project.ProjectS.service.CollegeService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.project.ProjectS.model.CollegeDTO;
-import com.project.ProjectS.service.CollegeService;
+import java.util.List;
 
 @RestController
+@RequestMapping("/api/college")
 public class CollegeController {
 
     @Autowired
-    private CollegeService collegeService;
+    private CollegeService service;
 
-    // Save College
-    @PostMapping("/saveCollege")
-    public CollegeDTO saveCollege(@RequestBody CollegeDTO college) {
-        return collegeService.saveCollege(college);
+    @PostMapping
+    public ResponseEntity<String> create(@Valid @RequestBody CollegeRequestDTO request) {
+
+        String response = service.create(request);
+
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    // Get All Colleges
-    @GetMapping("/getAllColleges")
-    public Iterable<CollegeDTO> getAllColleges() {
-        return collegeService.getAllColleges();
+    @GetMapping
+    public List<CollegeResponseDTO> getAll() {
+
+        return service.getAll();
     }
 
-    // Get College By Id
-    @GetMapping("/getCollegeById/{id}")
-    public CollegeDTO getCollegeById(@PathVariable Long id) {
-        return collegeService.getCollegeById(id);
+    @GetMapping("/{id}")
+    public College getById(@PathVariable Long id) {
+
+        return service.getById(id);
     }
 
-    // Update College
-    @PutMapping("/updateCollege")
-    public CollegeDTO updateCollege(@RequestBody CollegeDTO college) {
-        return collegeService.updateCollege(college);
+    @PutMapping("/{id}")
+    public ResponseEntity<String> update(@PathVariable Long id,
+                                         @Valid @RequestBody CollegeRequestDTO request) {
+
+        String response = service.update(id, request);
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    // Delete College
-    @DeleteMapping("/deleteCollege/{id}")
-    public String deleteCollege(@PathVariable Long id) {
-        collegeService.deleteCollege(id);
-        return "College deleted successfully";
+    @DeleteMapping("/{id}")
+    public String delete(@PathVariable Long id) {
+
+        return service.delete(id);
     }
 }
