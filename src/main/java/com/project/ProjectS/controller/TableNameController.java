@@ -1,10 +1,12 @@
 package com.project.ProjectS.controller;
 
-import com.project.ProjectS.dto.TableNameRequestDTO;
-import com.project.ProjectS.dto.TableNameResponseDTO;
-import com.project.ProjectS.service.TableNameServiceImpl;
-import jakarta.validation.Valid;
+import com.project.ProjectS.entity.TableName;
+import com.project.ProjectS.model.TableNameRequestDTO;
+import com.project.ProjectS.model.TableNameResponseDTO;
+import com.project.ProjectS.service.TableNameService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,31 +16,41 @@ import java.util.List;
 public class TableNameController {
 
     @Autowired
-    private TableNameServiceImpl service;
+    private TableNameService service;
 
     @PostMapping
-    public TableNameResponseDTO create(@Valid @RequestBody TableNameRequestDTO request) {
-        return service.create(request);
+    public ResponseEntity<String> create(@RequestBody TableNameRequestDTO request) {
+
+        String response = service.create(request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @GetMapping
-    public List<TableNameResponseDTO> getAll() {
-        return service.getAll();
+    public ResponseEntity<List<TableName>> getAll() {
+
+        List<TableName> response = service.getAll();
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    public TableNameResponseDTO getById(@PathVariable Long id) {
-        return service.getById(id);
+    public ResponseEntity<TableName> getById(@PathVariable Long id) {
+
+        TableName response = service.getById(id);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PutMapping("/{id}")
-    public TableNameResponseDTO update(@PathVariable Long id,
-                                       @Valid @RequestBody TableNameRequestDTO request) {
-        return service.update(id, request);
+    public ResponseEntity<String> update(@PathVariable Long id,
+                                         @RequestBody TableNameRequestDTO request) {
+
+        String response = service.update(id, request);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
-    public String delete(@PathVariable Long id) {
-        return service.delete(id);
+    public ResponseEntity<String> delete(@PathVariable Long id) {
+
+        String response = service.delete(id);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

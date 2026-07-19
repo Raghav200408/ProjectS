@@ -1,4 +1,4 @@
-package com.project.ProjectS.dto;
+package com.project.ProjectS.model;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -7,7 +7,7 @@ import lombok.Setter;
 @Setter
 public class TableNameResponseDTO {
 
-    private Long tableNameId;
+    private Long headerId;
     private String name;
     private Boolean activeRow;
     private Integer rowStatus;
