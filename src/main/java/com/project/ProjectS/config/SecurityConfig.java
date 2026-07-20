@@ -86,6 +86,8 @@ public class SecurityConfig {
 								"/api/branch/**",
 								"/api/course/**",
 								"/api/section/**",
+								"/api/exam/**",
+								"/api/exam-question/**"
 								"/api/table-names/**",
 								"/api/table-headers/**",
 								"/api/table-attributes/**",
