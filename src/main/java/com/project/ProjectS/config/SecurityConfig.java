@@ -87,12 +87,13 @@ public class SecurityConfig {
 								"/api/course/**",
 								"/api/section/**",
 								"/api/exam/**",
-								"/api/exam-question/**"
+								"/api/exam-question/**",
 								"/api/table-names/**",
 								"/api/table-headers/**",
 								"/api/table-attributes/**",
 								"/api/question-categories/**",
-								"/api/roles/**"
+								"/api/roles/**",
+								"/api/chapter/**"
 
 						).permitAll()
                 	    .requestMatchers(
