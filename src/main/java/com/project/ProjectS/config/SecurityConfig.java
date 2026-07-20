@@ -85,7 +85,9 @@ public class SecurityConfig {
 								"/api/college/**",
 								"/api/branch/**",
 								"/api/course/**",
-								"/api/section/**"
+								"/api/section/**",
+								"/api/exam/**",
+								"/api/exam-question/**"
 						).permitAll()
                 	    .requestMatchers(
                 	            "/api/users/me"
