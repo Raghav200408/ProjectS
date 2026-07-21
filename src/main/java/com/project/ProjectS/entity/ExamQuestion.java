@@ -1,5 +1,6 @@
 package com.project.ProjectS.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,8 +20,10 @@ public class ExamQuestion {
     @Column(name = "question_id")
     private Long questionId;
 
-    @Column(name = "exam_id", nullable = false)
-    private Long examId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "exam_id", nullable = false)
+    @JsonBackReference
+    private Exam exam;
 
     @Column(name = "header_id", nullable = false)
     private Long headerId;
@@ -44,7 +47,7 @@ public class ExamQuestion {
     private String note;
 
     @Column(name = "active_row")
-    private Boolean activeRow;
+    private Boolean activeRow = true;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -65,7 +68,6 @@ public class ExamQuestion {
 
     @PreUpdate
     public void preUpdate() {
-
         updatedAt = LocalDateTime.now();
     }
 }

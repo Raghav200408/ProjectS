@@ -1,9 +1,11 @@
 package com.project.ProjectS.service;
 
 import com.project.ProjectS.entity.Exam;
+import com.project.ProjectS.entity.QuestionCategory;
 import com.project.ProjectS.model.ExamRequestDTO;
 import com.project.ProjectS.model.ExamResponseDTO;
 import com.project.ProjectS.repository.ExamRepository;
+import com.project.ProjectS.repository.QuestionCategoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,16 +18,22 @@ public class ExamService {
     @Autowired
     private ExamRepository examRepository;
 
+    @Autowired
+    private QuestionCategoryRepository questionCategoryRepository;
+
     public String create(ExamRequestDTO request) {
 
         if (examRepository.existsByQuestionCode(request.getQuestionCode())) {
             throw new RuntimeException("Question Code already exists");
         }
 
+        QuestionCategory category = questionCategoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Question Category not found"));
+
         Exam entity = new Exam();
 
         entity.setChapterId(request.getChapterId());
-        entity.setCategoryId(request.getCategoryId());
+        entity.setCategory(category);
         entity.setQuestionCode(request.getQuestionCode());
         entity.setName(request.getName());
 
@@ -58,8 +66,11 @@ public class ExamService {
             throw new RuntimeException("Question Code already exists");
         }
 
+        QuestionCategory category = questionCategoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Question Category not found"));
+
         entity.setChapterId(request.getChapterId());
-        entity.setCategoryId(request.getCategoryId());
+        entity.setCategory(category);
         entity.setQuestionCode(request.getQuestionCode());
         entity.setName(request.getName());
 
@@ -84,7 +95,7 @@ public class ExamService {
 
         dto.setExamId(entity.getExamId());
         dto.setChapterId(entity.getChapterId());
-        dto.setCategoryId(entity.getCategoryId());
+        dto.setCategoryId(entity.getCategory().getCategoryId());
         dto.setQuestionCode(entity.getQuestionCode());
         dto.setName(entity.getName());
         dto.setActiveRow(entity.getActiveRow());
