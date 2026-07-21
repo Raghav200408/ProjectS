@@ -1,10 +1,14 @@
 package com.project.ProjectS.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "exams")
@@ -17,13 +21,13 @@ public class Exam {
     @Column(name = "exam_id")
     private Long examId;
 
-
-    @Column(name = "Chapter_id", nullable = false)
+    @Column(name = "chapter_id", nullable = false)
     private Long chapterId;
 
-
-    @Column(name = "category_id", nullable = false)
-    private Long categoryId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    @JsonBackReference
+    private QuestionCategory category;
 
     @Column(name = "question_code", nullable = false, length = 30)
     private String questionCode;
@@ -32,7 +36,7 @@ public class Exam {
     private String name;
 
     @Column(name = "active_row")
-    private Boolean activeRow;
+    private Boolean activeRow = true;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -40,14 +44,18 @@ public class Exam {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private List<ExamQuestion> examQuestions = new ArrayList<>();
+
     @PrePersist
     public void prePersist() {
+
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
 
         if (activeRow == null) {
             activeRow = true;
-
         }
     }
 
@@ -55,6 +63,4 @@ public class Exam {
     public void preUpdate() {
         updatedAt = LocalDateTime.now();
     }
-        }
-
-
+}
