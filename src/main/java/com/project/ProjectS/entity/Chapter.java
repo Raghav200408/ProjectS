@@ -1,42 +1,34 @@
 package com.project.ProjectS.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
-@Table(name = "exams")
+@Table(name = "chapters")
 @Getter
 @Setter
-public class Exam {
+public class Chapter {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "exam_id")
-    private Long examId;
-
-    @Column(name = "chapter_id", nullable = false)
+    @Column(name = "chapter_id")
     private Long chapterId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
-    @JsonBackReference
-    private QuestionCategory category;
-
-    @Column(name = "question_code", nullable = false, length = 30)
-    private String questionCode;
+    @JoinColumn(name = "course_id", nullable = false)
+    private Course course;
 
     @Column(name = "name", nullable = false)
     private String name;
 
     @Column(name = "active_row")
-    private Boolean activeRow = true;
+    private Boolean activeRow;
+
+    @Column(name = "row_status")
+    private Integer rowStatus;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -44,18 +36,17 @@ public class Exam {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference
-    private List<ExamQuestion> examQuestions = new ArrayList<>();
-
     @PrePersist
     public void prePersist() {
-
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
 
         if (activeRow == null) {
             activeRow = true;
+        }
+
+        if (rowStatus == null) {
+            rowStatus = 1;
         }
     }
 
@@ -63,4 +54,5 @@ public class Exam {
     public void preUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
 }
