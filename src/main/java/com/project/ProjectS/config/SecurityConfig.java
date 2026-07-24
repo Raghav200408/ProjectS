@@ -46,7 +46,21 @@ public class SecurityConfig {
 								"/api/auth/login",
 								"/api/users/guest/register",
 								"/oauth2/**",
-								"/login/**"
+								"/login/**",
+								"/api/college/**",
+								"/api/branch/**",
+								"/api/course/**",
+								"/api/section/**",
+								"/api/exam/**",
+								"/api/exam-question/**",
+								"/api/table-names/**",
+								"/api/table-headers/**",
+								"/api/table-attributes/**",
+								"/api/question-categories/**",
+								"/api/roles/**",
+								"/api/chapter/**",
+								"/api/rule-engines/**",
+								"/api/dashboard/**"
 						).permitAll()
 
 
