@@ -1,58 +1,47 @@
 package com.project.ProjectS.security.service;
 
-import java.util.Collection;
-import java.util.List;
+import com.project.ProjectS.entity.User;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import com.project.ProjectS.model.UserDTO;
+import java.util.Collection;
+import java.util.List;
 
 public class CustomUserDetails implements UserDetails {
 
-    private final UserDTO user;
+    private final User user;
 
-    public CustomUserDetails(UserDTO user) {
+    public CustomUserDetails(User user) {
         this.user = user;
     }
 
-    /**
-     * Return complete user object
-     */
-    public UserDTO getUser() {
+    // Get complete User entity
+    public User getUser() {
         return user;
     }
 
-    /**
-     * Spring Security Role
-     */
+    // Get user's role/authority
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
 
-        String role = switch (user.getRoleId()) {
-            case 1 -> "ROLE_SUPER_ADMIN";
-            case 2 -> "ROLE_BRANCH_ADMIN";
-            default -> "ROLE_STUDENT";
-        };
+        String roleName = user.getRole().getRoleName();
 
-        System.out.println("Role ID = " + user.getRoleId());
-        System.out.println("Authority = " + role);
+        String authority = "ROLE_" + roleName;
 
-        return List.of(new SimpleGrantedAuthority(role));
+        return List.of(
+                new SimpleGrantedAuthority(authority)
+        );
     }
 
-    /**
-     * Password
-     */
+    // Encoded password from database
     @Override
     public String getPassword() {
         return user.getPassword();
     }
 
-    /**
-     * Username (Email)
-     */
+    // We use email as username
     @Override
     public String getUsername() {
         return user.getEmail();
@@ -77,5 +66,4 @@ public class CustomUserDetails implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
-
 }

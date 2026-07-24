@@ -1,6 +1,12 @@
 package com.project.ProjectS.security.filter;
 
-import java.io.IOException;
+import com.project.ProjectS.security.jwt.JwtUtil;
+import com.project.ProjectS.security.service.CustomUserDetailsService;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -10,13 +16,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.project.ProjectS.security.jwt.JwtUtil;
-import com.project.ProjectS.security.service.CustomUserDetailsService;
-
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -36,49 +36,81 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
-        String token = null;
+        System.out.println("=================================");
+        System.out.println("REQUEST: " + request.getMethod()
+                + " " + request.getRequestURI());
 
-        String email = null;
+        System.out.println("Authorization Header: " + authHeader);
 
-        // Check Authorization Header
-        if (authHeader != null &&
-                authHeader.startsWith("Bearer ")) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
 
-            token = authHeader.substring(7);
+            System.out.println("JWT NOT FOUND");
 
-            email = jwtUtil.extractEmail(token);
-
+            filterChain.doFilter(request, response);
+            return;
         }
 
-        // Authenticate User
-        if (email != null &&
-                SecurityContextHolder.getContext().getAuthentication() == null) {
+        String token = authHeader.substring(7);
 
-            UserDetails userDetails =
-                    userDetailsService.loadUserByUsername(email);
+        try {
 
-            if (jwtUtil.isTokenValid(token)) {
+            String email = jwtUtil.extractEmail(token);
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities());
+            System.out.println("JWT EMAIL: " + email);
 
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request));
+            if (email != null &&
+                    SecurityContextHolder.getContext()
+                            .getAuthentication() == null) {
 
-                SecurityContextHolder
-                        .getContext()
-                        .setAuthentication(authentication);
+                UserDetails userDetails =
+                        userDetailsService.loadUserByUsername(email);
 
+                System.out.println(
+                        "AUTHORITIES: " +
+                                userDetails.getAuthorities()
+                );
+
+                if (jwtUtil.isTokenValid(token)) {
+
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
+
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource()
+                                    .buildDetails(request)
+                    );
+
+                    SecurityContextHolder
+                            .getContext()
+                            .setAuthentication(authentication);
+
+                    System.out.println(
+                            "JWT AUTHENTICATION SUCCESS"
+                    );
+                } else {
+
+                    System.out.println("JWT INVALID");
+                }
             }
 
+        } catch (Exception e) {
+
+            System.out.println(
+                    "JWT AUTHENTICATION ERROR: "
+                            + e.getMessage()
+            );
+
+            e.printStackTrace();
+
+            SecurityContextHolder.clearContext();
         }
 
+        System.out.println("=================================");
+
         filterChain.doFilter(request, response);
-
     }
-
 }
