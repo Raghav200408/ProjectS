@@ -1,0 +1,352 @@
+2026-07-24 10:03:12 INFO  [main] AnnotationConfigContextLoaderUtils - Could not detect default configuration classes for test class [com.project.ProjectS.ProjectSApplicationTests]: ProjectSApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-07-24 10:03:13 INFO  [main] SpringBootTestContextBootstrapper - Found @SpringBootConfiguration com.project.ProjectS.ProjectSApplication for test class com.project.ProjectS.ProjectSApplicationTests
+2026-07-24 10:03:13 INFO  [background-preinit] Version - HV000001: Hibernate Validator 8.0.2.Final
+2026-07-24 10:03:13 INFO  [main] ProjectSApplicationTests - Starting ProjectSApplicationTests using Java 17.0.12 with PID 18880 (started by chara in C:\Users\chara\Intellij_workspace\ProjectS)
+2026-07-24 10:03:13 INFO  [main] ProjectSApplicationTests - No active profile set, falling back to 1 default profile: "default"
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationDelegate - Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.BranchRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.ChapterRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.CollegeRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.CourseRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.ExamQuestionRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.ExamRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.QuestionCategoryRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.RoleRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.SectionRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.TableAttributeRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.TableHeaderRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.TableNameRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 74 ms. Found 0 JDBC repository interfaces.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-07-24 10:03:15 INFO  [main] RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 56 ms. Found 12 JPA repository interfaces.
+2026-07-24 10:03:16 INFO  [main] HikariDataSource - HikariPool-1 - Starting...
+2026-07-24 10:03:16 INFO  [main] HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@6b9697ae
+2026-07-24 10:03:16 INFO  [main] HikariDataSource - HikariPool-1 - Start completed.
+2026-07-24 10:03:16 INFO  [main] LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-07-24 10:03:16 INFO  [main] Version - HHH000412: Hibernate ORM core version 6.6.22.Final
+2026-07-24 10:03:16 INFO  [main] Environment - HHH000205: Loaded properties from resource hibernate.properties: {}
+2026-07-24 10:03:16 INFO  [main] RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2026-07-24 10:03:17 INFO  [main] SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-07-24 10:03:17 INFO  [main] pooling - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 18.4
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-07-24 10:03:19 INFO  [main] JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-07-24 10:03:19 INFO  [main] LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-07-24 10:03:20 INFO  [main] InitializeAuthenticationProviderBeanManagerConfigurer$InitializeAuthenticationProviderManagerConfigurer - Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-07-24 10:03:20 WARN  [main] InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-07-24 10:03:20 WARN  [main] JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-07-24 10:03:20 DEBUG [main] DefaultSecurityFilterChain - Will secure any request with filters: DisableEncodeUrlFilter, WebAsyncManagerIntegrationFilter, SecurityContextHolderFilter, HeaderWriterFilter, CorsFilter, LogoutFilter, OAuth2AuthorizationRequestRedirectFilter, OAuth2LoginAuthenticationFilter, JwtAuthenticationFilter, DefaultResourcesFilter, DefaultLoginPageGeneratingFilter, DefaultLogoutPageGeneratingFilter, RequestCacheAwareFilter, SecurityContextHolderAwareRequestFilter, AnonymousAuthenticationFilter, SessionManagementFilter, ExceptionTranslationFilter, AuthorizationFilter
+2026-07-24 10:03:21 INFO  [main] ProjectSApplicationTests - Started ProjectSApplicationTests in 7.947 seconds (process running for 10.489)
+2026-07-24 10:03:21 INFO  [SpringApplicationShutdownHook] LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-07-24 10:03:21 INFO  [SpringApplicationShutdownHook] HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-07-24 10:03:21 INFO  [SpringApplicationShutdownHook] HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-07-24 10:03:38 INFO  [background-preinit] Version - HV000001: Hibernate Validator 8.0.2.Final
+2026-07-24 10:03:38 INFO  [main] ProjectSApplication - Starting ProjectSApplication using Java 17.0.12 with PID 14408 (C:\Users\chara\Intellij_workspace\ProjectS\target\classes started by chara in C:\Users\chara\Intellij_workspace\ProjectS)
+2026-07-24 10:03:38 INFO  [main] ProjectSApplication - No active profile set, falling back to 1 default profile: "default"
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationDelegate - Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.BranchRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.ChapterRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.CollegeRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.CourseRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.ExamQuestionRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.ExamRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.QuestionCategoryRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.RoleRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.SectionRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.TableAttributeRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.TableHeaderRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.TableNameRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 53 ms. Found 0 JDBC repository interfaces.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-07-24 10:03:39 INFO  [main] RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 42 ms. Found 12 JPA repository interfaces.
+2026-07-24 10:03:40 INFO  [main] TomcatWebServer - Tomcat initialized with port 8080 (http)
+2026-07-24 10:03:40 INFO  [main] Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2026-07-24 10:03:40 INFO  [main] StandardService - Starting service [Tomcat]
+2026-07-24 10:03:40 INFO  [main] StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.43]
+2026-07-24 10:03:40 INFO  [main] [/] - Initializing Spring embedded WebApplicationContext
+2026-07-24 10:03:40 INFO  [main] ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1602 ms
+2026-07-24 10:03:40 INFO  [main] HikariDataSource - HikariPool-1 - Starting...
+2026-07-24 10:03:40 INFO  [main] HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@987a0bb
+2026-07-24 10:03:40 INFO  [main] HikariDataSource - HikariPool-1 - Start completed.
+2026-07-24 10:03:40 INFO  [main] LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-07-24 10:03:40 INFO  [main] Version - HHH000412: Hibernate ORM core version 6.6.22.Final
+2026-07-24 10:03:40 INFO  [main] Environment - HHH000205: Loaded properties from resource hibernate.properties: {}
+2026-07-24 10:03:40 INFO  [main] RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2026-07-24 10:03:41 INFO  [main] SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-07-24 10:03:41 INFO  [main] pooling - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 18.4
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-07-24 10:03:42 INFO  [main] JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-07-24 10:03:42 INFO  [main] LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-07-24 10:03:43 INFO  [main] InitializeAuthenticationProviderBeanManagerConfigurer$InitializeAuthenticationProviderManagerConfigurer - Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-07-24 10:03:43 WARN  [main] InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-07-24 10:03:43 WARN  [main] JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-07-24 10:03:43 DEBUG [main] DefaultSecurityFilterChain - Will secure any request with filters: DisableEncodeUrlFilter, WebAsyncManagerIntegrationFilter, SecurityContextHolderFilter, HeaderWriterFilter, CorsFilter, LogoutFilter, OAuth2AuthorizationRequestRedirectFilter, OAuth2LoginAuthenticationFilter, JwtAuthenticationFilter, DefaultResourcesFilter, DefaultLoginPageGeneratingFilter, DefaultLogoutPageGeneratingFilter, RequestCacheAwareFilter, SecurityContextHolderAwareRequestFilter, AnonymousAuthenticationFilter, SessionManagementFilter, ExceptionTranslationFilter, AuthorizationFilter
+2026-07-24 10:03:43 INFO  [main] Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2026-07-24 10:03:43 INFO  [main] TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2026-07-24 10:03:43 INFO  [main] ProjectSApplication - Started ProjectSApplication in 5.451 seconds (process running for 6.411)
+2026-07-24 10:08:00 INFO  [http-nio-8080-exec-1] [/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-07-24 10:08:00 INFO  [http-nio-8080-exec-1] DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-07-24 10:08:00 INFO  [http-nio-8080-exec-1] DispatcherServlet - Completed initialization in 18 ms
+2026-07-24 10:08:00 DEBUG [http-nio-8080-exec-1] FilterChainProxy - Securing GET /api/section
+2026-07-24 10:08:00 DEBUG [http-nio-8080-exec-1] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:08:00 DEBUG [http-nio-8080-exec-1] FilterChainProxy - Secured GET /api/section
+2026-07-24 10:08:00 INFO  [http-nio-8080-exec-1] SectionController - Received request to fetch all sections.
+2026-07-24 10:08:00 INFO  [http-nio-8080-exec-1] SectionService - Fetching all sections.
+2026-07-24 10:08:00 INFO  [http-nio-8080-exec-1] SectionService - Fetched 2 sections.
+2026-07-24 10:08:00 INFO  [http-nio-8080-exec-1] SectionController - Fetched 2 sections successfully.
+2026-07-24 10:08:08 DEBUG [http-nio-8080-exec-3] FilterChainProxy - Securing GET /api/section
+2026-07-24 10:08:08 DEBUG [http-nio-8080-exec-3] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:08:08 DEBUG [http-nio-8080-exec-3] FilterChainProxy - Secured GET /api/section
+2026-07-24 10:08:08 INFO  [http-nio-8080-exec-3] SectionController - Received request to fetch all sections.
+2026-07-24 10:08:08 INFO  [http-nio-8080-exec-3] SectionService - Fetching all sections.
+2026-07-24 10:08:08 INFO  [http-nio-8080-exec-3] SectionService - Fetched 2 sections.
+2026-07-24 10:08:08 INFO  [http-nio-8080-exec-3] SectionController - Fetched 2 sections successfully.
+2026-07-24 10:11:23 DEBUG [http-nio-8080-exec-4] FilterChainProxy - Securing POST /api/college
+2026-07-24 10:11:23 DEBUG [http-nio-8080-exec-4] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:11:23 DEBUG [http-nio-8080-exec-4] FilterChainProxy - Secured POST /api/college
+2026-07-24 10:11:23 INFO  [http-nio-8080-exec-4] CollegeController - Received request to create college.
+2026-07-24 10:11:23 INFO  [http-nio-8080-exec-4] CollegeService - Creating college with name: ccc Engineering College
+2026-07-24 10:11:23 INFO  [http-nio-8080-exec-4] CollegeService - College created successfully. College ID: 4
+2026-07-24 10:11:23 INFO  [http-nio-8080-exec-4] CollegeController - Create college request completed successfully.
+2026-07-24 10:12:11 DEBUG [http-nio-8080-exec-7] FilterChainProxy - Securing GET /api/college
+2026-07-24 10:12:11 DEBUG [http-nio-8080-exec-7] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:12:11 DEBUG [http-nio-8080-exec-7] FilterChainProxy - Secured GET /api/college
+2026-07-24 10:12:11 INFO  [http-nio-8080-exec-7] CollegeController - Received request to fetch all colleges.
+2026-07-24 10:12:11 INFO  [http-nio-8080-exec-7] CollegeService - Fetching all colleges.
+2026-07-24 10:12:11 INFO  [http-nio-8080-exec-7] CollegeService - Fetched 3 colleges.
+2026-07-24 10:12:11 INFO  [http-nio-8080-exec-7] CollegeController - Fetched 3 colleges successfully.
+2026-07-24 10:12:53 DEBUG [http-nio-8080-exec-8] FilterChainProxy - Securing GET /api/college/1
+2026-07-24 10:12:53 DEBUG [http-nio-8080-exec-8] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:12:53 DEBUG [http-nio-8080-exec-8] FilterChainProxy - Secured GET /api/college/1
+2026-07-24 10:12:53 INFO  [http-nio-8080-exec-8] CollegeController - Received request to fetch college with ID: 1
+2026-07-24 10:12:53 INFO  [http-nio-8080-exec-8] CollegeService - Fetching college with ID: 1
+2026-07-24 10:12:53 INFO  [http-nio-8080-exec-8] CollegeService - College fetched successfully with ID: 1
+2026-07-24 10:12:53 INFO  [http-nio-8080-exec-8] CollegeController - College fetched successfully with ID: 1
+2026-07-24 10:12:53 INFO  [http-nio-8080-exec-8] CollegeService - Fetching college with ID: 1
+2026-07-24 10:12:53 INFO  [http-nio-8080-exec-8] CollegeService - College fetched successfully with ID: 1
+2026-07-24 10:13:26 DEBUG [http-nio-8080-exec-9] FilterChainProxy - Securing POST /api/college/1
+2026-07-24 10:13:26 DEBUG [http-nio-8080-exec-9] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:13:26 DEBUG [http-nio-8080-exec-9] FilterChainProxy - Secured POST /api/college/1
+2026-07-24 10:13:26 WARN  [http-nio-8080-exec-9] DefaultHandlerExceptionResolver - Resolved [org.springframework.web.HttpRequestMethodNotSupportedException: Request method 'POST' is not supported]
+2026-07-24 10:13:27 DEBUG [http-nio-8080-exec-9] FilterChainProxy - Securing POST /error
+2026-07-24 10:13:27 DEBUG [http-nio-8080-exec-9] FilterChainProxy - Secured POST /error
+2026-07-24 10:13:27 DEBUG [http-nio-8080-exec-9] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:13:40 DEBUG [http-nio-8080-exec-10] FilterChainProxy - Securing POST /api/college/1
+2026-07-24 10:13:40 DEBUG [http-nio-8080-exec-10] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:13:40 DEBUG [http-nio-8080-exec-10] FilterChainProxy - Secured POST /api/college/1
+2026-07-24 10:13:40 WARN  [http-nio-8080-exec-10] DefaultHandlerExceptionResolver - Resolved [org.springframework.web.HttpRequestMethodNotSupportedException: Request method 'POST' is not supported]
+2026-07-24 10:13:40 DEBUG [http-nio-8080-exec-10] FilterChainProxy - Securing POST /error
+2026-07-24 10:13:40 DEBUG [http-nio-8080-exec-10] FilterChainProxy - Secured POST /error
+2026-07-24 10:13:40 DEBUG [http-nio-8080-exec-10] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:13:46 DEBUG [http-nio-8080-exec-2] FilterChainProxy - Securing POST /api/college/2
+2026-07-24 10:13:46 DEBUG [http-nio-8080-exec-2] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:13:46 DEBUG [http-nio-8080-exec-2] FilterChainProxy - Secured POST /api/college/2
+2026-07-24 10:13:46 WARN  [http-nio-8080-exec-2] DefaultHandlerExceptionResolver - Resolved [org.springframework.web.HttpRequestMethodNotSupportedException: Request method 'POST' is not supported]
+2026-07-24 10:13:46 DEBUG [http-nio-8080-exec-2] FilterChainProxy - Securing POST /error
+2026-07-24 10:13:46 DEBUG [http-nio-8080-exec-2] FilterChainProxy - Secured POST /error
+2026-07-24 10:13:46 DEBUG [http-nio-8080-exec-2] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:13:52 DEBUG [http-nio-8080-exec-1] FilterChainProxy - Securing POST /api/college/3
+2026-07-24 10:13:52 DEBUG [http-nio-8080-exec-1] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:13:52 DEBUG [http-nio-8080-exec-1] FilterChainProxy - Secured POST /api/college/3
+2026-07-24 10:13:52 WARN  [http-nio-8080-exec-1] DefaultHandlerExceptionResolver - Resolved [org.springframework.web.HttpRequestMethodNotSupportedException: Request method 'POST' is not supported]
+2026-07-24 10:13:52 DEBUG [http-nio-8080-exec-1] FilterChainProxy - Securing POST /error
+2026-07-24 10:13:52 DEBUG [http-nio-8080-exec-1] FilterChainProxy - Secured POST /error
+2026-07-24 10:13:52 DEBUG [http-nio-8080-exec-1] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:14:26 DEBUG [http-nio-8080-exec-3] FilterChainProxy - Securing PUT /api/college/1
+2026-07-24 10:14:26 DEBUG [http-nio-8080-exec-3] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:14:26 DEBUG [http-nio-8080-exec-3] FilterChainProxy - Secured PUT /api/college/1
+2026-07-24 10:14:26 INFO  [http-nio-8080-exec-3] CollegeController - Received request to update college with ID: 1
+2026-07-24 10:14:26 INFO  [http-nio-8080-exec-3] CollegeService - Updating college with ID: 1
+2026-07-24 10:14:26 INFO  [http-nio-8080-exec-3] CollegeService - College updated successfully with ID: 1
+2026-07-24 10:14:26 INFO  [http-nio-8080-exec-3] CollegeController - College updated successfully with ID: 1
+2026-07-24 10:15:14 DEBUG [http-nio-8080-exec-6] FilterChainProxy - Securing GET /api/college/1
+2026-07-24 10:15:14 DEBUG [http-nio-8080-exec-6] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:15:14 DEBUG [http-nio-8080-exec-6] FilterChainProxy - Secured GET /api/college/1
+2026-07-24 10:15:14 INFO  [http-nio-8080-exec-6] CollegeController - Received request to fetch college with ID: 1
+2026-07-24 10:15:14 INFO  [http-nio-8080-exec-6] CollegeService - Fetching college with ID: 1
+2026-07-24 10:15:14 INFO  [http-nio-8080-exec-6] CollegeService - College fetched successfully with ID: 1
+2026-07-24 10:15:14 INFO  [http-nio-8080-exec-6] CollegeController - College fetched successfully with ID: 1
+2026-07-24 10:15:14 INFO  [http-nio-8080-exec-6] CollegeService - Fetching college with ID: 1
+2026-07-24 10:15:14 INFO  [http-nio-8080-exec-6] CollegeService - College fetched successfully with ID: 1
+2026-07-24 10:17:32 DEBUG [http-nio-8080-exec-7] FilterChainProxy - Securing POST /api/branch
+2026-07-24 10:17:32 DEBUG [http-nio-8080-exec-7] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:17:32 DEBUG [http-nio-8080-exec-7] FilterChainProxy - Secured POST /api/branch
+2026-07-24 10:17:32 INFO  [http-nio-8080-exec-7] BranchController - Received request to create branch.
+2026-07-24 10:17:32 INFO  [http-nio-8080-exec-7] BranchService - Creating branch with name: Hyderabad
+2026-07-24 10:17:33 INFO  [http-nio-8080-exec-7] BranchService - Branch created successfully with name: Hyderabad
+2026-07-24 10:17:33 INFO  [http-nio-8080-exec-7] BranchController - Create branch request completed successfully.
+2026-07-24 10:27:36 DEBUG [http-nio-8080-exec-10] FilterChainProxy - Securing GET /api/branch
+2026-07-24 10:27:36 DEBUG [http-nio-8080-exec-10] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:27:36 DEBUG [http-nio-8080-exec-10] FilterChainProxy - Secured GET /api/branch
+2026-07-24 10:27:36 INFO  [http-nio-8080-exec-10] BranchController - Received request to fetch all branches.
+2026-07-24 10:27:36 INFO  [http-nio-8080-exec-10] BranchService - Fetching all branches.
+2026-07-24 10:27:36 INFO  [http-nio-8080-exec-10] BranchService - Fetched 3 branches.
+2026-07-24 10:27:36 INFO  [http-nio-8080-exec-10] BranchController - Fetched 3 branches successfully.
+2026-07-24 10:40:55 DEBUG [http-nio-8080-exec-3] FilterChainProxy - Securing GET /api/section
+2026-07-24 10:40:55 DEBUG [http-nio-8080-exec-3] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:40:55 DEBUG [http-nio-8080-exec-3] FilterChainProxy - Secured GET /api/section
+2026-07-24 10:40:55 INFO  [http-nio-8080-exec-3] SectionController - Received request to fetch all sections.
+2026-07-24 10:40:55 INFO  [http-nio-8080-exec-3] SectionService - Fetching all sections.
+2026-07-24 10:40:55 INFO  [http-nio-8080-exec-3] SectionService - Fetched 2 sections.
+2026-07-24 10:40:55 INFO  [http-nio-8080-exec-3] SectionController - Fetched 2 sections successfully.
+2026-07-24 10:41:08 DEBUG [http-nio-8080-exec-6] FilterChainProxy - Securing GET /api/section/1
+2026-07-24 10:41:08 DEBUG [http-nio-8080-exec-6] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:41:08 DEBUG [http-nio-8080-exec-6] FilterChainProxy - Secured GET /api/section/1
+2026-07-24 10:41:08 INFO  [http-nio-8080-exec-6] SectionController - Received request to fetch section with ID: 1
+2026-07-24 10:41:08 INFO  [http-nio-8080-exec-6] SectionService - Fetching section with ID: 1
+2026-07-24 10:41:08 INFO  [http-nio-8080-exec-6] SectionService - Section fetched successfully with ID: 1
+2026-07-24 10:41:08 INFO  [http-nio-8080-exec-6] SectionController - Section fetched successfully with ID: 1
+2026-07-24 10:49:43 INFO  [SpringApplicationShutdownHook] GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+2026-07-24 10:49:43 INFO  [tomcat-shutdown] GracefulShutdown - Graceful shutdown complete
+2026-07-24 10:49:43 INFO  [SpringApplicationShutdownHook] LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-07-24 10:49:43 INFO  [SpringApplicationShutdownHook] HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-07-24 10:49:43 INFO  [SpringApplicationShutdownHook] HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-07-24 10:49:58 INFO  [background-preinit] Version - HV000001: Hibernate Validator 8.0.2.Final
+2026-07-24 10:49:58 INFO  [main] ProjectSApplication - Starting ProjectSApplication using Java 17.0.12 with PID 19368 (C:\Users\chara\Intellij_workspace\ProjectS\target\classes started by chara in C:\Users\chara\Intellij_workspace\ProjectS)
+2026-07-24 10:49:58 INFO  [main] ProjectSApplication - No active profile set, falling back to 1 default profile: "default"
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationDelegate - Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.BranchRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.ChapterRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.CollegeRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.CourseRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.ExamQuestionRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.ExamRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.QuestionCategoryRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.RoleRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.SectionRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.TableAttributeRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.TableHeaderRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.TableNameRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 46 ms. Found 0 JDBC repository interfaces.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-07-24 10:50:00 INFO  [main] RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 38 ms. Found 12 JPA repository interfaces.
+2026-07-24 10:50:01 INFO  [main] TomcatWebServer - Tomcat initialized with port 8080 (http)
+2026-07-24 10:50:01 INFO  [main] Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2026-07-24 10:50:01 INFO  [main] StandardService - Starting service [Tomcat]
+2026-07-24 10:50:01 INFO  [main] StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.43]
+2026-07-24 10:50:01 INFO  [main] [/] - Initializing Spring embedded WebApplicationContext
+2026-07-24 10:50:01 INFO  [main] ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 2742 ms
+2026-07-24 10:50:01 INFO  [main] HikariDataSource - HikariPool-1 - Starting...
+2026-07-24 10:50:01 INFO  [main] HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@987a0bb
+2026-07-24 10:50:01 INFO  [main] HikariDataSource - HikariPool-1 - Start completed.
+2026-07-24 10:50:01 INFO  [main] LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-07-24 10:50:01 INFO  [main] Version - HHH000412: Hibernate ORM core version 6.6.22.Final
+2026-07-24 10:50:01 INFO  [main] Environment - HHH000205: Loaded properties from resource hibernate.properties: {}
+2026-07-24 10:50:01 INFO  [main] RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2026-07-24 10:50:02 INFO  [main] SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-07-24 10:50:02 INFO  [main] pooling - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 18.4
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-07-24 10:50:03 INFO  [main] JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-07-24 10:50:03 INFO  [main] LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-07-24 10:50:03 INFO  [main] InitializeAuthenticationProviderBeanManagerConfigurer$InitializeAuthenticationProviderManagerConfigurer - Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-07-24 10:50:03 WARN  [main] InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-07-24 10:50:04 WARN  [main] JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-07-24 10:50:04 DEBUG [main] DefaultSecurityFilterChain - Will secure any request with filters: DisableEncodeUrlFilter, WebAsyncManagerIntegrationFilter, SecurityContextHolderFilter, HeaderWriterFilter, CorsFilter, LogoutFilter, OAuth2AuthorizationRequestRedirectFilter, OAuth2LoginAuthenticationFilter, JwtAuthenticationFilter, DefaultResourcesFilter, DefaultLoginPageGeneratingFilter, DefaultLogoutPageGeneratingFilter, RequestCacheAwareFilter, SecurityContextHolderAwareRequestFilter, AnonymousAuthenticationFilter, SessionManagementFilter, ExceptionTranslationFilter, AuthorizationFilter
+2026-07-24 10:50:04 INFO  [main] Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2026-07-24 10:50:04 INFO  [main] TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2026-07-24 10:50:04 INFO  [main] ProjectSApplication - Started ProjectSApplication in 6.527 seconds (process running for 8.982)
+2026-07-24 10:52:23 INFO  [http-nio-8080-exec-7] [/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-07-24 10:52:23 INFO  [http-nio-8080-exec-7] DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-07-24 10:52:23 INFO  [http-nio-8080-exec-7] DispatcherServlet - Completed initialization in 0 ms
+2026-07-24 10:52:23 DEBUG [http-nio-8080-exec-7] FilterChainProxy - Securing GET /api/chapter
+2026-07-24 10:52:23 DEBUG [http-nio-8080-exec-7] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:52:23 DEBUG [http-nio-8080-exec-7] FilterChainProxy - Secured GET /api/chapter
+2026-07-24 10:52:24 INFO  [http-nio-8080-exec-7] ChapterController - Entering getAll()
+2026-07-24 10:52:24 INFO  [http-nio-8080-exec-7] ChapterService - Entering getAll()
+2026-07-24 10:52:24 INFO  [http-nio-8080-exec-7] ChapterService - Exiting getAll()
+2026-07-24 10:52:24 INFO  [http-nio-8080-exec-7] ChapterController - Exiting getAll()
+2026-07-24 10:56:34 INFO  [SpringApplicationShutdownHook] GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+2026-07-24 10:56:34 INFO  [tomcat-shutdown] GracefulShutdown - Graceful shutdown complete
+2026-07-24 10:56:34 INFO  [SpringApplicationShutdownHook] LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-07-24 10:56:34 INFO  [SpringApplicationShutdownHook] HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-07-24 10:56:34 INFO  [SpringApplicationShutdownHook] HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-07-24 10:56:38 INFO  [background-preinit] Version - HV000001: Hibernate Validator 8.0.2.Final
+2026-07-24 10:56:38 INFO  [main] ProjectSApplication - Starting ProjectSApplication using Java 17.0.12 with PID 8656 (C:\Users\chara\Intellij_workspace\ProjectS\target\classes started by chara in C:\Users\chara\Intellij_workspace\ProjectS)
+2026-07-24 10:56:38 INFO  [main] ProjectSApplication - No active profile set, falling back to 1 default profile: "default"
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationDelegate - Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.BranchRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.ChapterRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.CollegeRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.CourseRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.ExamQuestionRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.ExamRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.QuestionCategoryRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.RoleRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.SectionRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.TableAttributeRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.TableHeaderRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationExtensionSupport - Spring Data JDBC - Could not safely identify store assignment for repository candidate interface com.project.ProjectS.repository.TableNameRepository; If you want this repository to be a JDBC repository, consider annotating your entities with one of these annotations: org.springframework.data.relational.core.mapping.Table.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 60 ms. Found 0 JDBC repository interfaces.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-07-24 10:56:39 INFO  [main] RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 31 ms. Found 12 JPA repository interfaces.
+2026-07-24 10:56:40 INFO  [main] TomcatWebServer - Tomcat initialized with port 8080 (http)
+2026-07-24 10:56:40 INFO  [main] Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2026-07-24 10:56:40 INFO  [main] StandardService - Starting service [Tomcat]
+2026-07-24 10:56:40 INFO  [main] StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.43]
+2026-07-24 10:56:40 INFO  [main] [/] - Initializing Spring embedded WebApplicationContext
+2026-07-24 10:56:40 INFO  [main] ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 1397 ms
+2026-07-24 10:56:40 INFO  [main] HikariDataSource - HikariPool-1 - Starting...
+2026-07-24 10:56:40 INFO  [main] HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@4c04216f
+2026-07-24 10:56:40 INFO  [main] HikariDataSource - HikariPool-1 - Start completed.
+2026-07-24 10:56:40 INFO  [main] LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-07-24 10:56:40 INFO  [main] Version - HHH000412: Hibernate ORM core version 6.6.22.Final
+2026-07-24 10:56:40 INFO  [main] Environment - HHH000205: Loaded properties from resource hibernate.properties: {}
+2026-07-24 10:56:40 INFO  [main] RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2026-07-24 10:56:41 INFO  [main] SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-07-24 10:56:41 INFO  [main] pooling - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 18.4
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-07-24 10:56:42 INFO  [main] JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-07-24 10:56:42 INFO  [main] LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-07-24 10:56:42 INFO  [main] InitializeAuthenticationProviderBeanManagerConfigurer$InitializeAuthenticationProviderManagerConfigurer - Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-07-24 10:56:42 WARN  [main] InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-07-24 10:56:42 WARN  [main] JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-07-24 10:56:43 DEBUG [main] DefaultSecurityFilterChain - Will secure any request with filters: DisableEncodeUrlFilter, WebAsyncManagerIntegrationFilter, SecurityContextHolderFilter, HeaderWriterFilter, CorsFilter, LogoutFilter, OAuth2AuthorizationRequestRedirectFilter, OAuth2LoginAuthenticationFilter, JwtAuthenticationFilter, DefaultResourcesFilter, DefaultLoginPageGeneratingFilter, DefaultLogoutPageGeneratingFilter, RequestCacheAwareFilter, SecurityContextHolderAwareRequestFilter, AnonymousAuthenticationFilter, SessionManagementFilter, ExceptionTranslationFilter, AuthorizationFilter
+2026-07-24 10:56:43 INFO  [main] Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2026-07-24 10:56:43 INFO  [main] TomcatWebServer - Tomcat started on port 8080 (http) with context path '/'
+2026-07-24 10:56:43 INFO  [main] ProjectSApplication - Started ProjectSApplication in 4.912 seconds (process running for 5.562)
+2026-07-24 10:56:54 INFO  [http-nio-8080-exec-2] [/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-07-24 10:56:54 INFO  [http-nio-8080-exec-2] DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-07-24 10:56:54 INFO  [http-nio-8080-exec-2] DispatcherServlet - Completed initialization in 0 ms
+2026-07-24 10:56:54 DEBUG [http-nio-8080-exec-2] FilterChainProxy - Securing GET /api/chapter
+2026-07-24 10:56:54 DEBUG [http-nio-8080-exec-2] AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-07-24 10:56:54 DEBUG [http-nio-8080-exec-2] FilterChainProxy - Secured GET /api/chapter
+2026-07-24 10:56:54 INFO  [http-nio-8080-exec-2] ChapterController - Received request to fetch all chapters.
+2026-07-24 10:56:54 INFO  [http-nio-8080-exec-2] ChapterService - Fetching all chapters.
+2026-07-24 10:56:54 INFO  [http-nio-8080-exec-2] ChapterService - Fetched 1 chapters.
+2026-07-24 10:56:54 INFO  [http-nio-8080-exec-2] ChapterController - Fetched 1 chapters successfully.
+2026-07-24 11:15:41 INFO  [SpringApplicationShutdownHook] GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+2026-07-24 11:15:41 INFO  [tomcat-shutdown] GracefulShutdown - Graceful shutdown complete
+2026-07-24 11:15:41 INFO  [SpringApplicationShutdownHook] LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-07-24 11:15:41 INFO  [SpringApplicationShutdownHook] HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-07-24 11:15:41 INFO  [SpringApplicationShutdownHook] HikariDataSource - HikariPool-1 - Shutdown completed.
