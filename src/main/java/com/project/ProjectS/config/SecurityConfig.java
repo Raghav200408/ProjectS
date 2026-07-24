@@ -93,7 +93,8 @@ public class SecurityConfig {
 								"/api/table-attributes/**",
 								"/api/question-categories/**",
 								"/api/roles/**",
-								"/api/chapter/**"
+								"/api/chapter/**",
+								"/api/dashboard/**"
 
 						).permitAll()
                 	    .requestMatchers(
