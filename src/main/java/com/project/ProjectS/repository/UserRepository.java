@@ -1,6 +1,7 @@
 package com.project.ProjectS.repository;
 
 import com.project.ProjectS.entity.User;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,6 +11,7 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    @EntityGraph(attributePaths = {"role"})
     Optional<User> findByEmail(String email);
 
     boolean existsByEmail(String email);
@@ -20,4 +22,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByGoogleId(String googleId);
 
     List<User> findByRole_RoleName(String roleName);
+    List<User> findByRole_RoleNameAndBranch_BranchId(
+            String roleName,
+            Long branchId
+    );
 }

@@ -1,5 +1,6 @@
 package com.project.ProjectS.controller;
 
+import com.project.ProjectS.entity.User;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.service.UserService;
 
@@ -9,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -72,4 +75,19 @@ public class UserController {
                 .status(HttpStatus.CREATED)
                 .body(response);
     }
+    @GetMapping("/students")
+    public  ResponseEntity<List<UserResponseDTO>> getAllStudents() {
+        List<UserResponseDTO> students = userService. getAllStudents();
+
+
+        return ResponseEntity.ok(students);
+
+
+    }
+    @GetMapping("/branchAdmins")
+    public ResponseEntity<List<UserResponseDTO>> getAllBranchAdmins(){
+        List<UserResponseDTO> branchAdmins = userService.getAllBranchAdmins();
+        return ResponseEntity.ok(branchAdmins);
+    }
+
 }

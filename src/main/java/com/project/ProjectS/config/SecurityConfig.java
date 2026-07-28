@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 
@@ -47,6 +48,7 @@ public class SecurityConfig {
 								"/api/users/guest/register",
 								"/oauth2/**",
 								"/login/**",
+								"/error",
 								"/api/college/**",
 								"/api/branch/**",
 								"/api/course/**",
@@ -60,7 +62,8 @@ public class SecurityConfig {
 								"/api/roles/**",
 								"/api/chapter/**",
 								"/api/rule-engines/**",
-								"/api/dashboard/**"
+								"/api/dashboard/**",
+								"/api/questions/**"
 						).permitAll()
 
 
@@ -76,6 +79,20 @@ public class SecurityConfig {
 
 						.requestMatchers(
 								"/api/users/student"
+						).hasAnyRole(
+								"SUPER_ADMIN",
+								"BRANCH_ADMIN"
+						)
+						.requestMatchers(
+								HttpMethod.GET,
+								"/api/users/branchAdmins"
+						).hasAnyRole(
+								"SUPER_ADMIN"
+
+						)
+						.requestMatchers(
+								HttpMethod.GET,
+								"/api/users/students"
 						).hasAnyRole(
 								"SUPER_ADMIN",
 								"BRANCH_ADMIN"
