@@ -78,6 +78,6 @@ public class CollegeController {
         String response = service.delete(id);
 
         logger.info("College deleted successfully with ID: {}", id);
-        return service.delete(id);
+        return response;
     }
 }
