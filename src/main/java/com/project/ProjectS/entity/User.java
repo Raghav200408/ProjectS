@@ -59,7 +59,7 @@ public class User {
     @Column(name = "guardian_phone_number", length = 15)
     private String guardianPhoneNumber;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
