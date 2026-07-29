@@ -11,6 +11,12 @@ import org.springframework.stereotype.Service;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.springframework.web.multipart.MultipartFile;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.InputStream;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,19 +51,61 @@ public class SectionService {
 
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> {
-                    logger.warn("Course not found with ID: {}", request.getCourseId());
-                    return new RuntimeException("Course not found");
+
+                    logger.warn(
+                            "Course not found with ID: {}",
+                            request.getCourseId()
+                    );
+
+                    return new RuntimeException(
+                            "Course not found"
+                    );
                 });
+
+
+
+        if (sectionRepository.existsBySectionNameAndCourse(
+                request.getSectionName(),
+                course
+        )) {
+
+            logger.warn(
+                    "Section already exists: {} for course: {}",
+                    request.getSectionName(),
+                    course.getName()
+            );
+
+            throw new RuntimeException(
+                    "Section already exists for this course"
+            );
+        }
+
+
 
         Section entity = new Section();
 
+
         entity.setCourse(course);
-        entity.setSectionName(request.getSectionName());
-        entity.setDescription(request.getDescription());
+
+        entity.setSectionName(
+                request.getSectionName()
+        );
+
+
+        entity.setDescription(
+                request.getDescription()
+        );
+
 
         sectionRepository.save(entity);
 
-        logger.info("Section created successfully with name: {}", request.getSectionName());
+
+
+        logger.info(
+                "Section created successfully with name: {}",
+                request.getSectionName()
+        );
+
 
         return "Section created successfully";
     }
@@ -168,5 +216,143 @@ public class SectionService {
         dto.setUpdatedAt(entity.getUpdatedAt());
 
         return dto;
+    }
+
+    public String uploadSection(MultipartFile file) {
+
+        logger.info("Starting section Excel upload process.");
+
+
+        if(file.isEmpty()) {
+
+            throw new RuntimeException("File cannot be empty");
+
+        }
+
+
+        try(InputStream inputStream = file.getInputStream();
+            Workbook workbook = new XSSFWorkbook(inputStream)) {
+
+
+            Sheet sheet = workbook.getSheetAt(0);
+
+
+            boolean headerRow = true;
+
+            int savedCount = 0;
+            int skippedCount = 0;
+
+
+
+            for(Row row : sheet) {
+
+
+                if(headerRow) {
+
+                    headerRow = false;
+                    continue;
+
+                }
+
+
+                String courseName =
+                        row.getCell(0)
+                                .getStringCellValue()
+                                .trim();
+
+
+
+                String sectionName =
+                        row.getCell(1)
+                                .getStringCellValue()
+                                .trim();
+
+
+
+                String description =
+                        row.getCell(2)
+                                .getStringCellValue()
+                                .trim();
+
+
+
+                logger.info(
+                        "Processing Section: {} for Course: {}",
+                        sectionName,
+                        courseName
+                );
+
+
+
+                Course course =
+                        courseRepository.findByName(courseName)
+                                .orElseThrow(() ->
+
+                                        new RuntimeException(
+                                                "Course not found: "
+                                                        + courseName
+                                        )
+                                );
+
+
+
+                if(sectionRepository.existsBySectionNameAndCourse(
+                        sectionName,
+                        course
+                )){
+
+
+                    skippedCount++;
+
+                    continue;
+
+                }
+
+
+
+                Section section = new Section();
+
+
+                section.setCourse(course);
+
+                section.setSectionName(sectionName);
+
+                section.setDescription(description);
+
+
+
+                sectionRepository.save(section);
+
+
+
+                savedCount++;
+
+
+            }
+
+
+
+            return "Section Excel upload completed. Saved: "
+                    + savedCount
+                    + ", Skipped: "
+                    + skippedCount;
+
+
+
+        }
+        catch(Exception e){
+
+            logger.error(
+                    "Failed while uploading section Excel",
+                    e
+            );
+
+
+            throw new RuntimeException(
+                    "Failed to upload Excel file"
+            );
+
+        }
+
     }
 }

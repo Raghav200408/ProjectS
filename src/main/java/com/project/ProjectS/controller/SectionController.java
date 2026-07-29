@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/section")
 public class SectionController {
@@ -82,5 +84,18 @@ public class SectionController {
         logger.info("Section deleted successfully with ID: {}", id);
 
         return response;
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadSection(
+            @RequestParam("file") MultipartFile file) {
+
+        logger.info("Received request to upload section Excel file.");
+
+        String response = service.uploadSection(file);
+
+        logger.info("Section Excel upload completed successfully.");
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

@@ -11,6 +11,12 @@ import org.springframework.stereotype.Service;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.springframework.web.multipart.MultipartFile;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.InputStream;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,16 +36,35 @@ public class CourseService {
 
         logger.info("Creating course with name: {}", request.getName());
 
-        if (courseRepository.existsByName(request.getName())) {
-            logger.warn("Course already exists with name: {}", request.getName());
-            throw new RuntimeException("Course already exists");
-        }
 
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> {
-                    logger.warn("Branch not found with ID: {}", request.getBranchId());
+
+                    logger.warn(
+                            "Branch not found with ID: {}",
+                            request.getBranchId()
+                    );
+
                     return new RuntimeException("Branch not found");
                 });
+
+
+
+        if (courseRepository.existsByNameAndBranch(
+                request.getName(),
+                branch
+        )) {
+
+            logger.warn(
+                    "Course already exists: {} in branch {}",
+                    request.getName(),
+                    branch.getBranchName()
+            );
+
+            throw new RuntimeException("Course already exists");
+        }
+
+
 
         Course entity = new Course();
 
@@ -48,7 +73,12 @@ public class CourseService {
 
         courseRepository.save(entity);
 
-        logger.info("Course created successfully with name: {}", request.getName());
+
+        logger.info(
+                "Course created successfully with name: {}",
+                request.getName()
+        );
+
 
         return "Course created successfully";
     }
@@ -143,5 +173,152 @@ public class CourseService {
         dto.setUpdatedAt(entity.getUpdatedAt());
 
         return dto;
+    }
+
+    public String uploadCourse(MultipartFile file) {
+
+        logger.info("Starting course Excel upload process.");
+
+        if (file.isEmpty()) {
+            logger.warn("Uploaded file is empty.");
+            throw new RuntimeException("File cannot be empty");
+        }
+
+
+        try (InputStream inputStream = file.getInputStream();
+             Workbook workbook = new XSSFWorkbook(inputStream)) {
+
+
+            Sheet sheet = workbook.getSheetAt(0);
+
+            boolean headerRow = true;
+
+            int savedCount = 0;
+            int skippedCount = 0;
+
+
+            for (Row row : sheet) {
+
+
+                // Skip header
+                if (headerRow) {
+                    headerRow = false;
+                    continue;
+                }
+
+
+                String branchName =
+                        row.getCell(0)
+                                .getStringCellValue()
+                                .trim();
+
+
+                String courseName =
+                        row.getCell(1)
+                                .getStringCellValue()
+                                .trim();
+
+
+
+                logger.info(
+                        "Processing course: {} for branch: {}",
+                        courseName,
+                        branchName
+                );
+
+
+
+                // Find branch
+
+                List<Branch> branches =
+                        branchRepository.findByBranchName(branchName);
+
+
+                if (branches.isEmpty()) {
+
+                    logger.warn(
+                            "Branch not found: {}",
+                            branchName
+                    );
+
+                    throw new RuntimeException(
+                            "Branch not found: " + branchName
+                    );
+                }
+
+
+                Branch branch = branches.get(0);
+
+
+                // Duplicate check
+
+                if(courseRepository.existsByNameAndBranch(
+                        courseName,
+                        branch
+                )){
+
+
+                    logger.warn(
+                            "Course already exists: {} in branch {}",
+                            courseName,
+                            branchName
+                    );
+
+
+                    skippedCount++;
+
+                    continue;
+                }
+
+
+
+                Course course = new Course();
+
+
+                course.setBranch(branch);
+
+                course.setName(courseName);
+
+
+                courseRepository.save(course);
+
+
+                savedCount++;
+
+
+                logger.info(
+                        "Course saved successfully: {}",
+                        courseName
+                );
+
+            }
+
+
+
+            logger.info(
+                    "Course Excel upload completed. Saved: {}, Skipped: {}",
+                    savedCount,
+                    skippedCount
+            );
+
+
+            return "Course Excel upload completed. Saved: "
+                    + savedCount
+                    + ", Skipped: "
+                    + skippedCount;
+
+
+        }
+        catch(Exception e){
+
+            logger.error(
+                    "Failed while processing course Excel file",
+                    e
+            );
+
+            throw new RuntimeException(
+                    "Failed to upload Excel file"
+            );
+        }
     }
 }
