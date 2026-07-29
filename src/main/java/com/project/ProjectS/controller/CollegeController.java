@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -78,6 +79,26 @@ public class CollegeController {
         String response = service.delete(id);
 
         logger.info("College deleted successfully with ID: {}", id);
-        return service.delete(id);
+
+        return response;
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadCollege(
+            @RequestParam("file") MultipartFile file) {
+
+        logger.info("Received request to upload college Excel file.");
+
+        String response = service.uploadCollege(file);
+
+        logger.info("College Excel upload completed successfully.");
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @GetMapping("/test")
+    public String test() {
+
+        return "College controller working";
     }
 }

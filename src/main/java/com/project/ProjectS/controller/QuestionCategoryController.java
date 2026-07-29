@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -50,6 +51,14 @@ public class QuestionCategoryController {
     public ResponseEntity<String> delete(@PathVariable Long id) {
 
         String response = service.delete(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadQuestionCategory(
+            @RequestParam("file") MultipartFile file) {
+
+        String response = service.uploadQuestionCategory(file);
         return ResponseEntity.ok(response);
     }
 }
