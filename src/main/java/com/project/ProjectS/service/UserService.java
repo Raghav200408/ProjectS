@@ -9,6 +9,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @Transactional
 public class UserService {
@@ -177,6 +179,19 @@ public class UserService {
         User savedUser = userRepository.save(user);
 
         return convertToResponse(savedUser);
+    }
+
+    public List<UserResponseDTO> getAllBranchAdmins(){
+        List<User> users = userRepository.findByRole_RoleName("BRANCH_ADMIN");
+        return users.stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
+    public  List<UserResponseDTO> getAllStudents(){
+        List<User> users = userRepository.findByRole_RoleName("STUDENT");
+        return users.stream()
+                .map(this::convertToResponse)
+                .toList();
     }
 
 
