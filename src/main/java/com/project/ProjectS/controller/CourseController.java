@@ -1,8 +1,13 @@
 package com.project.ProjectS.controller;
 
+import com.project.ProjectS.mapper.CourseExcelMapper;
 import com.project.ProjectS.model.CourseRequestDTO;
 import com.project.ProjectS.model.CourseResponseDTO;
+import com.project.ProjectS.processor.CourseExcelProcessor;
+import com.project.ProjectS.repository.CourseRepository;
 import com.project.ProjectS.service.CourseService;
+import com.project.ProjectS.service.ExcelUploadService;
+import com.project.ProjectS.service.GenericExcelUploadService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -13,6 +18,8 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/course")
 public class CourseController {
@@ -22,6 +29,24 @@ public class CourseController {
 
     @Autowired
     private CourseService service;
+
+    @Autowired
+    private CourseExcelProcessor courseExcelProcessor;
+
+    @Autowired
+    private GenericExcelUploadService genericExcelUploadService;
+
+
+    @Autowired
+    private ExcelUploadService excelUploadService;
+
+
+    @Autowired
+    private CourseRepository courseRepository;
+
+
+    @Autowired
+    private CourseExcelMapper courseExcelMapper;
 
     @PostMapping
     public ResponseEntity<String> create(
@@ -88,14 +113,34 @@ public class CourseController {
 
     @PostMapping("/upload")
     public ResponseEntity<String> uploadCourse(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file){
 
-        logger.info("Received request to upload course Excel file.");
 
-        String response = service.uploadCourse(file);
+        try{
 
-        logger.info("Course Excel upload completed successfully.");
 
-        return new ResponseEntity<>(response, HttpStatus.OK);
+            List<Map<String,String>> excelData =
+                    excelUploadService.readExcel(file);
+
+
+
+            courseExcelProcessor.process(excelData);
+
+
+
+            return ResponseEntity.ok(
+                    "Course Excel uploaded successfully"
+            );
+
+
+        }
+        catch(Exception e){
+
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(e.getMessage());
+
+        }
+
     }
 }
