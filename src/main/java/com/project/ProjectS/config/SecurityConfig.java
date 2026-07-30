@@ -63,40 +63,99 @@ public class SecurityConfig {
 								"/api/chapter/**",
 								"/api/rule-engines/**",
 								"/api/dashboard/**",
-								"/api/questions/**"
-						).permitAll()
-
-
-
-
-						.requestMatchers(
+								"/api/questions/**",
 								"/api/users/superAdmin",
-								"/api/users/branchAdmin"
-						).hasRole("SUPER_ADMIN")
+								"/api/users/superAdmins",
+								"/api/users/branchAdmins",
+								"/api/users/students",
+								"/api/users/superAdmin/**"
+
+						).permitAll()
+								// =========================
+// POST APIs
+// =========================
+
+								.requestMatchers(HttpMethod.POST,
+										"/api/users/superAdmin",
+										"/api/users/branchAdmin")
+								.hasRole("SUPER_ADMIN")
+
+								.requestMatchers(HttpMethod.POST,
+										"/api/users/student")
+								.hasAnyRole("SUPER_ADMIN", "BRANCH_ADMIN")
+
+								.requestMatchers(HttpMethod.POST,
+										"/api/users/guest/register")
+								.permitAll()
 
 
+// =========================
+// GET APIs
+// =========================
+
+								.requestMatchers(HttpMethod.GET,
+										"/api/users/superAdmins",
+										"/api/users/superAdmin/**")
+								.hasRole("SUPER_ADMIN")
+
+								.requestMatchers(HttpMethod.GET,
+										"/api/users/branchAdmins",
+										"/api/users/branchAdmin/**")
+								.hasRole("SUPER_ADMIN")
+
+								.requestMatchers(HttpMethod.GET,
+										"/api/users/students",
+										"/api/users/student/**")
+								.hasAnyRole("SUPER_ADMIN", "BRANCH_ADMIN")
+
+								.requestMatchers(HttpMethod.GET,
+										"/api/users/guests",
+										"/api/users/guest/**")
+								.hasRole("SUPER_ADMIN")
 
 
-						.requestMatchers(
-								"/api/users/student"
-						).hasAnyRole(
-								"SUPER_ADMIN",
-								"BRANCH_ADMIN"
-						)
-						.requestMatchers(
-								HttpMethod.GET,
-								"/api/users/branchAdmins"
-						).hasAnyRole(
-								"SUPER_ADMIN"
+// =========================
+// PUT APIs
+// =========================
 
-						)
-						.requestMatchers(
-								HttpMethod.GET,
-								"/api/users/students"
-						).hasAnyRole(
-								"SUPER_ADMIN",
-								"BRANCH_ADMIN"
-						)
+								.requestMatchers(HttpMethod.PUT,
+										"/api/users/superAdmin/**")
+								.hasRole("SUPER_ADMIN")
+
+								.requestMatchers(HttpMethod.PUT,
+										"/api/users/branchAdmin/**")
+								.hasRole("SUPER_ADMIN")
+
+								.requestMatchers(HttpMethod.PUT,
+										"/api/users/student/**")
+								.hasAnyRole("SUPER_ADMIN", "BRANCH_ADMIN")
+
+								.requestMatchers(HttpMethod.PUT,
+										"/api/users/guest/**")
+								.hasRole("SUPER_ADMIN")
+
+
+// =========================
+// DELETE APIs
+// =========================
+
+								.requestMatchers(HttpMethod.DELETE,
+										"/api/users/superAdmin/**")
+								.hasRole("SUPER_ADMIN")
+
+								.requestMatchers(HttpMethod.DELETE,
+										"/api/users/branchAdmin/**")
+								.hasRole("SUPER_ADMIN")
+
+								.requestMatchers(HttpMethod.DELETE,
+										"/api/users/student/**")
+								.hasAnyRole("SUPER_ADMIN", "BRANCH_ADMIN")
+
+								.requestMatchers(HttpMethod.DELETE,
+										"/api/users/guest/**")
+								.hasRole("SUPER_ADMIN")
+
+
 
 
 

@@ -181,6 +181,15 @@ public class UserService {
         return convertToResponse(savedUser);
     }
 
+    public List<UserResponseDTO> getAllSuperAdmins() {
+
+        List<User> users = userRepository.findByRole_RoleName("SUPER_ADMIN");
+
+        return users.stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
+
     public List<UserResponseDTO> getAllBranchAdmins(){
         List<User> users = userRepository.findByRole_RoleName("BRANCH_ADMIN");
         return users.stream()
@@ -192,6 +201,232 @@ public class UserService {
         return users.stream()
                 .map(this::convertToResponse)
                 .toList();
+    }
+    public UserResponseDTO getSuperAdminById(Long userId) {
+
+        User user = userRepository
+                .findByUserIdAndRole_RoleName(userId, "SUPER_ADMIN")
+                .orElseThrow(() ->
+                        new RuntimeException("Super Admin not found with id: " + userId));
+
+        return convertToResponse(user);
+    }
+    public UserResponseDTO getBranchAdminById(Long userId) {
+
+        User user = userRepository
+                .findByUserIdAndRole_RoleName(userId, "BRANCH_ADMIN")
+                .orElseThrow(() ->
+                        new RuntimeException("Branch Admin not found with id: " + userId));
+
+        return convertToResponse(user);
+    }
+    public UserResponseDTO getStudentById(Long userId) {
+
+        User user = userRepository
+                .findByUserIdAndRole_RoleName(userId, "STUDENT")
+                .orElseThrow(() ->
+                        new RuntimeException("Student not found with id: " + userId));
+
+        return convertToResponse(user);
+    }
+    public UserResponseDTO getGuestById(Long userId) {
+
+        User user = userRepository
+                .findByUserIdAndRole_RoleName(userId, "GUEST")
+                .orElseThrow(() ->
+                        new RuntimeException("Guest not found with id: " + userId));
+
+        return convertToResponse(user);
+    }
+    public UserResponseDTO updateSuperAdmin(
+            Long userId,
+            SuperAdminRequestDTO request) {
+
+        User user = getUserByIdAndRole(userId, "SUPER_ADMIN");
+
+        validateUserForUpdate(
+                userId,
+                request.getEmail(),
+                request.getPhoneNumber()
+        );
+
+        user.setName(request.getName());
+        user.setDesignation(request.getDesignation());
+        user.setAddress(request.getAddress());
+        user.setEmployeeId(request.getEmployeeId());
+
+        user.setEmail(request.getEmail());
+        user.setPhoneNumber(request.getPhoneNumber());
+
+        if (request.getPassword() != null &&
+                !request.getPassword().isBlank()) {
+
+            user.setPassword(
+                    passwordEncoder.encode(request.getPassword())
+            );
+        }
+
+        User updatedUser = userRepository.save(user);
+
+        return convertToResponse(updatedUser);
+    }
+    public UserResponseDTO updateBranchAdmin(
+            Long userId,
+            BranchAdminRequestDTO request) {
+
+        User user = getUserByIdAndRole(userId, "BRANCH_ADMIN");
+
+        validateUserForUpdate(
+                userId,
+                request.getEmail(),
+                request.getPhoneNumber()
+        );
+
+        user.setName(request.getName());
+        user.setDesignation(request.getDesignation());
+        user.setAddress(request.getAddress());
+        user.setEmployeeId(request.getEmployeeId());
+
+        user.setCollege(
+                getCollege(request.getCollegeId())
+        );
+
+        user.setBranch(
+                getBranch(request.getBranchId())
+        );
+
+        user.setEmail(request.getEmail());
+        user.setPhoneNumber(request.getPhoneNumber());
+
+        if (request.getPassword() != null &&
+                !request.getPassword().isBlank()) {
+
+            user.setPassword(
+                    passwordEncoder.encode(request.getPassword())
+            );
+        }
+
+        User updatedUser = userRepository.save(user);
+
+        return convertToResponse(updatedUser);
+    }
+    public UserResponseDTO updateStudent(
+            Long userId,
+            StudentRequestDTO request) {
+
+        User user = getUserByIdAndRole(userId, "STUDENT");
+
+        validateUserForUpdate(
+                userId,
+                request.getEmail(),
+                request.getPhoneNumber()
+        );
+
+        user.setName(request.getName());
+        user.setStudentCode(request.getStudentCode());
+        user.setAddress(request.getAddress());
+
+        user.setCollege(
+                getCollege(request.getCollegeId())
+        );
+
+        user.setBranch(
+                getBranch(request.getBranchId())
+        );
+
+        user.setSection(
+                getSection(request.getSectionId())
+        );
+
+        user.setEmail(request.getEmail());
+        user.setPhoneNumber(request.getPhoneNumber());
+
+        user.setGuardianName(request.getGuardianName());
+        user.setGuardianPhoneNumber(
+                request.getGuardianPhoneNumber()
+        );
+
+        if (request.getPassword() != null &&
+                !request.getPassword().isBlank()) {
+
+            user.setPassword(
+                    passwordEncoder.encode(request.getPassword())
+            );
+        }
+
+        User updatedUser = userRepository.save(user);
+
+        return convertToResponse(updatedUser);
+    }
+    public UserResponseDTO updateGuest(
+            Long userId,
+            GuestUserRequestDTO request) {
+
+        User user = getUserByIdAndRole(userId, "GUEST");
+
+        validateUserForUpdate(
+                userId,
+                request.getEmail(),
+                request.getPhoneNumber()
+        );
+
+        user.setName(request.getName());
+        user.setAddress(request.getAddress());
+
+        user.setEmail(request.getEmail());
+        user.setPhoneNumber(request.getPhoneNumber());
+
+        if (request.getPassword() != null &&
+                !request.getPassword().isBlank()) {
+
+            user.setPassword(
+                    passwordEncoder.encode(request.getPassword())
+            );
+        }
+
+        User updatedUser = userRepository.save(user);
+
+        return convertToResponse(updatedUser);
+    }
+    public String deleteSuperAdmin(Long userId) {
+
+        User user = getUserByIdAndRole(userId, "SUPER_ADMIN");
+
+        user.setActiveRow(false);
+
+        userRepository.save(user);
+
+        return "Super Admin deleted successfully.";
+    }
+    public String deleteBranchAdmin(Long userId) {
+
+        User user = getUserByIdAndRole(userId, "BRANCH_ADMIN");
+
+        user.setActiveRow(false);
+
+        userRepository.save(user);
+
+        return "Branch Admin deleted successfully.";
+    }
+    public String deleteStudent(Long userId) {
+
+        User user = getUserByIdAndRole(userId, "STUDENT");
+
+        user.setActiveRow(false);
+
+        userRepository.save(user);
+
+        return "Student deleted successfully.";
+    }
+    public String deleteGuest(Long userId) {
+
+        User user = getUserByIdAndRole(userId, "GUEST");
+
+        user.setActiveRow(false);
+
+        userRepository.save(user);
+
+        return "Guest deleted successfully.";
     }
 
 
@@ -267,6 +502,34 @@ public class UserService {
                                         + sectionId
                         )
                 );
+    }
+    private void validateUserForUpdate(
+            Long userId,
+            String email,
+            String phoneNumber) {
+
+        if (userRepository.existsByEmailAndUserIdNot(email, userId)) {
+            throw new RuntimeException(
+                    "User already exists with email: " + email
+            );
+        }
+
+        if (phoneNumber != null &&
+                userRepository.existsByPhoneNumberAndUserIdNot(phoneNumber, userId)) {
+
+            throw new RuntimeException(
+                    "User already exists with phone number: " + phoneNumber
+            );
+        }
+    }
+    private User getUserByIdAndRole(Long userId, String roleName) {
+
+        return userRepository
+                .findByUserIdAndRole_RoleName(userId, roleName)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                roleName + " not found with id: " + userId
+                        ));
     }
 
 
