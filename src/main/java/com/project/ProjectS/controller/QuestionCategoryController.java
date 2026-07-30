@@ -2,6 +2,8 @@ package com.project.ProjectS.controller;
 
 import com.project.ProjectS.model.QuestionCategoryRequestDTO;
 import com.project.ProjectS.model.QuestionCategoryResponseDTO;
+import com.project.ProjectS.processor.QuestionCategoryExcelProcessor;
+import com.project.ProjectS.service.ExcelUploadService;
 import com.project.ProjectS.service.QuestionCategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/question-categories")
@@ -17,6 +20,13 @@ public class QuestionCategoryController {
 
     @Autowired
     private QuestionCategoryService service;
+
+    @Autowired
+    private QuestionCategoryExcelProcessor questionCategoryExcelProcessor;
+
+
+    @Autowired
+    private ExcelUploadService excelUploadService;
 
     @PostMapping
     public ResponseEntity<String> create(@RequestBody QuestionCategoryRequestDTO request) {
@@ -58,7 +68,25 @@ public class QuestionCategoryController {
     public ResponseEntity<String> uploadQuestionCategory(
             @RequestParam("file") MultipartFile file) {
 
-        String response = service.uploadQuestionCategory(file);
-        return ResponseEntity.ok(response);
+        try {
+
+            List<Map<String,String>> excelData =
+                    excelUploadService.readExcel(file);
+
+            questionCategoryExcelProcessor.process(excelData);
+
+            return ResponseEntity.ok(
+                    "Question Category Excel uploaded successfully"
+            );
+
+        } catch (Exception e) {
+
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(
+                            "Question Category Excel upload failed : "
+                                    + e.getMessage()
+                    );
+        }
     }
 }

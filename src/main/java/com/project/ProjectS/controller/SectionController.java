@@ -1,7 +1,11 @@
 package com.project.ProjectS.controller;
 
+import com.project.ProjectS.mapper.SectionExcelMapper;
 import com.project.ProjectS.model.SectionRequestDTO;
 import com.project.ProjectS.model.SectionResponseDTO;
+import com.project.ProjectS.repository.SectionRepository;
+import com.project.ProjectS.service.ExcelUploadService;
+import com.project.ProjectS.service.GenericExcelUploadService;
 import com.project.ProjectS.service.SectionService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -22,6 +28,21 @@ public class SectionController {
 
     @Autowired
     private SectionService service;
+
+    @Autowired
+    private ExcelUploadService excelUploadService;
+
+
+    @Autowired
+    private GenericExcelUploadService genericExcelUploadService;
+
+
+    @Autowired
+    private SectionExcelMapper sectionExcelMapper;
+
+
+    @Autowired
+    private SectionRepository sectionRepository;
 
     @PostMapping
     public ResponseEntity<String> create(
@@ -90,12 +111,51 @@ public class SectionController {
     public ResponseEntity<String> uploadSection(
             @RequestParam("file") MultipartFile file) {
 
+
         logger.info("Received request to upload section Excel file.");
 
-        String response = service.uploadSection(file);
 
-        logger.info("Section Excel upload completed successfully.");
+        try {
 
-        return new ResponseEntity<>(response, HttpStatus.OK);
+
+            List<Map<String,String>> excelData =
+                    excelUploadService.readExcel(file);
+
+
+
+            genericExcelUploadService.process(
+                    excelData,
+                    sectionExcelMapper,
+                    sectionRepository
+            );
+
+
+
+            logger.info(
+                    "Section Excel upload completed successfully."
+            );
+
+
+            return ResponseEntity.ok(
+                    "Section Excel uploaded successfully"
+            );
+
+
+        }
+        catch(Exception e){
+
+
+            logger.error(
+                    "Section Excel upload failed",
+                    e
+            );
+
+
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(e.getMessage());
+
+        }
+
     }
 }

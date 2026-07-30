@@ -1,6 +1,7 @@
 package com.project.ProjectS.controller;
 
 import com.project.ProjectS.entity.Branch;
+import com.project.ProjectS.mapper.BranchExcelMapper;
 import com.project.ProjectS.model.BranchRequestDTO;
 import com.project.ProjectS.model.BranchResponseDTO;
 import com.project.ProjectS.service.BranchService;
@@ -12,6 +13,13 @@ import org.springframework.web.bind.annotation.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.web.multipart.MultipartFile;
+import com.project.ProjectS.repository.BranchRepository;
+import com.project.ProjectS.repository.CollegeRepository;
+import com.project.ProjectS.service.ExcelUploadService;
+import com.project.ProjectS.service.GenericExcelUploadService;
+
+import java.util.Map;
+
 
 import java.util.List;
 @RestController
@@ -22,7 +30,19 @@ public class BranchController {
             LogManager.getLogger(BranchController.class);
 
     @Autowired
+    private BranchExcelMapper branchMapper;
+
+    @Autowired
     private BranchService service;
+
+    @Autowired
+    private ExcelUploadService excelUploadService;
+
+    @Autowired
+    private GenericExcelUploadService genericExcelUploadService;
+
+    @Autowired
+    private BranchRepository branchRepository;
 
     @PostMapping
     public ResponseEntity<String> create(
@@ -89,19 +109,28 @@ public class BranchController {
 
     @PostMapping("/upload")
     public ResponseEntity<String> uploadBranch(
-            @RequestParam("file") MultipartFile file){
+            @RequestParam("file") MultipartFile file) {
 
-        logger.info("Received branch Excel upload request");
+        try {
 
+            List<Map<String, String>> excelData =
+                    excelUploadService.readExcel(file);
 
-        String response =
-                service.uploadBranch(file);
+            genericExcelUploadService.process(
+                    excelData,
+                    branchMapper,
+                    branchRepository
+            );
 
+            return ResponseEntity.ok("Branch Excel uploaded successfully");
 
-        return new ResponseEntity<>(
-                response,
-                HttpStatus.OK
-        );
+        } catch (Exception e) {
 
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(e.getMessage());
+        }
     }
+
+
 }

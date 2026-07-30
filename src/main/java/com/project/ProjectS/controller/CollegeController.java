@@ -4,6 +4,7 @@ import com.project.ProjectS.entity.College;
 import com.project.ProjectS.model.CollegeRequestDTO;
 import com.project.ProjectS.model.CollegeResponseDTO;
 import com.project.ProjectS.service.CollegeService;
+import com.project.ProjectS.service.ExcelUploadService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -13,7 +14,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.project.ProjectS.mapper.CollegeExcelMapper;
+
+import com.project.ProjectS.repository.CollegeRepository;
+import com.project.ProjectS.service.GenericExcelUploadService;
+
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/college")
@@ -23,7 +30,19 @@ public class CollegeController {
             LogManager.getLogger(CollegeController.class);
 
     @Autowired
+    private CollegeExcelMapper collegeMapper;
+
+    @Autowired
     private CollegeService service;
+
+    @Autowired
+    private GenericExcelUploadService genericExcelUploadService;
+
+    @Autowired
+    private CollegeRepository collegeRepository;
+
+    @Autowired
+    private ExcelUploadService excelUploadService;
 
     @PostMapping
     public ResponseEntity<String> create(@Valid @RequestBody CollegeRequestDTO request) {
@@ -87,18 +106,24 @@ public class CollegeController {
     public ResponseEntity<String> uploadCollege(
             @RequestParam("file") MultipartFile file) {
 
-        logger.info("Received request to upload college Excel file.");
+        try {
 
-        String response = service.uploadCollege(file);
+            List<Map<String, String>> excelData =
+                    excelUploadService.readExcel(file);
 
-        logger.info("College Excel upload completed successfully.");
+            genericExcelUploadService.process(
+                    excelData,
+                    collegeMapper,
+                    collegeRepository
+            );
 
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
+            return ResponseEntity.ok("College Excel uploaded successfully");
 
-    @GetMapping("/test")
-    public String test() {
+        } catch (Exception e) {
 
-        return "College controller working";
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(e.getMessage());
+        }
     }
 }
