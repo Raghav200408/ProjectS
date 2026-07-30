@@ -32,6 +32,18 @@ public class SectionService {
 
         logger.info("Creating section with name: {}", request.getSectionName());
 
+        if (sectionRepository.existsBySectionNameAndCourse_CourseId(
+                request.getSectionName(),
+                request.getCourseId())) {
+
+            logger.warn(
+                    "Section {} already exists for course {}",
+                    request.getSectionName(),
+                    request.getCourseId()
+            );
+
+            throw new RuntimeException("Section already exists for this course");
+        }
 
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> {
@@ -137,6 +149,23 @@ public class SectionService {
                     logger.warn("Course not found with ID: {}", request.getCourseId());
                     return new RuntimeException("Course not found");
                 });
+
+        if ((!entity.getSectionName().equals(request.getSectionName())) ||
+                (!entity.getCourse().getCourseId().equals(request.getCourseId()))) {
+
+            if (sectionRepository.existsBySectionNameAndCourse_CourseId(
+                    request.getSectionName(),
+                    request.getCourseId())) {
+
+                logger.warn(
+                        "Section {} already exists for course {}",
+                        request.getSectionName(),
+                        request.getCourseId()
+                );
+
+                throw new RuntimeException("Section already exists for this course");
+            }
+        }
 
         entity.setCourse(course);
         entity.setSectionName(request.getSectionName());
