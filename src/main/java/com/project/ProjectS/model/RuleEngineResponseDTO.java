@@ -19,7 +19,7 @@ public class RuleEngineResponseDTO {
 
     private String pairAttributeName;
 
-    private String pairAttributeShortName;
+
 
     private String pairAttributeTableHeaderName;
 

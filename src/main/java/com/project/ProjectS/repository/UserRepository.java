@@ -30,6 +30,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             Long userId,
             String roleName
     );
+    List<User> findByRole_RoleNameIn(List<String> roleNames);
     boolean existsByEmailAndUserIdNot(String email, Long userId);
 
     boolean existsByPhoneNumberAndUserIdNot(String phoneNumber, Long userId);
