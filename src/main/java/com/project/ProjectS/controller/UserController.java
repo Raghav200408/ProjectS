@@ -2,6 +2,8 @@ package com.project.ProjectS.controller;
 
 import com.project.ProjectS.entity.User;
 import com.project.ProjectS.model.*;
+import com.project.ProjectS.processor.UserExcelProcessor;
+import com.project.ProjectS.service.ExcelUploadService;
 import com.project.ProjectS.service.UserService;
 
 import jakarta.validation.Valid;
@@ -10,8 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -19,6 +23,12 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ExcelUploadService excelUploadService;
+
+    @Autowired
+    private UserExcelProcessor userExcelProcessor;
 
 
 
@@ -217,6 +227,31 @@ public class UserController {
     @GetMapping("/all")
     public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
+    }
+
+    @PostMapping("/excel/upload")
+    public ResponseEntity<String> uploadUserExcel(
+            @RequestParam("file") MultipartFile file) {
+
+        try {
+
+            List<Map<String, String>> excelData =
+                    excelUploadService.readExcel(file);
+
+            userExcelProcessor.process(excelData);
+
+            return ResponseEntity.ok(
+                    "User Excel uploaded successfully"
+            );
+
+        } catch (Exception e) {
+
+            return ResponseEntity
+                    .badRequest()
+                    .body(
+                            "Excel upload failed : " + e.getMessage()
+                    );
+        }
     }
 
 }

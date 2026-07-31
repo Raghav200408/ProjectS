@@ -1,6 +1,5 @@
 package com.project.ProjectS.controller;
 
-import com.project.ProjectS.entity.RuleEngine;
 import com.project.ProjectS.model.RuleEngineRequestDTO;
 import com.project.ProjectS.model.RuleEngineResponseDTO;
 import com.project.ProjectS.service.RuleEngineService;
@@ -9,8 +8,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.web.multipart.MultipartFile;
+import com.project.ProjectS.processor.RuleEngineExcelProcessor;
+import com.project.ProjectS.service.ExcelUploadService;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/rule-engines")
@@ -18,6 +20,12 @@ public class RuleEngineController {
 
     @Autowired
     private RuleEngineService service;
+
+    @Autowired
+    private ExcelUploadService excelUploadService;
+
+    @Autowired
+    private RuleEngineExcelProcessor ruleEngineExcelProcessor;
 
     @PostMapping
     public ResponseEntity<String> create(
@@ -52,5 +60,36 @@ public class RuleEngineController {
     public ResponseEntity<String> delete(@PathVariable Long id) {
 
         return ResponseEntity.ok(service.delete(id));
+    }
+
+    @PostMapping("/excel/upload")
+    public ResponseEntity<String> uploadExcel(
+            @RequestParam("file") MultipartFile file) {
+
+        try {
+
+            // Step 1: Read Excel file
+            List<Map<String, String>> excelData =
+                    excelUploadService.readExcel(file);
+
+
+            // Step 2: Process Excel data and save RuleEngine
+            ruleEngineExcelProcessor.process(excelData);
+
+
+            return ResponseEntity.ok(
+                    "Rule Engine Excel uploaded successfully"
+            );
+
+
+        } catch (Exception e) {
+
+            return ResponseEntity
+                    .badRequest()
+                    .body(
+                            "Excel upload failed : "
+                                    + e.getMessage()
+                    );
+        }
     }
 }
