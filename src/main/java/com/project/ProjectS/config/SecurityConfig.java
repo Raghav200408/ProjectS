@@ -68,7 +68,9 @@ public class SecurityConfig {
 								"/api/users/superAdmins",
 								"/api/users/branchAdmins",
 								"/api/users/students",
-								"/api/users/superAdmin/**"
+								"/api/users/superAdmin/**",
+								"/api/users/excel/upload"
+
 
 						).permitAll()
 								// =========================

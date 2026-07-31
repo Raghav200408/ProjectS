@@ -46,6 +46,7 @@ public class RuleEngineService {
 
         ruleEngineRepository.save(entity);
 
+
         return "Rule Engine created successfully";
     }
 
