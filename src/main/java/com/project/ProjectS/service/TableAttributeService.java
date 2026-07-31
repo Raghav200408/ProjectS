@@ -35,6 +35,8 @@ public class TableAttributeService {
 
         entity.setTableHeader(header);
         entity.setRowStatus("DRAFT");
+        entity.setAmount1(request.getAmount1());
+        entity.setAmount2(request.getAmount2());
 
         attributeRepository.save(entity);
 
@@ -58,6 +60,8 @@ public class TableAttributeService {
             dto.setCreatedAt(entity.getCreatedAt());
             dto.setUpdatedAt(entity.getUpdatedAt());
             dto.setTableHeaderName(entity.getTableHeader().getName());
+            dto.setAmount1(entity.getAmount1());
+            dto.setAmount2(entity.getAmount2());
 
             response.add(dto);
         }
@@ -80,6 +84,8 @@ public class TableAttributeService {
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
         dto.setTableHeaderName(entity.getTableHeader().getName());
+        dto.setAmount1(entity.getAmount1());
+        dto.setAmount2(entity.getAmount2());
 
         return dto;
     }
@@ -95,6 +101,8 @@ public class TableAttributeService {
         entity.setName(request.getName());
 
         entity.setTableHeader(header);
+        entity.setAmount1(request.getAmount1());
+        entity.setAmount2(request.getAmount2());
 
         attributeRepository.save(entity);
 

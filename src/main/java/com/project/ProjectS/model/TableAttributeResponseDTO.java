@@ -15,4 +15,6 @@ public class TableAttributeResponseDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String tableHeaderName;
+    private Long amount1;
+    private Long amount2;
 }
