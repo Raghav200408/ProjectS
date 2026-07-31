@@ -428,6 +428,24 @@ public class UserService {
 
         return "Guest deleted successfully.";
     }
+    public List<UserResponseDTO> getAllStudentsAndGuest() {
+
+        List<User> users = userRepository.findByRole_RoleNameIn(
+                List.of("STUDENT", "GUEST")
+        );
+
+        return users.stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
+    public List<UserResponseDTO> getAllUsers() {
+
+        List<User> users = userRepository.findAll();
+
+        return users.stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
 
 
     // =========================================================

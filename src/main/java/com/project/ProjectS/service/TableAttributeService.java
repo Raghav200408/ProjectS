@@ -32,8 +32,9 @@ public class TableAttributeService {
 
         TableAttribute entity = new TableAttribute();
         entity.setName(request.getName());
-        entity.setShortName(request.getShortName());
+
         entity.setTableHeader(header);
+        entity.setRowStatus("DRAFT");
 
         attributeRepository.save(entity);
 
@@ -51,7 +52,7 @@ public class TableAttributeService {
 
             dto.setAttributeId(entity.getAttributeId());
             dto.setName(entity.getName());
-            dto.setShortName(entity.getShortName());
+
             dto.setActiveRow(entity.getActiveRow());
             dto.setRowStatus(entity.getRowStatus());
             dto.setCreatedAt(entity.getCreatedAt());
@@ -73,7 +74,7 @@ public class TableAttributeService {
 
         dto.setAttributeId(entity.getAttributeId());
         dto.setName(entity.getName());
-        dto.setShortName(entity.getShortName());
+
         dto.setActiveRow(entity.getActiveRow());
         dto.setRowStatus(entity.getRowStatus());
         dto.setCreatedAt(entity.getCreatedAt());
@@ -92,7 +93,7 @@ public class TableAttributeService {
                 .orElseThrow(() -> new RuntimeException("Table Header not found"));
 
         entity.setName(request.getName());
-        entity.setShortName(request.getShortName());
+
         entity.setTableHeader(header);
 
         attributeRepository.save(entity);

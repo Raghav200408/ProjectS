@@ -84,6 +84,14 @@ public class UserController {
 
 
     }
+    @GetMapping("/students_Guest")
+    public ResponseEntity<List<UserResponseDTO>> getAllStudentsAndGuest()
+    {
+        List<UserResponseDTO> superAdmins =
+                userService.getAllStudentsAndGuest();
+
+        return ResponseEntity.ok(superAdmins);
+    }
     @GetMapping("/superAdmins")
     public ResponseEntity<List<UserResponseDTO>> getAllSuperAdmins() {
 
@@ -205,6 +213,10 @@ public class UserController {
         String response = userService.deleteGuest(userId);
 
         return ResponseEntity.ok(response);
+    }
+    @GetMapping("/all")
+    public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
 }

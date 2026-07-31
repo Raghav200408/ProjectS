@@ -20,11 +20,9 @@ public class TableAttribute {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "short_name")
-    private String shortName;
 
     @Column(name = "row_status")
-    private Boolean rowStatus = true;
+    private String rowStatus = "DRAFT";
 
     @Column(name = "active_row")
     private Boolean activeRow = true;
@@ -49,7 +47,7 @@ public class TableAttribute {
         }
 
         if (rowStatus == null) {
-            rowStatus = true;
+            rowStatus = "DRAFT";
         }
     }
 
