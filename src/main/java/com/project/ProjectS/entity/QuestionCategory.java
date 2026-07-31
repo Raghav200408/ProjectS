@@ -17,6 +17,14 @@ public class QuestionCategory {
     @Column(name = "category_id")
     private Long categoryId;
 
+    @ManyToOne
+    @JoinColumn(name = "course_id", nullable = false)
+    private Course course;
+
+    @ManyToOne
+    @JoinColumn(name = "chapter_id", nullable = false)
+    private Chapter chapter;
+
     @Column(name = "name", nullable = false, length = 150)
     private String name;
 
@@ -57,6 +65,4 @@ public class QuestionCategory {
     public void preUpdate() {
         updatedAt = LocalDateTime.now();
     }
-
-
 }
