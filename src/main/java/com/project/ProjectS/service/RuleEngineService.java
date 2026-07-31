@@ -47,6 +47,11 @@ public class RuleEngineService {
         ruleEngineRepository.save(entity);
 
 
+        if (entity.getFieldName() != null) {
+            entity.getFieldName().setRowStatus("RULE");
+            tableAttributeRepository.save(entity.getFieldName());
+        }
+
         return "Rule Engine created successfully";
     }
 
@@ -184,7 +189,7 @@ public class RuleEngineService {
         dto.setChapterName(entity.getChapter().getName());
         dto.setPairAttributeId(getAttributeId(entity.getPairAttribute()));
         dto.setPairAttributeName(getAttributeName(entity.getPairAttribute()));
-        dto.setPairAttributeShortName(getAttributeShortName(entity.getPairAttribute()));
+
         dto.setPairAttributeTableHeaderName(getAttributeHeaderName(entity.getPairAttribute()));
         dto.setFieldName(getAttributeName(entity.getFieldName()));
         dto.setFieldType(getHeaderName(entity.getFieldType()));
@@ -241,10 +246,7 @@ public class RuleEngineService {
         return attribute != null ? attribute.getName() : null;
     }
 
-    private String getAttributeShortName(TableAttribute attribute) {
 
-        return attribute != null ? attribute.getShortName() : null;
-    }
 
     private String getAttributeHeaderName(TableAttribute attribute) {
 

@@ -70,6 +70,10 @@ public class SecurityConfig {
 								"/api/users/students",
 								"/api/users/superAdmin/**",
 								"/api/users/excel/upload"
+								"/api/users/students_Guest/**",
+								"/api/users/all/**"
+
+
 
 
 						).permitAll()
