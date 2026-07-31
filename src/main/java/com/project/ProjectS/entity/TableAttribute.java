@@ -35,6 +35,12 @@ public class TableAttribute {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "amount1")
+    private Long amount1;
+
+    @Column(name = "amount2")
+    private Long amount2;
+
     @ManyToOne
     @JoinColumn(name = "header_id", nullable = false)
     private TableHeader tableHeader;

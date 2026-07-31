@@ -10,6 +10,8 @@ public class TableAttributeRequestDTO {
     private String name;
     private String shortName;
     private String tableHeaderName;
+    private Long amount1;
+    private Long amount2;
 
 
 }
