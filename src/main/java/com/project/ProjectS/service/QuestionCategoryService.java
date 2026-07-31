@@ -11,6 +11,10 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import com.project.ProjectS.entity.Chapter;
+import com.project.ProjectS.entity.Course;
+import com.project.ProjectS.repository.ChapterRepository;
+import com.project.ProjectS.repository.CourseRepository;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,16 +35,42 @@ public class QuestionCategoryService {
     @Autowired
     private QuestionCategoryRepository questionCategoryRepository;
 
+    @Autowired
+    private CourseRepository courseRepository;
+
+    @Autowired
+    private ChapterRepository chapterRepository;
+
     public String create(QuestionCategoryRequestDTO request) {
 
+        logger.info("Creating question category with name: {}", request.getName());
+
         if (repository.existsByName(request.getName())) {
+            logger.warn("Question Category already exists with name: {}", request.getName());
             throw new RuntimeException("Question Category already exists");
         }
 
+        Course course = courseRepository.findById(request.getCourseId())
+                .orElseThrow(() -> {
+                    logger.warn("Course not found with ID: {}", request.getCourseId());
+                    return new RuntimeException("Course not found");
+                });
+
+        Chapter chapter = chapterRepository.findById(request.getChapterId())
+                .orElseThrow(() -> {
+                    logger.warn("Chapter not found with ID: {}", request.getChapterId());
+                    return new RuntimeException("Chapter not found");
+                });
+
         QuestionCategory category = new QuestionCategory();
+
+        category.setCourse(course);
+        category.setChapter(chapter);
         category.setName(request.getName());
 
         repository.save(category);
+
+        logger.info("Question Category created successfully with name: {}", request.getName());
 
         return "Question Category created successfully";
     }
@@ -55,7 +85,15 @@ public class QuestionCategoryService {
             QuestionCategoryResponseDTO dto = new QuestionCategoryResponseDTO();
 
             dto.setCategoryId(category.getCategoryId());
+
+            dto.setCourseId(category.getCourse().getCourseId());
+            dto.setCourseName(category.getCourse().getName());
+
+            dto.setChapterId(category.getChapter().getChapterId());
+            dto.setChapterName(category.getChapter().getName());
+
             dto.setName(category.getName());
+
             dto.setActiveRow(category.getActiveRow());
             dto.setRowStatus(category.getRowStatus());
             dto.setOrderOf(category.getOrderOf());
@@ -76,7 +114,15 @@ public class QuestionCategoryService {
         QuestionCategoryResponseDTO dto = new QuestionCategoryResponseDTO();
 
         dto.setCategoryId(category.getCategoryId());
+
+        dto.setCourseId(category.getCourse().getCourseId());
+        dto.setCourseName(category.getCourse().getName());
+
+        dto.setChapterId(category.getChapter().getChapterId());
+        dto.setChapterName(category.getChapter().getName());
+
         dto.setName(category.getName());
+
         dto.setActiveRow(category.getActiveRow());
         dto.setRowStatus(category.getRowStatus());
         dto.setOrderOf(category.getOrderOf());
@@ -88,12 +134,33 @@ public class QuestionCategoryService {
 
     public String update(Long id, QuestionCategoryRequestDTO request) {
 
-        QuestionCategory category = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Question Category not found"));
+        logger.info("Updating Question Category with ID: {}", id);
 
+        QuestionCategory category = repository.findById(id)
+                .orElseThrow(() -> {
+                    logger.warn("Question Category not found with ID: {}", id);
+                    return new RuntimeException("Question Category not found");
+                });
+
+        Course course = courseRepository.findById(request.getCourseId())
+                .orElseThrow(() -> {
+                    logger.warn("Course not found with ID: {}", request.getCourseId());
+                    return new RuntimeException("Course not found");
+                });
+
+        Chapter chapter = chapterRepository.findById(request.getChapterId())
+                .orElseThrow(() -> {
+                    logger.warn("Chapter not found with ID: {}", request.getChapterId());
+                    return new RuntimeException("Chapter not found");
+                });
+
+        category.setCourse(course);
+        category.setChapter(chapter);
         category.setName(request.getName());
 
         repository.save(category);
+
+        logger.info("Question Category updated successfully with ID: {}", id);
 
         return "Question Category updated successfully";
     }
