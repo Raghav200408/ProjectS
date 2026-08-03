@@ -1,13 +1,17 @@
 package com.project.ProjectS.controller;
 import com.project.ProjectS.entity.TableHeader;
 import com.project.ProjectS.model.TableHeaderRequestDTO;
+import com.project.ProjectS.processor.TableHeaderExcelProcessor;
+import com.project.ProjectS.service.ExcelUploadService;
 import com.project.ProjectS.service.TableHeaderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/table-headers")
@@ -15,6 +19,12 @@ public class TableHeaderController {
 
     @Autowired
     private TableHeaderService service;
+
+    @Autowired
+    private ExcelUploadService excelUploadService;
+
+    @Autowired
+    private TableHeaderExcelProcessor tableHeaderExcelProcessor;
 
     @PostMapping
     public ResponseEntity<String> create(@RequestBody TableHeaderRequestDTO request) {
@@ -50,5 +60,25 @@ public class TableHeaderController {
 
         String response = service.delete(id);
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    //upload
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadExcel(
+            @RequestParam("file") MultipartFile file) {
+
+        try {
+
+            List<Map<String, String>> excelData =
+                    excelUploadService.readExcel(file);
+
+            tableHeaderExcelProcessor.process(excelData);
+
+            return ResponseEntity.ok("Excel uploaded successfully");
+
+        } catch (Exception e) {
+
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }
