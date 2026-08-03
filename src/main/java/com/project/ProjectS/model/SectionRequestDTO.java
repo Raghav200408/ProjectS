@@ -9,13 +9,18 @@ import lombok.Setter;
 @Setter
 public class SectionRequestDTO {
 
+    @NotNull(message = "College Id is required")
+    private Long collegeId;
+
+    @NotNull(message = "Branch Id is required")
+    private Long branchId;
+
     @NotNull(message = "Course Id is required")
     private Long courseId;
 
     @NotBlank(message = "Section name is required")
     private String sectionName;
 
-    @NotBlank(message = "Description is required")
     private String description;
 
 }

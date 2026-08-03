@@ -11,6 +11,11 @@ import org.springframework.stereotype.Service;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.project.ProjectS.entity.Branch;
+import com.project.ProjectS.entity.College;
+import com.project.ProjectS.repository.BranchRepository;
+import com.project.ProjectS.repository.CollegeRepository;
+
 import org.apache.poi.ss.usermodel.*;
 
 import java.util.List;
@@ -28,6 +33,12 @@ public class SectionService {
     @Autowired
     private CourseRepository courseRepository;
 
+    @Autowired
+    private CollegeRepository collegeRepository;
+
+    @Autowired
+    private BranchRepository branchRepository;
+
     public String create(SectionRequestDTO request) {
 
         logger.info("Creating section with name: {}", request.getSectionName());
@@ -44,6 +55,28 @@ public class SectionService {
 
             throw new RuntimeException("Section already exists for this course");
         }
+
+        College college = collegeRepository.findById(request.getCollegeId())
+                .orElseThrow(() -> {
+
+                    logger.warn(
+                            "College not found with ID: {}",
+                            request.getCollegeId()
+                    );
+
+                    return new RuntimeException("College not found");
+                });
+
+        Branch branch = branchRepository.findById(request.getBranchId())
+                .orElseThrow(() -> {
+
+                    logger.warn(
+                            "Branch not found with ID: {}",
+                            request.getBranchId()
+                    );
+
+                    return new RuntimeException("Branch not found");
+                });
 
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> {
@@ -81,6 +114,8 @@ public class SectionService {
         Section entity = new Section();
 
 
+        entity.setCollege(college);
+        entity.setBranch(branch);
         entity.setCourse(course);
 
         entity.setSectionName(
@@ -144,6 +179,28 @@ public class SectionService {
                     return new RuntimeException("Section not found");
                 });
 
+        College college = collegeRepository.findById(request.getCollegeId())
+                .orElseThrow(() -> {
+
+                    logger.warn(
+                            "College not found with ID: {}",
+                            request.getCollegeId()
+                    );
+
+                    return new RuntimeException("College not found");
+                });
+
+        Branch branch = branchRepository.findById(request.getBranchId())
+                .orElseThrow(() -> {
+
+                    logger.warn(
+                            "Branch not found with ID: {}",
+                            request.getBranchId()
+                    );
+
+                    return new RuntimeException("Branch not found");
+                });
+
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> {
                     logger.warn("Course not found with ID: {}", request.getCourseId());
@@ -167,6 +224,8 @@ public class SectionService {
             }
         }
 
+        entity.setCollege(college);
+        entity.setBranch(branch);
         entity.setCourse(course);
         entity.setSectionName(request.getSectionName());
         entity.setDescription(request.getDescription());
@@ -199,6 +258,12 @@ public class SectionService {
         SectionResponseDTO dto = new SectionResponseDTO();
 
         dto.setSectionId(entity.getSectionId());
+
+        dto.setCollegeId(entity.getCollege().getCollegeId());
+        dto.setCollegeName(entity.getCollege().getInstituteName());
+
+        dto.setBranchId(entity.getBranch().getBranchId());
+        dto.setBranchName(entity.getBranch().getBranchName());
 
         dto.setCourseId(entity.getCourse().getCourseId());
         dto.setCourseName(entity.getCourse().getName());

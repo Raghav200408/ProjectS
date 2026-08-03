@@ -11,6 +11,12 @@ public class SectionResponseDTO {
 
     private Long sectionId;
 
+    private Long collegeId;
+    private String collegeName;
+
+    private Long branchId;
+    private String branchName;
+
     private Long courseId;
     private String courseName;
 
