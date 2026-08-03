@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.project.ProjectS.entity.College;
+import com.project.ProjectS.repository.CollegeRepository;
+
 import org.springframework.web.multipart.MultipartFile;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -32,10 +35,23 @@ public class CourseService {
     @Autowired
     private BranchRepository branchRepository;
 
+    @Autowired
+    private CollegeRepository collegeRepository;
+
     public String create(CourseRequestDTO request) {
 
         logger.info("Creating course with name: {}", request.getName());
 
+        College college = collegeRepository.findById(request.getCollegeId())
+                .orElseThrow(() -> {
+
+                    logger.warn(
+                            "College not found with ID: {}",
+                            request.getCollegeId()
+                    );
+
+                    return new RuntimeException("College not found");
+                });
 
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> {
@@ -68,6 +84,7 @@ public class CourseService {
 
         Course entity = new Course();
 
+        entity.setCollege(college);
         entity.setBranch(branch);
         entity.setName(request.getName());
 
@@ -122,12 +139,19 @@ public class CourseService {
                     return new RuntimeException("Course not found");
                 });
 
+        College college = collegeRepository.findById(request.getCollegeId())
+                .orElseThrow(() -> {
+                    logger.warn("College not found with ID: {}", request.getCollegeId());
+                    return new RuntimeException("College not found");
+                });
+
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> {
                     logger.warn("Branch not found with ID: {}", request.getBranchId());
                     return new RuntimeException("Branch not found");
                 });
 
+        entity.setCollege(college);
         entity.setBranch(branch);
         entity.setName(request.getName());
 
@@ -160,6 +184,9 @@ public class CourseService {
         CourseResponseDTO dto = new CourseResponseDTO();
 
         dto.setCourseId(entity.getCourseId());
+
+        dto.setCollegeId(entity.getCollege().getCollegeId());
+        dto.setCollegeName(entity.getCollege().getInstituteName());
 
         dto.setBranchId(entity.getBranch().getBranchId());
         dto.setBranchName(entity.getBranch().getBranchName());

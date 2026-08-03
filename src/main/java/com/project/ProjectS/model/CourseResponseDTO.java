@@ -9,6 +9,9 @@ import java.time.LocalDateTime;
 @Setter
 public class CourseResponseDTO {
 
+    private Long collegeId;
+    private String collegeName;
+
     private Long courseId;
 
     private Long branchId;

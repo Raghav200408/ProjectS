@@ -21,6 +21,14 @@ public class Section {
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "college_id", nullable = false)
+    private College college;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id", nullable = false)
+    private Branch branch;
+
     @Column(name = "section_name", nullable = false)
     private String sectionName;
 

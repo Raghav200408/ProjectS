@@ -15,4 +15,7 @@ public class CourseRequestDTO {
     @NotBlank(message = "Course name is required")
     private String name;
 
+    @NotNull(message = "College ID is required")
+    private Long collegeId;
+
 }

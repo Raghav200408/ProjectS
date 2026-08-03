@@ -21,6 +21,10 @@ public class Course {
     @JoinColumn(name = "branch_id", nullable = false)
     private Branch branch;
 
+    @ManyToOne
+    @JoinColumn(name = "college_id", nullable = false)
+    private College college;
+
     @Column(name = "name", nullable = false)
     private String name;
 
