@@ -1,5 +1,6 @@
 package com.project.ProjectS.controller;
 
+import com.project.ProjectS.entity.Question;
 import com.project.ProjectS.model.QuestionRequestDTO;
 import com.project.ProjectS.model.QuestionResponseDTO;
 import com.project.ProjectS.service.QuestionService;
@@ -45,6 +46,7 @@ public class QuestionController {
     }
 
 
+
     // GET QUESTION BY ID
     @GetMapping("/{questionId}")
     public ResponseEntity<QuestionResponseDTO> getQuestionById(
@@ -55,4 +57,12 @@ public class QuestionController {
 
         return ResponseEntity.ok(question);
     }
+    @GetMapping("/QuestionText")
+    public ResponseEntity<List<QuestionResponseDTO>> getAllQuestionText(){
+        List<QuestionResponseDTO> questions =
+                questionService.getAllQuestionText();
+
+        return ResponseEntity.ok(questions);
+    }
+
 }

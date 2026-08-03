@@ -155,6 +155,48 @@ public class QuestionService {
                 savedAttributes
         );
     }
+    public List<QuestionResponseDTO> getAllQuestionText() {
+
+        List<Question> questions = questionRepository.findAll();
+
+        List<QuestionResponseDTO> response = new ArrayList<>();
+
+        for (Question question : questions) {
+
+            QuestionResponseDTO dto = new QuestionResponseDTO();
+
+            dto.setQuestionId(question.getQuestionId());
+            dto.setQuestionText(question.getQuestionText());
+            dto.setCourseId(question.getCourse().getCourseId());
+           dto.setCourseName(
+                    question.getCourse().getName()
+            );
+
+            // Chapter
+            dto.setChapterId(
+                    question.getChapter().getChapterId()
+            );
+
+            dto.setChapterName(
+                    question.getChapter().getName()
+            );
+
+            // Category
+            dto.setCategoryId(
+                    question.getQuestionCategory().getCategoryId()
+            );
+
+            dto.setCategoryName(
+                    question.getQuestionCategory().getName()
+            );
+            dto.setActiveRow(question.getActiveRow());
+
+
+            response.add(dto);
+        }
+
+        return response;
+    }
     public List<QuestionResponseDTO> getAllQuestions() {
 
         List<Question> questions = questionRepository.findAll();
@@ -317,4 +359,6 @@ public class QuestionService {
 
         return response;
     }
+
+
 }
