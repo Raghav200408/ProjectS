@@ -18,4 +18,6 @@ public class QuestionCategoryRequestDTO {
     @NotBlank(message = "Category name is required")
     private String name;
 
+    private Boolean activeRow;
+
 }

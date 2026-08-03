@@ -67,6 +67,7 @@ public class QuestionCategoryService {
         category.setCourse(course);
         category.setChapter(chapter);
         category.setName(request.getName());
+        category.setActiveRow(request.getActiveRow());
 
         repository.save(category);
 
@@ -157,6 +158,7 @@ public class QuestionCategoryService {
         category.setCourse(course);
         category.setChapter(chapter);
         category.setName(request.getName());
+        category.setActiveRow(request.getActiveRow());
 
         repository.save(category);
 
