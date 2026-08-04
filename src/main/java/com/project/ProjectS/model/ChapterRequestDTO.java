@@ -15,5 +15,7 @@ public class ChapterRequestDTO {
     @NotBlank(message = "Chapter name is required")
     private String name;
 
+    private Boolean activeRow;
+
 
 }

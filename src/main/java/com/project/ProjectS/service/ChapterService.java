@@ -47,6 +47,12 @@ public class ChapterService {
         entity.setCourse(course);
         entity.setName(request.getName());
 
+        entity.setActiveRow(
+                request.getActiveRow() == null
+                        ? true
+                        : request.getActiveRow()
+        );
+
         chapterRepository.save(entity);
 
         logger.info("Chapter created successfully with name: {}", request.getName());
@@ -101,6 +107,7 @@ public class ChapterService {
 
         entity.setCourse(course);
         entity.setName(request.getName());
+        entity.setActiveRow(request.getActiveRow());
 
         chapterRepository.save(entity);
 
