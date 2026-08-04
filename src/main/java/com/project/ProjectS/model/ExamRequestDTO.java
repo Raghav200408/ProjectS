@@ -1,26 +1,42 @@
 package com.project.ProjectS.model;
 
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
 public class ExamRequestDTO {
 
-    @NotNull(message = "Chapter Id is Required")
-    private Long chapterId;
+    @NotBlank(message = "Exam name is required")
+    private String examName;
 
-    @NotNull(message = "Category Id is required")
-    private Long categoryId;
+    @NotNull(message = "College Id is required")
+    private Long collegeId;
 
-    @NotBlank(message = "Question code is required")
-    @Size(max = 30, message = "Question code must not exceed 30 characters")
-    private String questionCode;
+    @NotNull(message = "Branch Id is required")
+    private Long branchId;
 
-    @NotBlank(message = "Exam name is Requires")
-    @Size(max = 255, message = "Exam name must not exceed 255 characters")
-    private String name;
+    @NotNull(message = "Course Id is required")
+    private Long courseId;
+
+    @NotNull(message = "Section Id is required")
+    private Long sectionId;
+
+    @NotNull(message = "Start date is required")
+    @Future(message = "Start date must be in the future")
+    private LocalDateTime startDate;
+
+    @NotNull(message = "End date is required")
+    @Future(message = "End date must be in the future")
+    private LocalDateTime endDate;
+
+    @NotEmpty(message = "Please select at least one question")
+    private List<Long> questionIds;
 }

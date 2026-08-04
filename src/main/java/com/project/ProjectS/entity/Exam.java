@@ -1,14 +1,10 @@
 package com.project.ProjectS.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "exams")
@@ -17,45 +13,69 @@ import java.util.List;
 public class Exam {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "exam_seq"
+    )
+    @SequenceGenerator(
+            name = "exam_seq",
+            sequenceName = "exams_exam_id_seq",
+            allocationSize = 1
+    )
     @Column(name = "exam_id")
     private Long examId;
 
-    @Column(name = "chapter_id", nullable = false)
-    private Long chapterId;
+    @Column(name = "exam_name", nullable = false)
+    private String examName;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
-    @JsonBackReference
-    private QuestionCategory category;
+    @ManyToOne
+    @JoinColumn(name = "college_id", nullable = false)
+    private College college;
 
-    @Column(name = "question_code", nullable = false, length = 30)
-    private String questionCode;
+    @ManyToOne
+    @JoinColumn(name = "branch_id", nullable = false)
+    private Branch branch;
 
-    @Column(name = "name", nullable = false)
-    private String name;
+    @ManyToOne
+    @JoinColumn(name = "course_id", nullable = false)
+    private Course course;
+
+    @ManyToOne
+    @JoinColumn(name = "section_id", nullable = false)
+    private Section section;
+
+    @Column(name = "start_date", nullable = false)
+    private LocalDateTime startDate;
+
+    @Column(name = "end_date", nullable = false)
+    private LocalDateTime endDate;
 
     @Column(name = "active_row")
     private Boolean activeRow = true;
 
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "row_status")
+    private Integer rowStatus = 1;
+
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference
-    private List<ExamQuestion> examQuestions = new ArrayList<>();
-
     @PrePersist
     public void prePersist() {
 
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
+
+        createdAt = now;
+        updatedAt = now;
 
         if (activeRow == null) {
             activeRow = true;
+        }
+
+        if (rowStatus == null) {
+            rowStatus = 1;
         }
     }
 

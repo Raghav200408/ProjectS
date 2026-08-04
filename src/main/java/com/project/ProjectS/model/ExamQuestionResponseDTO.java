@@ -3,36 +3,22 @@ package com.project.ProjectS.model;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-
 @Getter
 @Setter
 public class ExamQuestionResponseDTO {
 
+    private Long examQuestionId;
+
     private Long questionId;
 
-    private Long examId;
+    private String questionText;
 
-    private Long headerId;
+    private Long courseId;
+    private String courseName;
 
-    private Long attributeId;
+    private Long chapterId;
+    private String chapterName;
 
-    private LocalDate transactionDate;
-
-    private BigDecimal amount;
-
-    private BigDecimal amount2;
-
-    private String externalFile;
-
-    private String note;
-
-    private Boolean activeRow;
-
-    private LocalDateTime createdAt;
-
-    private LocalDateTime updatedAt;
-
+    private Long categoryId;
+    private String categoryName;
 }

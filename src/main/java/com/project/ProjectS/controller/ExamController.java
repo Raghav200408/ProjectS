@@ -1,10 +1,11 @@
 package com.project.ProjectS.controller;
 
-import com.project.ProjectS.entity.Exam;
 import com.project.ProjectS.model.ExamRequestDTO;
 import com.project.ProjectS.model.ExamResponseDTO;
 import com.project.ProjectS.service.ExamService;
+
 import jakarta.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,46 +14,99 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/exam")
+@RequestMapping("/api/exams")
 public class ExamController {
 
     @Autowired
-    private ExamService service;
+    private ExamService examService;
+
+
+
+    // =========================================================
+    // CREATE EXAM
+    // =========================================================
 
     @PostMapping
-    public ResponseEntity<String> create(
+    public ResponseEntity<ExamResponseDTO> createExam(
             @Valid @RequestBody ExamRequestDTO request) {
 
-        String response = service.create(request);
+        ExamResponseDTO response =
+                examService.createExam(request);
 
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
     }
+
+
+
+    // =========================================================
+    // GET ALL EXAMS
+    // =========================================================
 
     @GetMapping
-    public List<ExamResponseDTO> getAll() {
+    public ResponseEntity<List<ExamResponseDTO>> getAllExams() {
 
-        return service.getAll();
+        List<ExamResponseDTO> exams =
+                examService.getAllExams();
+
+        return ResponseEntity.ok(exams);
     }
 
-    @GetMapping("/{id}")
-    public Exam getById(@PathVariable Long id) {
 
-        return service.getById(id);
+
+    // =========================================================
+    // GET EXAM BY ID
+    // =========================================================
+
+    @GetMapping("/{examId}")
+    public ResponseEntity<ExamResponseDTO> getExamById(
+            @PathVariable Long examId) {
+
+        ExamResponseDTO response =
+                examService.getExamById(examId);
+
+        return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<String> update(
-            @PathVariable Long id,
+
+
+    // =========================================================
+    // UPDATE EXAM
+    // =========================================================
+
+    @PutMapping("/{examId}")
+    public ResponseEntity<ExamResponseDTO> updateExam(
+            @PathVariable Long examId,
             @Valid @RequestBody ExamRequestDTO request) {
 
-        String response = service.update(id, request);
+        ExamResponseDTO response =
+                examService.updateExam(examId, request);
 
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/{id}")
-    public String delete(@PathVariable Long id) {
 
-        return service.delete(id);
+
+    // =========================================================
+    // DELETE EXAM
+    // =========================================================
+
+    @DeleteMapping("/{examId}")
+    public ResponseEntity<String> deleteExam(
+            @PathVariable Long examId) {
+
+        String response =
+                examService.deleteExam(examId);
+
+        return ResponseEntity.ok(response);
+    }
+    @PutMapping("/{examId}/restore")
+    public ResponseEntity<String> restoreExam(
+            @PathVariable Long examId) {
+
+        return ResponseEntity.ok(
+                examService.restoreExam(examId)
+        );
     }
 }
