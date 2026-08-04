@@ -1,73 +1,53 @@
 package com.project.ProjectS.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "exam_questions")
+@Table(
+        name = "exam_questions",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        columnNames = {
+                                "exam_id",
+                                "question_id"
+                        }
+                )
+        }
+)
 @Getter
 @Setter
 public class ExamQuestion {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "question_id")
-    private Long questionId;
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "exam_question_seq"
+    )
+    @SequenceGenerator(
+            name = "exam_question_seq",
+            sequenceName = "exam_questions_exam_question_id_seq",
+            allocationSize = 1
+    )
+    @Column(name = "exam_question_id")
+    private Long examQuestionId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "exam_id", nullable = false)
-    @JsonBackReference
     private Exam exam;
 
-    @Column(name = "header_id", nullable = false)
-    private Long headerId;
+    @ManyToOne
+    @JoinColumn(name = "question_id", nullable = false)
+    private Question question;
 
-    @Column(name = "attribute_id", nullable = false)
-    private Long attributeId;
-
-    @Column(name = "transaction_date")
-    private LocalDate transactionDate;
-
-    @Column(name = "amount")
-    private BigDecimal amount;
-
-    @Column(name = "amount2")
-    private BigDecimal amount2;
-
-    @Column(name = "external_file")
-    private String externalFile;
-
-    @Column(name = "note")
-    private String note;
-
-    @Column(name = "active_row")
-    private Boolean activeRow = true;
-
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 
     @PrePersist
     public void prePersist() {
-
         createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-
-        if (activeRow == null) {
-            activeRow = true;
-        }
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        updatedAt = LocalDateTime.now();
     }
 }

@@ -73,7 +73,8 @@ public class SecurityConfig {
 								"/api/users/students_Guest/**",
 								"/api/users/all/**",
 								"/api/users/superAdmin/**",
-								"/api/questions/QuestionText/**"
+								"/api/questions/QuestionText/**",
+								"/api/exams/**"
 
 
 
