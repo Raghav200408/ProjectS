@@ -13,4 +13,6 @@ public interface QuestionRepository
             Long courseId,
             List<Long> chapterIds
     );
+
+    List<Question> findByActiveRowTrue();
 }
