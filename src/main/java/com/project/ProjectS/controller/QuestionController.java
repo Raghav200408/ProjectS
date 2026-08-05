@@ -64,5 +64,26 @@ public class QuestionController {
 
         return ResponseEntity.ok(questions);
     }
+    @PutMapping("/{questionId}")
+    public ResponseEntity<QuestionResponseDTO> updateQuestion(
+            @PathVariable Long questionId,
+            @RequestBody QuestionRequestDTO request) {
+
+        QuestionResponseDTO response =
+                questionService.updateQuestion(
+                        questionId,
+                        request
+                );
+
+        return ResponseEntity.ok(response);
+    }
+    @DeleteMapping("/{questionId}")
+    public ResponseEntity<String> deleteQuestion(
+            @PathVariable Long questionId) {
+
+        return ResponseEntity.ok(
+                questionService.deleteQuestion(questionId)
+        );
+    }
 
 }

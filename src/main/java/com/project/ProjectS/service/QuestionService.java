@@ -199,7 +199,7 @@ public class QuestionService {
     }
     public List<QuestionResponseDTO> getAllQuestions() {
 
-        List<Question> questions = questionRepository.findAll();
+        List<Question> questions = questionRepository.findByActiveRowTrue();
 
         List<QuestionResponseDTO> responseList = new ArrayList<>();
 
@@ -238,6 +238,155 @@ public class QuestionService {
                 question,
                 attributes
         );
+    }
+    public QuestionResponseDTO updateQuestion(
+            Long questionId,
+            QuestionRequestDTO request) {
+
+        // Get existing question
+        Question question = questionRepository
+                .findById(questionId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Question not found with id: " + questionId
+                        )
+                );
+
+
+        // Get Course
+        Course course = courseRepository
+                .findById(request.getCourseId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Course not found with id: "
+                                        + request.getCourseId()
+                        )
+                );
+
+
+        // Get Chapter
+        Chapter chapter = chapterRepository
+                .findById(request.getChapterId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Chapter not found with id: "
+                                        + request.getChapterId()
+                        )
+                );
+
+
+        // Get Category
+        QuestionCategory category =
+                questionCategoryRepository
+                        .findById(request.getCategoryId())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Question category not found with id: "
+                                                + request.getCategoryId()
+                                )
+                        );
+
+
+        // Update Question
+        question.setCourse(course);
+        question.setChapter(chapter);
+        question.setQuestionCategory(category);
+        question.setQuestionText(request.getQuestionText());
+
+        Question savedQuestion =
+                questionRepository.save(question);
+
+
+        questionAttributeRepository.flush();
+        questionAttributeRepository
+                .deleteByQuestion_QuestionId(questionId);
+
+
+        // Create updated Question Attributes
+        List<QuestionAttribute> savedAttributes =
+                new ArrayList<>();
+
+        if (request.getQuestionAttributes() != null) {
+
+            for (QuestionAttributeRequestDTO attributeRequest
+                    : request.getQuestionAttributes()) {
+
+                TableHeader header =
+                        tableHeaderRepository
+                                .findById(attributeRequest.getHeaderId())
+                                .orElseThrow(() ->
+                                        new RuntimeException(
+                                                "Header not found with id: "
+                                                        + attributeRequest.getHeaderId()
+                                        )
+                                );
+
+                TableAttribute attribute =
+                        tableAttributeRepository
+                                .findById(attributeRequest.getAttributeId())
+                                .orElseThrow(() ->
+                                        new RuntimeException(
+                                                "Attribute not found with id: "
+                                                        + attributeRequest.getAttributeId()
+                                        )
+                                );
+
+
+                QuestionAttribute questionAttribute =
+                        new QuestionAttribute();
+
+                questionAttribute.setQuestion(savedQuestion);
+
+                questionAttribute.setHeader(header);
+                questionAttribute.setAttribute(attribute);
+
+                questionAttribute.setTransactionDate(
+                        attributeRequest.getTransactionDate()
+                );
+
+                questionAttribute.setAmount(
+                        attributeRequest.getAmount()
+                );
+
+                questionAttribute.setAmount2(
+                        attributeRequest.getAmount2()
+                );
+
+                questionAttribute.setNote(
+                        attributeRequest.getNote()
+                );
+
+
+                QuestionAttribute savedAttribute =
+                        questionAttributeRepository.save(
+                                questionAttribute
+                        );
+
+                savedAttributes.add(savedAttribute);
+            }
+        }
+
+
+        return convertToResponse(
+                savedQuestion,
+                savedAttributes
+        );
+    }
+    public String deleteQuestion(Long questionId) {
+
+        Question question = questionRepository
+                .findById(questionId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Question not found with id: " + questionId
+                        )
+                );
+
+        question.setActiveRow(false);
+
+        questionRepository.save(question);
+
+        return "Question deleted successfully.";
     }
 
 
