@@ -2,6 +2,8 @@ package com.project.ProjectS.controller;
 
 import com.project.ProjectS.model.ExamRequestDTO;
 import com.project.ProjectS.model.ExamResponseDTO;
+import com.project.ProjectS.model.QuestionFilterRequestDTO;
+import com.project.ProjectS.model.QuestionResponseDTO;
 import com.project.ProjectS.service.ExamService;
 
 import jakarta.validation.Valid;
@@ -108,5 +110,14 @@ public class ExamController {
         return ResponseEntity.ok(
                 examService.restoreExam(examId)
         );
+    }
+    @PostMapping("/questions/filter")
+    public ResponseEntity<List<QuestionResponseDTO>> getQuestionsByFilter(
+            @Valid @RequestBody QuestionFilterRequestDTO request) {
+
+        List<QuestionResponseDTO> response =
+                examService.getQuestionsByFilter(request);
+
+        return ResponseEntity.ok(response);
     }
 }

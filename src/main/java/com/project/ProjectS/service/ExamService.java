@@ -139,6 +139,28 @@ public class ExamService {
 
         return convertToResponse(exam);
     }
+    public List<QuestionResponseDTO> getQuestionsByFilter(
+            QuestionFilterRequestDTO request) {
+
+        List<Question> questions =
+                questionRepository
+                        .findByCourse_CourseIdAndChapter_ChapterIdInAndActiveRowTrue(
+                                request.getCourseId(),
+                                request.getChapterIds()
+                        );
+
+        List<QuestionResponseDTO> response =
+                new ArrayList<>();
+
+        for (Question question : questions) {
+
+            response.add(
+                    convertQuestionToResponse(question)
+            );
+        }
+
+        return response;
+    }
 
     private College getCollege(Long collegeId) {
 
