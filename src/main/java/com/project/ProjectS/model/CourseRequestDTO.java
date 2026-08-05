@@ -17,5 +17,9 @@ public class CourseRequestDTO {
 
     @NotNull(message = "College ID is required")
     private Long collegeId;
+    // Status fields
+    private Boolean activeRow;
+
+    private Integer rowStatus;
 
 }

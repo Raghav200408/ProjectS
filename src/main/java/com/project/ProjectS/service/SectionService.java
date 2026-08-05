@@ -126,6 +126,11 @@ public class SectionService {
         entity.setDescription(
                 request.getDescription()
         );
+        entity.setActiveRow(
+                request.getActiveRow() != null
+                        ? request.getActiveRow()
+                        : true
+        );
 
 
         sectionRepository.save(entity);
@@ -229,6 +234,11 @@ public class SectionService {
         entity.setCourse(course);
         entity.setSectionName(request.getSectionName());
         entity.setDescription(request.getDescription());
+        entity.setActiveRow(
+                request.getActiveRow() != null
+                        ? request.getActiveRow()
+                        : entity.getActiveRow()
+        );
 
         sectionRepository.save(entity);
 
