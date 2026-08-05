@@ -87,7 +87,17 @@ public class CourseService {
         entity.setCollege(college);
         entity.setBranch(branch);
         entity.setName(request.getName());
+        entity.setActiveRow(
+                request.getActiveRow() != null
+                        ? request.getActiveRow()
+                        : true
+        );
 
+        entity.setRowStatus(
+                request.getRowStatus() != null
+                        ? request.getRowStatus()
+                        : 1
+        );
         courseRepository.save(entity);
 
 
@@ -154,6 +164,17 @@ public class CourseService {
         entity.setCollege(college);
         entity.setBranch(branch);
         entity.setName(request.getName());
+        entity.setActiveRow(
+                request.getActiveRow() != null
+                        ? request.getActiveRow()
+                        : entity.getActiveRow()
+        );
+
+        entity.setRowStatus(
+                request.getRowStatus() != null
+                        ? request.getRowStatus()
+                        : entity.getRowStatus()
+        );
 
         courseRepository.save(entity);
 
