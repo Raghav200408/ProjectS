@@ -36,7 +36,7 @@ public class CollegeService {
         entity.setAddress(request.getAddress());
         entity.setPhoneNumber(request.getPhoneNumber());
         entity.setEmail(request.getEmail());
-
+        entity.setActiveRow(request.getActiveRow());
         repository.save(entity);
 
         logger.info("College created successfully. College ID: {}", entity.getCollegeId());
@@ -90,7 +90,7 @@ public class CollegeService {
         entity.setAddress(request.getAddress());
         entity.setPhoneNumber(request.getPhoneNumber());
         entity.setEmail(request.getEmail());
-
+        entity.setActiveRow(request.getActiveRow());
         repository.save(entity);
 
         logger.info("College updated successfully with ID: {}", id);

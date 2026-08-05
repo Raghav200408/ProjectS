@@ -69,7 +69,11 @@ public class BranchService {
         branch.setAddress(request.getAddress());
         branch.setPhoneNumber(request.getPhoneNumber());
         branch.setEmail(request.getEmail());
-
+        branch.setActiveRow(
+                request.getActiveRow() != null
+                        ? request.getActiveRow()
+                        : true
+        );
 
         branchRepository.save(branch);
 
@@ -133,7 +137,11 @@ public class BranchService {
         entity.setAddress(request.getAddress());
         entity.setPhoneNumber(request.getPhoneNumber());
         entity.setEmail(request.getEmail());
-
+        entity.setActiveRow(
+                request.getActiveRow() != null
+                        ? request.getActiveRow()
+                        : true
+        );
         branchRepository.save(entity);
 
         logger.info("Branch updated successfully with ID: {}", id);

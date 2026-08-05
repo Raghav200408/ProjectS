@@ -23,5 +23,5 @@ public class CollegeRequestDTO {
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid Email format")
     private String email;
-
+    private Boolean activeRow;
 }

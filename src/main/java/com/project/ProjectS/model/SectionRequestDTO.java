@@ -22,5 +22,6 @@ public class SectionRequestDTO {
     private String sectionName;
 
     private String description;
+    private Boolean activeRow;
 
 }
