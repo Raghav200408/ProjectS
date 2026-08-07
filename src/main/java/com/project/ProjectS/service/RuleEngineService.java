@@ -5,7 +5,9 @@ import com.project.ProjectS.entity.RuleEngine;
 import com.project.ProjectS.entity.TableAttribute;
 import com.project.ProjectS.entity.TableHeader;
 import com.project.ProjectS.entity.TableName;
+import com.project.ProjectS.mapper.RuleEngineMapper;
 import com.project.ProjectS.model.RuleEngineRequestDTO;
+import com.project.ProjectS.model.RuleEngineResponse;
 import com.project.ProjectS.model.RuleEngineResponseDTO;
 import com.project.ProjectS.repository.ChapterRepository;
 import com.project.ProjectS.repository.RuleEngineRepository;
@@ -39,6 +41,13 @@ public class RuleEngineService {
     @Autowired
     private TableHeaderRepository tableHeaderRepository;
 
+    @Autowired
+    private final RuleEngineMapper mapper;
+
+    public RuleEngineService(RuleEngineMapper mapper) {
+        this.mapper = mapper;
+    }
+
     public String create(RuleEngineRequestDTO request) {
 
         RuleEngine entity = new RuleEngine();
@@ -47,9 +56,9 @@ public class RuleEngineService {
         ruleEngineRepository.save(entity);
 
 
-        if (entity.getFieldName() != null) {
-            entity.getFieldName().setRowStatus("RULE");
-            tableAttributeRepository.save(entity.getFieldName());
+        if (entity.getTableAttributeid() != null) {
+            entity.getTableAttributeid().setRowStatus("RULE");
+            tableAttributeRepository.save(entity.getTableAttributeid());
         }
 
         return "Rule Engine created successfully";
@@ -98,11 +107,10 @@ public class RuleEngineService {
 
         entity.setChapter(chapter);
         entity.setPairAttribute(getTableAttribute(request.getPairAttributeName(), "Pair Attribute"));
-        entity.setFieldName(getTableAttribute(request.getFieldName(), "Field Name"));
-        entity.setFieldType(getTableHeader(request.getFieldType(), "Field Type"));
+//        entity.setFieldName(getTableAttribute(request.getFieldName(), "Field Name"));
+//        entity.setFieldType(getTableHeader(request.getFieldType(), "Field Type"));
         entity.setRelationshipName(request.getRelationshipName());
         entity.setPairOrder(request.getPairOrder());
-
         entity.setArithmetic1(request.getArithmetic1());
         entity.setTable1(getTableName(request.getTable1Name(), "Table 1"));
         entity.setHeader1(getTableHeader(request.getHeader1Name(), "Header 1"));
@@ -191,8 +199,8 @@ public class RuleEngineService {
         dto.setPairAttributeName(getAttributeName(entity.getPairAttribute()));
 
         dto.setPairAttributeTableHeaderName(getAttributeHeaderName(entity.getPairAttribute()));
-        dto.setFieldName(getAttributeName(entity.getFieldName()));
-        dto.setFieldType(getHeaderName(entity.getFieldType()));
+//        dto.setFieldName(getAttributeName(entity.getFieldName()));
+//        dto.setFieldType(getHeaderName(entity.getFieldType()));
         dto.setRelationshipName(entity.getRelationshipName());
         dto.setPairOrder(entity.getPairOrder());
 
@@ -273,5 +281,13 @@ public class RuleEngineService {
     private String getHeaderName(TableHeader header) {
 
         return header != null ? header.getName() : null;
+    }
+
+    public List<RuleEngineResponse> getRuleEngineByAttributeId(Long attributeId) {
+
+        return ruleEngineRepository.findByAttributeId(attributeId)
+                .stream()
+                .map(mapper::toResponse)
+                .toList();
     }
 }
