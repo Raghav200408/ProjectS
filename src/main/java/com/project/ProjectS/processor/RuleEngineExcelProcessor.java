@@ -156,7 +156,7 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                                 );
 
 
-                ruleEngine.setFieldName(attribute);
+                ruleEngine.setTableAttributeid(attribute);
 
             }
 
@@ -190,7 +190,7 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                                 );
 
 
-                ruleEngine.setFieldType(header);
+               // ruleEngine.setTableAttributeid(header);
 
             }
 
@@ -251,28 +251,20 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
              * ==========================
              */
 
-
-            boolean exists =
-                    ruleEngineRepository.existsRule(
-
-                            ruleEngine.getChapter()
-                                    .getChapterId(),
-
-
-                            ruleEngine.getFieldName() != null
-                                    ? ruleEngine.getFieldName().getName()
-                                    : "",
-
-
-                            ruleEngine.getFieldType() != null
-                                    ? ruleEngine.getFieldType().getName()
-                                    : "",
-
-
-                            ruleEngine.getRelationshipName() != null
-                                    ? ruleEngine.getRelationshipName().trim()
-                                    : ""
-                    );
+             boolean exists=false;
+//            boolean exists =  @todo the code changes to check existing record
+//                    ruleEngineRepository.existsRule(
+//
+//                            ruleEngine.getChapter()
+//                                    .getChapterId(),
+//
+//
+//                          null,null,
+//
+//                            ruleEngine.getRelationshipName() != null
+//                                    ? ruleEngine.getRelationshipName().trim()
+//                                    : ""
+//                    );
 
 
 

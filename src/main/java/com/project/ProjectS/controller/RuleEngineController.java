@@ -1,6 +1,8 @@
 package com.project.ProjectS.controller;
 
+import com.project.ProjectS.entity.RuleEngine;
 import com.project.ProjectS.model.RuleEngineRequestDTO;
+import com.project.ProjectS.model.RuleEngineResponse;
 import com.project.ProjectS.model.RuleEngineResponseDTO;
 import com.project.ProjectS.service.RuleEngineService;
 import jakarta.validation.Valid;
@@ -91,5 +93,11 @@ public class RuleEngineController {
                                     + e.getMessage()
                     );
         }
+    }
+
+    @GetMapping("/attribute/{attributeId}")
+    public List<RuleEngineResponse> getRuleEngine(
+            @PathVariable Long attributeId) {
+        return service.getRuleEngineByAttributeId(attributeId);
     }
 }

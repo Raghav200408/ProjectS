@@ -34,12 +34,8 @@ public class RuleEngine {
     private TableAttribute pairAttribute;
 
     @ManyToOne
-    @JoinColumn(name = "field_name", referencedColumnName = "name")
-    private TableAttribute fieldName;
-
-    @ManyToOne
-    @JoinColumn(name = "field_type", referencedColumnName = "name")
-    private TableHeader fieldType;
+    @JoinColumn(name = "attribute_id")
+    private TableAttribute tableAttributeid;
 
     @Column(name = "relationship_name", length = 100)
     private String relationshipName;
