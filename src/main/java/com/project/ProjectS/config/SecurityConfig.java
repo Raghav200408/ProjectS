@@ -75,7 +75,8 @@ public class SecurityConfig {
 								"/api/users/superAdmin/**",
 								"/api/questions/QuestionText/**",
 								"/api/exams/**",
-								"/api/exams/questions/filter"
+								"/api/exams/questions/filter",
+								"/api/question_answers/**"
 
 
 

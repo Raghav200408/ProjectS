@@ -21,13 +21,6 @@ public class ExamController {
 
     @Autowired
     private ExamService examService;
-
-
-
-    // =========================================================
-    // CREATE EXAM
-    // =========================================================
-
     @PostMapping
     public ResponseEntity<ExamResponseDTO> createExam(
             @Valid @RequestBody ExamRequestDTO request) {
@@ -39,13 +32,6 @@ public class ExamController {
                 .status(HttpStatus.CREATED)
                 .body(response);
     }
-
-
-
-    // =========================================================
-    // GET ALL EXAMS
-    // =========================================================
-
     @GetMapping
     public ResponseEntity<List<ExamResponseDTO>> getAllExams() {
 
@@ -54,12 +40,6 @@ public class ExamController {
 
         return ResponseEntity.ok(exams);
     }
-
-
-
-    // =========================================================
-    // GET EXAM BY ID
-    // =========================================================
 
     @GetMapping("/{examId}")
     public ResponseEntity<ExamResponseDTO> getExamById(
@@ -70,13 +50,6 @@ public class ExamController {
 
         return ResponseEntity.ok(response);
     }
-
-
-
-    // =========================================================
-    // UPDATE EXAM
-    // =========================================================
-
     @PutMapping("/{examId}")
     public ResponseEntity<ExamResponseDTO> updateExam(
             @PathVariable Long examId,
@@ -87,13 +60,6 @@ public class ExamController {
 
         return ResponseEntity.ok(response);
     }
-
-
-
-    // =========================================================
-    // DELETE EXAM
-    // =========================================================
-
     @DeleteMapping("/{examId}")
     public ResponseEntity<String> deleteExam(
             @PathVariable Long examId) {
