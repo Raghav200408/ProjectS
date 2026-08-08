@@ -11,10 +11,7 @@ public class RuleEngineRequestDTO {
 
     private String pairAttributeName;
 
-    private String fieldName;
-
-    private String fieldType;
-
+    private String attributeName;
     private String relationshipName;
 
     private Integer pairOrder;

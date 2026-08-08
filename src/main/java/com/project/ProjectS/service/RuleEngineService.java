@@ -109,6 +109,7 @@ public class RuleEngineService {
         entity.setPairAttribute(getTableAttribute(request.getPairAttributeName(), "Pair Attribute"));
 //        entity.setFieldName(getTableAttribute(request.getFieldName(), "Field Name"));
 //        entity.setFieldType(getTableHeader(request.getFieldType(), "Field Type"));
+        entity.setTableAttributeid(getTableAttribute(request.getAttributeName(), "Attribute"));
         entity.setRelationshipName(request.getRelationshipName());
         entity.setPairOrder(request.getPairOrder());
         entity.setArithmetic1(request.getArithmetic1());
@@ -197,7 +198,13 @@ public class RuleEngineService {
         dto.setChapterName(entity.getChapter().getName());
         dto.setPairAttributeId(getAttributeId(entity.getPairAttribute()));
         dto.setPairAttributeName(getAttributeName(entity.getPairAttribute()));
+        dto.setAttributeId(
+                getAttributeId(entity.getTableAttributeid())
+        );
 
+        dto.setAttributeName(
+                getAttributeName(entity.getTableAttributeid())
+        );
         dto.setPairAttributeTableHeaderName(getAttributeHeaderName(entity.getPairAttribute()));
 //        dto.setFieldName(getAttributeName(entity.getFieldName()));
 //        dto.setFieldType(getHeaderName(entity.getFieldType()));

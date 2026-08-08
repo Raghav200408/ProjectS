@@ -23,9 +23,9 @@ public class RuleEngineResponseDTO {
 
     private String pairAttributeTableHeaderName;
 
-    private String fieldName;
+    private Long attributeId;
 
-    private String fieldType;
+    private String attributeName;
 
     private String relationshipName;
 
