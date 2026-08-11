@@ -8,6 +8,7 @@ import com.project.ProjectS.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.project.ProjectS.repository.AnswerEventRepository;
 
 import java.util.List;
 
@@ -28,6 +29,7 @@ public class QuestionAnswerService {
 
     @Autowired
     private TableHeaderRepository tableHeaderRepository;
+
 
     @Autowired
     private TableAttributeRepository tableAttributeRepository;
@@ -142,18 +144,11 @@ public class QuestionAnswerService {
     }
     public String resetAnswersByQuestionId(Long questionId) {
 
-        questionRepository.findById(questionId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Question not found with id: " + questionId
-                        )
-                );
-
-        int updatedCount =
+        int answerCount =
                 questionAnswerRepository
                         .deactivateByQuestionId(questionId);
 
-        return updatedCount +
+        return answerCount +
                 " answer(s) reset successfully.";
     }
 
