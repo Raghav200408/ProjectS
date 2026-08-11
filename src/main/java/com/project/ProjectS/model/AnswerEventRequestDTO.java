@@ -13,9 +13,7 @@ public class AnswerEventRequestDTO {
 
     private Long attributeId;
 
-    private Long tableNameId;
 
-    private Long headerId;
 
     private String arithmetic;
 

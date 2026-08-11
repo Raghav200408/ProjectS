@@ -20,11 +20,7 @@ public class AnswerEventResponseDTO {
     private Long attributeId;
     private String attributeName;
 
-    private Long tableNameId;
-    private String tableName;
 
-    private Long headerId;
-    private String headerName;
 
     private String arithmetic;
 

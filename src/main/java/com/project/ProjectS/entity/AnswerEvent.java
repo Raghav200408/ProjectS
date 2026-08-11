@@ -40,13 +40,7 @@ public class AnswerEvent {
     @JoinColumn(name = "attribute_id", nullable = false)
     private TableAttribute attribute;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "table_name_id", nullable = false)
-    private TableName tableName;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "header_id", nullable = false)
-    private TableHeader header;
 
     @Column(name = "arithmetic", length = 50)
     private String arithmetic;
