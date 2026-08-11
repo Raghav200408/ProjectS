@@ -4,11 +4,14 @@ import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.AnswerEventRequestDTO;
 import com.project.ProjectS.model.AnswerEventResponseDTO;
 import com.project.ProjectS.repository.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Transactional
@@ -18,16 +21,13 @@ public class AnswerEventService {
     private AnswerEventRepository answerEventRepository;
 
     @Autowired
-    private RuleEngineRepository ruleEngineRepository;
-
-    @Autowired
-    private QuestionAnswerRepository questionAnswerRepository;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Autowired
     private QuestionRepository questionRepository;
+
+    @Autowired
+    private TableAttributeRepository tableAttributeRepository;
 
     @Autowired
     private TableNameRepository tableNameRepository;
@@ -35,340 +35,348 @@ public class AnswerEventService {
     @Autowired
     private TableHeaderRepository tableHeaderRepository;
 
-    @Autowired
-    private TableAttributeRepository tableAttributeRepository;
 
+    // =========================================================
+    // CREATE EVENT
+    // =========================================================
 
-    public AnswerEventResponseDTO processAnswer(
+    public AnswerEventResponseDTO createEvent(
             AnswerEventRequestDTO request) {
 
-        //Find User
-        User user = userRepository.findById(
-                request.getUserId()
-        ).orElseThrow(() ->
-                new RuntimeException(
-                        "User not found with id: "
-                                + request.getUserId()
-                )
-        );
+        User user = userRepository
+                .findById(request.getUserId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "User not found: "
+                                        + request.getUserId()
+                        )
+                );
 
-        //Find Question
-        Question question = questionRepository.findById(
-                request.getQuestionId()
-        ).orElseThrow(() ->
-                new RuntimeException(
-                        "Question not found with id: "
-                                + request.getQuestionId()
-                )
-        );
 
-        //Find Table
-        TableName tableName = null;
+        Question question = questionRepository
+                .findById(request.getQuestionId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Question not found: "
+                                        + request.getQuestionId()
+                        )
+                );
 
-        if (request.getTableNameId() != null) {
 
-            tableName = tableNameRepository.findById(
-                    request.getTableNameId()
-            ).orElseThrow(() ->
-                    new RuntimeException(
-                            "Table Name not found with id: "
-                                    + request.getTableNameId()
-                    )
-            );
+        TableAttribute attribute =
+                tableAttributeRepository
+                        .findById(request.getAttributeId())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Attribute not found: "
+                                                + request.getAttributeId()
+                                )
+                        );
+
+
+        TableName tableName =
+                tableNameRepository
+                        .findById(request.getTableNameId())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Table name not found: "
+                                                + request.getTableNameId()
+                                )
+                        );
+
+
+        TableHeader header =
+                tableHeaderRepository
+                        .findById(request.getHeaderId())
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Header not found: "
+                                                + request.getHeaderId()
+                                )
+                        );
+
+
+        String eventType =
+                request.getEventType()
+                        .trim()
+                        .toUpperCase();
+
+
+        // =====================================================
+        // ATTEMPT NUMBER
+        // =====================================================
+
+        int attemptNumber = 0;
+
+        if ("ANSWER".equals(eventType)) {
+
+            long previousAttempts =
+                    answerEventRepository
+                            .countByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventType(
+                                    request.getUserId(),
+                                    request.getQuestionId(),
+                                    request.getAttributeId(),
+                                    "ANSWER"
+                            );
+
+            attemptNumber = (int) previousAttempts + 1;
         }
 
-        //Find Header
-        TableHeader header = null;
-        if (request.getHeaderId() != null) {
-            header = tableHeaderRepository.findById(
-                    request.getHeaderId()
-            ).orElseThrow(() ->
-                    new RuntimeException(
-                            "Table Header not found with id: "
-                                    + request.getHeaderId()
-                    )
-            );
+
+        // =====================================================
+        // CHECK HINT / AUTO-FILL HISTORY
+        // =====================================================
+
+        boolean assistanceUsed = false;
+
+        if ("ANSWER".equals(eventType)) {
+
+            boolean hintUsed =
+                    answerEventRepository
+                            .existsByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventType(
+                                    request.getUserId(),
+                                    request.getQuestionId(),
+                                    request.getAttributeId(),
+                                    "HINT"
+                            );
+
+            boolean autoFillUsed =
+                    answerEventRepository
+                            .existsByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventType(
+                                    request.getUserId(),
+                                    request.getQuestionId(),
+                                    request.getAttributeId(),
+                                    "AUTO_FILL"
+                            );
+
+            assistanceUsed = hintUsed || autoFillUsed;
         }
 
-        //Find Attribute
-        TableAttribute attribute = null;
 
-        if (request.getAttributeId() != null) {
+        // =====================================================
+        // CALCULATE MARKS
+        // =====================================================
 
-            attribute = tableAttributeRepository.findById(
-                    request.getAttributeId()
-            ).orElseThrow(() ->
-                    new RuntimeException(
-                            "Table Attribute not found with id: "
-                                    + request.getAttributeId()
-                    )
-            );
-        }
-
-        //Validate answer against Rule Engine
-        boolean valid = validateRuleEngine(
-                request
+        BigDecimal marks = calculateMarks(
+                eventType,
+                attemptNumber,
+                request.getIsCorrect(),
+                assistanceUsed
         );
 
-        //Create QuestionAnswer ONLY if correct
-        QuestionAnswer savedAnswer = null;
 
-        if (valid) {
+        // =====================================================
+        // CREATE ENTITY
+        // =====================================================
 
-            QuestionAnswer answer =
-                    new QuestionAnswer();
+        AnswerEvent event = new AnswerEvent();
 
-            answer.setUser(user);
-
-            answer.setQuestion(question);
-
-            answer.setTableName(tableName);
-
-            answer.setHeader(header);
-
-            answer.setAttribute(attribute);
-
-            answer.setArithmetic(
-                    request.getArithmetic()
-            );
-
-            answer.setAmount(
-                    request.getAmount()
-            );
-
-            answer.setActiveRow(true);
-
-            answer.setRowStatus(1);
-
-            savedAnswer =
-                    questionAnswerRepository.save(answer);
-        }
-
-        //Create AnswerEvent for EVERY answer
-        AnswerEvent event =
-                new AnswerEvent();
-
-        answerEventRepository.deactivateActiveAnswersByAttribute(
-                request.getQuestionId(),
-                request.getAttributeId()
-        );
-
+        event.setUser(user);
         event.setQuestion(question);
-        event.setAnswer(savedAnswer);
-
+        event.setAttribute(attribute);
         event.setTableName(tableName);
         event.setHeader(header);
-        event.setAttribute(attribute);
 
-        event.setArithmetic(
-                request.getArithmetic()
-        );
+        event.setArithmetic(request.getArithmetic());
 
-        event.setAmount(
-                request.getAmount()
-        );
+        event.setEventType(eventType);
 
-        event.setDescription(
-                request.getDescription()
-        );
+        event.setIsCorrect(request.getIsCorrect());
 
-        event.setValid(valid);
+        event.setAttemptNumber(attemptNumber);
 
-        event.setAction(
-                request.getAction()
-        );
+        event.setMarks(marks);
 
-        event.setUserAnswer(
-                request.getUserAnswer()
-        );
+        event.setHint(request.getHint());
 
-        event.setAnswerBy(
-                request.getAnswerBy()
-        );
+        event.setDescription(request.getDescription());
 
-        event.setHint(
-                request.getHint()
-        );
+        event.setUserAnswer(request.getUserAnswer());
 
         event.setActiveRow(true);
 
 
-        AnswerEvent savedEvent =
+        AnswerEvent saved =
                 answerEventRepository.save(event);
 
-        //Convert to response
-        return convertToResponse(
-                savedEvent
-        );
-    }
-    // RULE ENGINE VALIDATION
-    private boolean validateRuleEngine(
-            AnswerEventRequestDTO request) {
 
-        if (request.getAttributeId() == null) {
-            return false;
-        }
-
-        List<RuleEngine> rules =
-                ruleEngineRepository.findByAttributeId(
-                        request.getAttributeId()
-                );
-
-        if (rules.isEmpty()) {
-            return false;
-        }
-
-
-        for (RuleEngine rule : rules) {
-
-            if (matches(
-                    request,
-                    rule.getTable1(),
-                    rule.getHeader1())) {
-
-                return true;
-            }
-
-            if (matches(
-                    request,
-                    rule.getTable2(),
-                    rule.getHeader2())) {
-
-                return true;
-            }
-
-            if (matches(
-                    request,
-                    rule.getTable3(),
-                    rule.getHeader3())) {
-
-                return true;
-            }
-
-            if (matches(
-                    request,
-                    rule.getTable4(),
-                    rule.getHeader4())) {
-
-                return true;
-            }
-        }
-
-        return false;
-    }
-    // MATCH TABLE and HEADER
-
-    private boolean matches(
-            AnswerEventRequestDTO request,
-            TableName table,
-            TableHeader header) {
-
-        if (table == null || header == null) {
-            return false;
-        }
-
-        if (request.getTableNameId() == null
-                || request.getHeaderId() == null) {
-
-            return false;
-        }
-
-        return table.getTableNameId()
-                .equals(request.getTableNameId())
-
-                && header.getHeaderId()
-                .equals(request.getHeaderId());
+        return convertToResponse(saved);
     }
 
-    public List<AnswerEventResponseDTO> getEventsByQuestionId(
-            Long questionId) {
 
-        questionRepository.findById(questionId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Question not found with id: "
-                                        + questionId
-                        )
-                );
+    // =========================================================
+    // MARK CALCULATION
+    // =========================================================
+
+    private BigDecimal calculateMarks(
+            String eventType,
+            int attemptNumber,
+            Boolean isCorrect,
+            boolean assistanceUsed) {
+
+
+        // HINT
+        if ("HINT".equals(eventType)) {
+            return BigDecimal.ZERO;
+        }
+
+
+        // AUTO FILL
+        if ("AUTO_FILL".equals(eventType)) {
+            return BigDecimal.ZERO;
+        }
+
+
+        // Only ANSWER gets marks
+        if (!"ANSWER".equals(eventType)) {
+            return BigDecimal.ZERO;
+        }
+
+
+        // Wrong answer
+        if (!Boolean.TRUE.equals(isCorrect)) {
+            return BigDecimal.ZERO;
+        }
+
+
+        // Hint or Auto-fill was already used
+        if (assistanceUsed) {
+            return BigDecimal.ZERO;
+        }
+
+
+        // First correct attempt
+        if (attemptNumber == 1) {
+            return new BigDecimal("1.00");
+        }
+
+
+        // Second correct attempt
+        if (attemptNumber == 2) {
+            return new BigDecimal("0.50");
+        }
+
+
+        // Third or later
+        return BigDecimal.ZERO;
+    }
+
+
+
+    public List<AnswerEventResponseDTO> getAllEvents() {
 
         return answerEventRepository
-                .findByQuestion_QuestionIdAndActiveRowTrue(questionId)
+                .findAll()
                 .stream()
                 .map(this::convertToResponse)
                 .toList();
     }
 
-    public List<AnswerEventResponseDTO> getMistakesByQuestionId(
-            Long questionId) {
 
-        questionRepository.findById(questionId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Question not found with id: "
-                                        + questionId
-                        )
-                );
+    public AnswerEventResponseDTO getById(
+            Long answerEventId) {
+
+        AnswerEvent event =
+                answerEventRepository
+                        .findById(answerEventId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Answer event not found: "
+                                                + answerEventId
+                                )
+                        );
+
+        return convertToResponse(event);
+    }
+
+    public List<AnswerEventResponseDTO>
+    getByUserQuestionAttribute(
+            Long userId,
+            Long questionId,
+            Long attributeId) {
 
         return answerEventRepository
-                .findByQuestion_QuestionIdAndValid(
+                .findByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeId(
+                        userId,
                         questionId,
-                        false
+                        attributeId
                 )
                 .stream()
                 .map(this::convertToResponse)
                 .toList();
     }
-    // RESPONSE MAPPER
+    public List<AnswerEventResponseDTO> getAllMistakesByUser(
+            Long userId) {
+
+        return answerEventRepository
+                .findByUser_UserIdAndEventTypeAndIsCorrectFalse(
+                        userId,
+                        "ANSWER"
+                )
+                .stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
+
+    public List<AnswerEventResponseDTO>
+    getMistakes(
+            Long userId,
+            Long questionId) {
+
+        return answerEventRepository
+                .findByUser_UserIdAndQuestion_QuestionIdAndEventTypeAndIsCorrectFalse(
+                        userId,
+                        questionId,
+                        "ANSWER"
+                )
+                .stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
+    public BigDecimal getOverallMarks(Long userId) {
+
+        List<AnswerEvent> events =
+                answerEventRepository.findByUser_UserId(userId);
+
+        return events.stream()
+                .map(AnswerEvent::getMarks)
+                .filter(Objects::nonNull)
+                .reduce(
+                        BigDecimal.ZERO,
+                        BigDecimal::add
+                );
+    }
     private AnswerEventResponseDTO convertToResponse(
             AnswerEvent event) {
 
         AnswerEventResponseDTO response =
                 new AnswerEventResponseDTO();
 
-        // Answer Event ID
+
         response.setAnswerEventId(
                 event.getAnswerEventId()
         );
 
-        // Question
+
+        if (event.getUser() != null) {
+
+            response.setUserId(
+                    event.getUser().getUserId()
+            );
+
+            response.setUsername(
+                    event.getUser().getName()
+            );
+        }
+
+
         if (event.getQuestion() != null) {
             response.setQuestionId(
                     event.getQuestion().getQuestionId()
             );
         }
 
-        // Answer ID
-        if (event.getAnswer() != null) {
-            response.setAnswerId(
-                    event.getAnswer().getAnswerId()
-            );
-        }
 
-        // Table
-        if (event.getTableName() != null) {
-
-            response.setTableNameId(
-                    event.getTableName().getTableNameId()
-            );
-
-            response.setTableName(
-                    event.getTableName().getName()
-            );
-        }
-
-        // Header
-        if (event.getHeader() != null) {
-
-            response.setHeaderId(
-                    event.getHeader().getHeaderId()
-            );
-
-            response.setHeaderName(
-                    event.getHeader().getName()
-            );
-        }
-
-        // Attribute
         if (event.getAttribute() != null) {
 
             response.setAttributeId(
@@ -380,57 +388,71 @@ public class AnswerEventService {
             );
         }
 
-        // Arithmetic
+
+        if (event.getTableName() != null) {
+
+            response.setTableNameId(
+                    event.getTableName().getTableNameId()
+            );
+
+            response.setTableName(
+                    event.getTableName().getName()
+            );
+        }
+
+
+        if (event.getHeader() != null) {
+
+            response.setHeaderId(
+                    event.getHeader().getHeaderId()
+            );
+
+            response.setHeaderName(
+                    event.getHeader().getName()
+            );
+        }
+
+
         response.setArithmetic(
                 event.getArithmetic()
         );
 
-        // Amount
-        response.setAmount(
-                event.getAmount()
+        response.setEventType(
+                event.getEventType()
         );
 
-        // Valid
-        response.setValid(
-                event.getValid()
+        response.setIsCorrect(
+                event.getIsCorrect()
         );
 
-        // Description
-        response.setDescription(
-                event.getDescription()
+        response.setAttemptNumber(
+                event.getAttemptNumber()
         );
 
-        // Action
-        response.setAction(
-                event.getAction()
+        response.setMarks(
+                event.getMarks()
         );
 
-        // User Answer
-        response.setUserAnswer(
-                event.getUserAnswer()
-        );
-
-        // Answer By
-        response.setAnswerBy(
-                event.getAnswerBy()
-        );
-
-        // Hint
         response.setHint(
                 event.getHint()
         );
 
-        // Active Row
+        response.setDescription(
+                event.getDescription()
+        );
+
+        response.setUserAnswer(
+                event.getUserAnswer()
+        );
+
         response.setActiveRow(
                 event.getActiveRow()
         );
 
-        // Created At
         response.setCreatedAt(
                 event.getCreatedAt()
         );
 
-        // Updated At
         response.setUpdatedAt(
                 event.getUpdatedAt()
         );

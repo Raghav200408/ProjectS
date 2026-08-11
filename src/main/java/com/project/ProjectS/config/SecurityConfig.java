@@ -77,7 +77,7 @@ public class SecurityConfig {
 								"/api/exams/**",
 								"/api/exams/questions/filter",
 								"/api/question_answers/**",
-								"/api/answer-events/**"
+								"/api/answer_events/**"
 
 
 
