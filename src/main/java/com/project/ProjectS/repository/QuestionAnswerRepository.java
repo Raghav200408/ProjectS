@@ -24,4 +24,10 @@ public interface QuestionAnswerRepository extends JpaRepository<QuestionAnswer,L
       AND qa.activeRow = true
 """)
     int  deactivateByQuestionId( @Param("questionId") Long questionId);
+    List<QuestionAnswer>
+    findByUser_UserIdAndQuestion_QuestionIdAndActiveRowTrue(
+            Long userId,
+            Long questionId
+    );
+
 }

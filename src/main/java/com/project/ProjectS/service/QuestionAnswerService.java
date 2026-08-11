@@ -142,14 +142,52 @@ public class QuestionAnswerService {
                 .map(this::convertToResponse)
                 .toList();
     }
-    public String resetAnswersByQuestionId(Long questionId) {
+    public List<QuestionAnswerResponseDTO>
+    getAnswersByUserAndQuestion(
+            Long userId,
+            Long questionId) {
 
-        int answerCount =
+        userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "User not found with id: " + userId
+                        )
+                );
+
+        questionRepository.findById(questionId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Question not found with id: " + questionId
+                        )
+                );
+
+        return questionAnswerRepository
+                .findByUser_UserIdAndQuestion_QuestionIdAndActiveRowTrue(
+                        userId,
+                        questionId
+                )
+                .stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
+    public String resetAnswersByUserAndQuestion(
+            Long userId,
+            Long questionId) {
+
+        List<QuestionAnswer> answers =
                 questionAnswerRepository
-                        .deactivateByQuestionId(questionId);
+                        .findByUser_UserIdAndQuestion_QuestionIdAndActiveRowTrue(
+                                userId,
+                                questionId
+                        );
 
-        return answerCount +
-                " answer(s) reset successfully.";
+        for (QuestionAnswer answer : answers) {
+            answer.setActiveRow(false);
+        }
+
+        questionAnswerRepository.saveAll(answers);
+
+        return "Answers reset successfully";
     }
 
     private QuestionAnswerResponseDTO convertToResponse(

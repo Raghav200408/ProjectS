@@ -33,14 +33,32 @@ public class QuestionAnswerController {
                         .getAnswersByQuestionId(questionId)
         );
     }
-
-    @PutMapping("/question/{questionId}/reset")
-    public ResponseEntity<String> resetAnswersByQuestionId(
+    @GetMapping("/user/{userId}/question/{questionId}")
+    public ResponseEntity<List<QuestionAnswerResponseDTO>>
+    getAnswersByUserAndQuestion(
+            @PathVariable Long userId,
             @PathVariable Long questionId) {
 
         return ResponseEntity.ok(
                 questionAnswerService
-                        .resetAnswersByQuestionId(questionId)
+                        .getAnswersByUserAndQuestion(
+                                userId,
+                                questionId
+                        )
+        );
+    }
+
+    @PutMapping("/user/{userId}/question/{questionId}/reset")
+    public ResponseEntity<String> resetAnswersByUserAndQuestion(
+            @PathVariable Long userId,
+            @PathVariable Long questionId) {
+
+        return ResponseEntity.ok(
+                questionAnswerService
+                        .resetAnswersByUserAndQuestion(
+                                userId,
+                                questionId
+                        )
         );
     }
 
