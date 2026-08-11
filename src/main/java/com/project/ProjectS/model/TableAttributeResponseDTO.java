@@ -17,4 +17,6 @@ public class TableAttributeResponseDTO {
     private String tableHeaderName;
     private Long amount1;
     private Long amount2;
+    // NEW FIELD
+    private Boolean rowDisable;
 }
