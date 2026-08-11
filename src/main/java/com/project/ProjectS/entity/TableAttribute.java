@@ -43,6 +43,10 @@ public class TableAttribute {
     @JoinColumn(name = "header_id", nullable = false)
     private TableHeader tableHeader;
 
+    // NEW FIELD
+    @Column(name = "row_disable")
+    private Boolean rowDisable = false;
+
     @PrePersist
     public void prePersist() {
         createdAt = LocalDateTime.now();
@@ -54,6 +58,10 @@ public class TableAttribute {
 
         if (rowStatus == null) {
             rowStatus = "DRAFT";
+        }
+
+        if (rowDisable == null) {
+            rowDisable = false;
         }
     }
 

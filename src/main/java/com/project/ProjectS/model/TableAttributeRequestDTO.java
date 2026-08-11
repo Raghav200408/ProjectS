@@ -13,5 +13,6 @@ public class TableAttributeRequestDTO {
     private Long amount1;
     private Long amount2;
 
-
+    // NEW FIELD
+    private Boolean rowDisable;
 }

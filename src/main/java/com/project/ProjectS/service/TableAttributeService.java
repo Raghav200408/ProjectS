@@ -38,6 +38,15 @@ public class TableAttributeService {
         entity.setAmount1(request.getAmount1());
         entity.setAmount2(request.getAmount2());
 
+        // NEW
+        if (request.getRowDisable() != null) {
+            entity.setRowDisable(
+                    request.getRowDisable()
+            );
+        } else {
+            entity.setRowDisable(false);
+        }
+
         attributeRepository.save(entity);
 
         return "Table Attribute created successfully";
@@ -63,6 +72,11 @@ public class TableAttributeService {
             dto.setAmount1(entity.getAmount1());
             dto.setAmount2(entity.getAmount2());
 
+            // NEW
+            dto.setRowDisable(
+                    entity.getRowDisable()
+            );
+
             response.add(dto);
         }
 
@@ -87,6 +101,10 @@ public class TableAttributeService {
         dto.setAmount1(entity.getAmount1());
         dto.setAmount2(entity.getAmount2());
 
+        // NEW
+        dto.setRowDisable(
+                entity.getRowDisable());
+
         return dto;
     }
 
@@ -103,6 +121,14 @@ public class TableAttributeService {
         entity.setTableHeader(header);
         entity.setAmount1(request.getAmount1());
         entity.setAmount2(request.getAmount2());
+
+        // NEW
+        if (request.getRowDisable() != null) {
+
+            entity.setRowDisable(
+                    request.getRowDisable()
+            );
+        }
 
         attributeRepository.save(entity);
 

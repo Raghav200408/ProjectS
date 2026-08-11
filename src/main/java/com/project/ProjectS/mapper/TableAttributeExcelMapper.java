@@ -23,6 +23,9 @@ public class TableAttributeExcelMapper {
         String amount1 = row.get("amount1");
         String amount2 = row.get("amount2");
 
+        // Row Disable
+        String rowDisable = row.get("row_disable");
+
         if (name != null && !name.trim().isEmpty()) {
             attribute.setName(name.trim());
         }
@@ -33,6 +36,18 @@ public class TableAttributeExcelMapper {
 
         if (amount2 != null && !amount2.isBlank()) {
             attribute.setAmount2(Long.parseLong(amount2));
+        }
+
+        // Column Disable
+        if (rowDisable != null && !rowDisable.isBlank()) {
+
+            attribute.setRowDisable(
+                    Boolean.parseBoolean(rowDisable.trim())
+            );
+
+        } else {
+
+            attribute.setRowDisable(false);
         }
 
         if (headerName != null && !headerName.trim().isEmpty()) {
