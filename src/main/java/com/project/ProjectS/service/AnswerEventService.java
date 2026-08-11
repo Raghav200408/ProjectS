@@ -29,11 +29,7 @@ public class AnswerEventService {
     @Autowired
     private TableAttributeRepository tableAttributeRepository;
 
-    @Autowired
-    private TableNameRepository tableNameRepository;
 
-    @Autowired
-    private TableHeaderRepository tableHeaderRepository;
 
 
     // =========================================================
@@ -74,26 +70,7 @@ public class AnswerEventService {
                         );
 
 
-        TableName tableName =
-                tableNameRepository
-                        .findById(request.getTableNameId())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Table name not found: "
-                                                + request.getTableNameId()
-                                )
-                        );
 
-
-        TableHeader header =
-                tableHeaderRepository
-                        .findById(request.getHeaderId())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Header not found: "
-                                                + request.getHeaderId()
-                                )
-                        );
 
 
         String eventType =
@@ -174,8 +151,7 @@ public class AnswerEventService {
         event.setUser(user);
         event.setQuestion(question);
         event.setAttribute(attribute);
-        event.setTableName(tableName);
-        event.setHeader(header);
+
 
         event.setArithmetic(request.getArithmetic());
 
@@ -389,28 +365,10 @@ public class AnswerEventService {
         }
 
 
-        if (event.getTableName() != null) {
-
-            response.setTableNameId(
-                    event.getTableName().getTableNameId()
-            );
-
-            response.setTableName(
-                    event.getTableName().getName()
-            );
-        }
 
 
-        if (event.getHeader() != null) {
 
-            response.setHeaderId(
-                    event.getHeader().getHeaderId()
-            );
 
-            response.setHeaderName(
-                    event.getHeader().getName()
-            );
-        }
 
 
         response.setArithmetic(
