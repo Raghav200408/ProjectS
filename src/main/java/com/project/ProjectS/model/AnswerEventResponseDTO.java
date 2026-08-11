@@ -12,9 +12,13 @@ public class AnswerEventResponseDTO {
 
     private Long answerEventId;
 
+    private Long userId;
+    private String username;
+
     private Long questionId;
 
-    private Long answerId;
+    private Long attributeId;
+    private String attributeName;
 
     private Long tableNameId;
     private String tableName;
@@ -22,24 +26,21 @@ public class AnswerEventResponseDTO {
     private Long headerId;
     private String headerName;
 
-    private Long attributeId;
-    private String attributeName;
-
     private String arithmetic;
 
-    private BigDecimal amount;
+    private String eventType;
 
-    private Boolean valid;
+    private Boolean isCorrect;
+
+    private Integer attemptNumber;
+
+    private BigDecimal marks;
+
+    private String hint;
 
     private String description;
 
-    private String action;
-
     private String userAnswer;
-
-    private String answerBy;
-
-    private String hint;
 
     private Boolean activeRow;
 
