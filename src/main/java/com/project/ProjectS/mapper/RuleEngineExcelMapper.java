@@ -9,20 +9,16 @@ import java.util.Map;
 public class RuleEngineExcelMapper
         implements ExcelRowMapper<RuleEngine> {
 
-
     @Override
     public RuleEngine map(Map<String, String> row) {
 
-
         RuleEngine ruleEngine = new RuleEngine();
-
 
         // Direct fields
 
         ruleEngine.setRelationshipName(
                 row.get("relationship_name")
         );
-
 
         String pairOrder = row.get("pair_order");
 
@@ -31,10 +27,7 @@ public class RuleEngineExcelMapper
             ruleEngine.setPairOrder(
                     Integer.parseInt(pairOrder.trim())
             );
-
         }
-
-
 
         // Condition 1
 
@@ -50,8 +43,6 @@ public class RuleEngineExcelMapper
                 row.get("information1")
         );
 
-
-
         // Condition 2
 
         ruleEngine.setArithmetic2(
@@ -65,8 +56,6 @@ public class RuleEngineExcelMapper
         ruleEngine.setInformation2(
                 row.get("information2")
         );
-
-
 
         // Condition 3
 
@@ -82,8 +71,6 @@ public class RuleEngineExcelMapper
                 row.get("information3")
         );
 
-
-
         // Condition 4
 
         ruleEngine.setArithmetic4(
@@ -97,8 +84,6 @@ public class RuleEngineExcelMapper
         ruleEngine.setInformation4(
                 row.get("information4")
         );
-
-
         /*
          * Relationship fields are not mapped here:
          *
@@ -117,8 +102,6 @@ public class RuleEngineExcelMapper
          *
          * These will be handled in RuleEngineExcelProcessor
          */
-
-
         return ruleEngine;
     }
 }
