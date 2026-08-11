@@ -12,43 +12,57 @@ import java.util.Map;
 @Component
 public class CourseExcelMapper implements ExcelRowMapper<Course> {
 
-
     @Autowired
     private BranchRepository branchRepository;
-
 
     @Override
     public Course map(Map<String, String> row) {
 
+        String branchName = row.get("branch_name");
+        String courseName = row.get("course_name");
 
+        // Remove extra spaces
+        if (branchName != null) {
+            branchName = branchName.trim();
+        }
+
+        if (courseName != null) {
+            courseName = courseName.trim();
+        }
+
+        // Validate Branch Name
+        if (branchName == null || branchName.isBlank()) {
+            throw new RuntimeException("Branch Name is required");
+        }
+
+        // Validate Course Name
+        if (courseName == null || courseName.isBlank()) {
+            throw new RuntimeException("Course Name is required");
+        }
+
+        // Find Branch
         List<Branch> branches =
-                branchRepository.findByBranchName(
-                        row.get("branch_name")
-                );
+                branchRepository.findByBranchName(branchName);
 
-
-        if(branches.isEmpty()) {
-
+        if (branches.isEmpty()) {
             throw new RuntimeException(
-                    "Branch not found : "
-                            + row.get("branch_name")
+                    "Branch not found : " + branchName
             );
         }
 
-
         Branch branch = branches.get(0);
 
-
+        // Create Course
         Course course = new Course();
 
-
+        // Set Branch
         course.setBranch(branch);
 
+        // Set College from Branch
+        course.setCollege(branch.getCollege());
 
-        course.setName(
-                row.get("course_name")
-        );
-
+        // Set Course Name
+        course.setName(courseName);
 
         return course;
     }

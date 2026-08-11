@@ -10,44 +10,26 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
-
-
 @Component
 @Transactional
 public class RuleEngineExcelProcessor implements ExcelProcessor {
-
-
     @Autowired
     private RuleEngineExcelMapper ruleEngineMapper;
-
-
     @Autowired
     private RuleEngineRepository ruleEngineRepository;
-
-
     @Autowired
     private ChapterRepository chapterRepository;
-
-
     @Autowired
     private TableAttributeRepository tableAttributeRepository;
-
-
     @Autowired
     private TableHeaderRepository tableHeaderRepository;
-
-
     @Autowired
     private TableNameRepository tableNameRepository;
-
-
 
     @Override
     public void process(List<Map<String, String>> excelData) {
 
-
         for (Map<String, String> row : excelData) {
-
 
             // Skip empty rows
             if (row.values().stream().allMatch(
@@ -56,19 +38,10 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                 continue;
             }
 
-
-
             RuleEngine ruleEngine =
                     ruleEngineMapper.map(row);
 
-
-
-            /*
-             * ==========================
-             * Chapter
-             * ==========================
-             */
-
+            //chapter
             String chapterName =
                     clean(row.get("chapter_name"));
 
@@ -79,8 +52,6 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                         "chapter_name is required"
                 );
             }
-
-
 
             Chapter chapter =
                     chapterRepository.findByName(chapterName)
@@ -94,19 +65,9 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
 
             ruleEngine.setChapter(chapter);
 
-
-
-
-
-            /*
-             * ==========================
-             * Pair Attribute
-             * ==========================
-             */
-
+             //Pair Attribute
             String pairAttributeName =
                     clean(row.get("pair_attribute_name"));
-
 
             if(pairAttributeName != null) {
 
@@ -120,31 +81,12 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                                                         + pairAttributeName
                                         )
                                 );
-
-
                 ruleEngine.setPairAttribute(attribute);
-
             }
-
-
-
-
-
-
-
-            /*
-             * ==========================
-             * Field Name
-             * ==========================
-             */
-
+            //field name
             String fieldName =
                     clean(row.get("field_name"));
-
-
             if(fieldName != null) {
-
-
                 TableAttribute attribute =
                         tableAttributeRepository
                                 .findByName(fieldName)
@@ -154,31 +96,13 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                                                         + fieldName
                                         )
                                 );
-
-
                 ruleEngine.setTableAttributeid(attribute);
 
             }
-
-
-
-
-
-
-
-            /*
-             * ==========================
-             * Field Type
-             * ==========================
-             */
-
+            //field type
             String fieldType =
                     clean(row.get("field_type"));
-
-
             if(fieldType != null) {
-
-
                 TableHeader header =
                         tableHeaderRepository
                                 .findByName(fieldType)
@@ -188,24 +112,10 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                                                         + fieldType
                                         )
                                 );
-
-
                // ruleEngine.setTableAttributeid(header);
 
             }
-
-
-
-
-
-
-
-            /*
-             * ==========================
-             * Pair Order
-             * ==========================
-             */
-
+            //pair order
             String pairOrder =
                     clean(row.get("pair_order"));
 
@@ -217,19 +127,7 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                 );
 
             }
-
-
-
-
-
-
-
-            /*
-             * ==========================
-             * Conditions 1 - 4
-             * ==========================
-             */
-
+            //Conditions 1 - 4
             setTableAndHeader(row, ruleEngine, 1);
 
             setTableAndHeader(row, ruleEngine, 2);
@@ -237,19 +135,7 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
             setTableAndHeader(row, ruleEngine, 3);
 
             setTableAndHeader(row, ruleEngine, 4);
-
-
-
-
-
-
-
-
-            /*
-             * ==========================
-             * Duplicate Check
-             * ==========================
-             */
+            //Duplicate Check
 
              boolean exists=false;
 //            boolean exists =  @todo the code changes to check existing record
@@ -266,8 +152,6 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
 //                                    : ""
 //                    );
 
-
-
             if (exists) {
 
 
@@ -281,19 +165,7 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
 
             }
 
-
-
-
-
-
-
-            /*
-             * ==========================
-             * Save Rule Engine
-             * ==========================
-             */
-
-
+            //Save Rule Engine
             System.out.println(
                     "Saving Rule Engine : "
                             + ruleEngine.getRelationshipName()
@@ -307,56 +179,27 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                             + savedRule.getRuleEngineId()
                             + " =========="
             );
-
-
         }
-
     }
-
-
-
-
-
-
-
-
     private void setTableAndHeader(
             Map<String,String> row,
             RuleEngine ruleEngine,
             int index
     ) {
-
-
-
         String tableName =
                 clean(
                         row.get(
                                 "table" + index + "_name"
                         )
                 );
-
-
-
         String headerName =
                 clean(
                         row.get(
                                 "header" + index + "_name"
                         )
                 );
-
-
-
-
-
-
-
-        /*
-         * Table Mapping
-         */
-
+        //Table Mapping
         if(tableName != null) {
-
-
             TableName table =
                     tableNameRepository
                             .findByName(tableName)
@@ -366,9 +209,6 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                                                     + tableName
                                     )
                             );
-
-
-
             switch(index) {
 
                 case 1 ->
@@ -386,21 +226,9 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
             }
 
         }
-
-
-
-
-
-
-
-
-        /*
-         * Header Mapping
-         */
+        //Header Mapping
 
         if(headerName != null) {
-
-
             TableHeader header =
                     tableHeaderRepository
                             .findByName(headerName)
@@ -410,9 +238,6 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                                                     + headerName
                                     )
                             );
-
-
-
             switch(index) {
 
                 case 1 ->
@@ -430,35 +255,15 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
             }
 
         }
-
-
     }
-
-
-
-
-
-
-
-
     private String clean(String value) {
-
-
         if(value == null) {
-
             return null;
-
         }
-
-
         value = value.trim();
-
-
         return value.isEmpty()
                 ? null
                 : value;
 
     }
-
-
 }
