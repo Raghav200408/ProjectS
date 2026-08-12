@@ -13,7 +13,7 @@ public class AnswerEventRequestDTO {
 
     private Long attributeId;
 
-
+    private Integer answerPosition;
 
     private String arithmetic;
 

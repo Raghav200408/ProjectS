@@ -20,7 +20,7 @@ public class AnswerEventResponseDTO {
     private Long attributeId;
     private String attributeName;
 
-
+    private Integer answerPosition;
 
     private String arithmetic;
 

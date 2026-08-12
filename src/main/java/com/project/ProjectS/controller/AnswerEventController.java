@@ -107,4 +107,18 @@ public class AnswerEventController {
                 answerEventService.getOverallMarks(userId)
         );
     }
+    @PutMapping("/user/{userId}/question/{questionId}/reset")
+    public ResponseEntity<String> resetEvents(
+            @PathVariable Long userId,
+            @PathVariable Long questionId) {
+
+        int count = answerEventService.resetEvents(
+                userId,
+                questionId
+        );
+
+        return ResponseEntity.ok(
+                count + " answer events reset successfully"
+        );
+    }
 }

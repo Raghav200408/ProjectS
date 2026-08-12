@@ -2,6 +2,9 @@ package com.project.ProjectS.repository;
 
 import com.project.ProjectS.entity.AnswerEvent;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -11,20 +14,19 @@ public interface AnswerEventRepository
         extends JpaRepository<AnswerEvent, Long> {
 
 
-    // Count previous ANSWER attempts
-    long countByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventType(
+    long countByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
             Long userId,
             Long questionId,
             Long attributeId,
+            Integer answerPosition,
             String eventType
     );
 
-
-    // Check whether HINT/AUTO_FILL was used
-    boolean existsByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventType(
+    boolean existsByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
             Long userId,
             Long questionId,
             Long attributeId,
+            Integer answerPosition,
             String eventType
     );
 
@@ -45,10 +47,27 @@ public interface AnswerEventRepository
             Long questionId,
             String eventType
     );
+
     List<AnswerEvent>
     findByUser_UserIdAndEventTypeAndIsCorrectFalse(
             Long userId,
             String eventType
     );
+
     List<AnswerEvent> findByUser_UserId(Long userId);
+
+    @Modifying
+    @Query("""
+                UPDATE AnswerEvent ae
+                SET ae.activeRow = false
+                WHERE ae.user.userId = :userId
+                  AND ae.question.questionId = :questionId
+                  AND ae.activeRow = true
+            """)
+    int deactivateByUserAndQuestion(
+            @Param("userId") Long userId,
+            @Param("questionId") Long questionId
+    );
+
+
 }

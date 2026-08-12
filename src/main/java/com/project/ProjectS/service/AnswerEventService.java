@@ -1,10 +1,15 @@
 package com.project.ProjectS.service;
 
-import com.project.ProjectS.entity.*;
+import com.project.ProjectS.entity.AnswerEvent;
+import com.project.ProjectS.entity.Question;
+import com.project.ProjectS.entity.TableAttribute;
+import com.project.ProjectS.entity.User;
 import com.project.ProjectS.model.AnswerEventRequestDTO;
 import com.project.ProjectS.model.AnswerEventResponseDTO;
-import com.project.ProjectS.repository.*;
-
+import com.project.ProjectS.repository.AnswerEventRepository;
+import com.project.ProjectS.repository.QuestionRepository;
+import com.project.ProjectS.repository.TableAttributeRepository;
+import com.project.ProjectS.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,33 +35,24 @@ public class AnswerEventService {
     private TableAttributeRepository tableAttributeRepository;
 
 
-
-
-    // =========================================================
-    // CREATE EVENT
-    // =========================================================
-
     public AnswerEventResponseDTO createEvent(
             AnswerEventRequestDTO request) {
 
+        String eventType = request.getEventType()
+                .trim()
+                .toUpperCase();
+
         User user = userRepository
                 .findById(request.getUserId())
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "User not found: "
-                                        + request.getUserId()
-                        )
-                );
+                .orElseThrow(() -> new RuntimeException(
+                        "User not found: " + request.getUserId()));
 
 
         Question question = questionRepository
                 .findById(request.getQuestionId())
                 .orElseThrow(() ->
                         new RuntimeException(
-                                "Question not found: "
-                                        + request.getQuestionId()
-                        )
-                );
+                                "Question not found: " + request.getQuestionId()));
 
 
         TableAttribute attribute =
@@ -64,110 +60,146 @@ public class AnswerEventService {
                         .findById(request.getAttributeId())
                         .orElseThrow(() ->
                                 new RuntimeException(
-                                        "Attribute not found: "
-                                                + request.getAttributeId()
-                                )
-                        );
+                                        "Attribute not found: " + request.getAttributeId()));
 
-
-
-
-
-        String eventType =
-                request.getEventType()
-                        .trim()
-                        .toUpperCase();
-
-
-        // =====================================================
-        // ATTEMPT NUMBER
-        // =====================================================
 
         int attemptNumber = 0;
+        BigDecimal marks = BigDecimal.ZERO;
 
-        if ("ANSWER".equals(eventType)) {
 
-            long previousAttempts =
-                    answerEventRepository
-                            .countByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventType(
-                                    request.getUserId(),
-                                    request.getQuestionId(),
-                                    request.getAttributeId(),
-                                    "ANSWER"
-                            );
+        switch (eventType) {
 
-            attemptNumber = (int) previousAttempts + 1;
+
+            case "ANSWER": {
+
+                boolean autoFillUsed =
+                        answerEventRepository
+                                .existsByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+                                        request.getUserId(),
+                                        request.getQuestionId(),
+                                        request.getAttributeId(),
+                                        request.getAnswerPosition(),
+                                        "AUTOFILL"
+                                );
+
+                if (autoFillUsed) {
+                    throw new IllegalStateException(
+                            "Answer already autofilled for answer position "
+                                    + request.getAnswerPosition()
+                    );
+                }
+
+                long previousAttempts =
+                        answerEventRepository
+                                .countByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+                                        request.getUserId(),
+                                        request.getQuestionId(),
+                                        request.getAttributeId(),
+                                        request.getAnswerPosition(),
+                                        "ANSWER"
+                                );
+
+                attemptNumber = (int) previousAttempts + 1;
+
+                if (Boolean.TRUE.equals(request.getIsCorrect())) {
+                    marks = calculateAnswerMarks(attemptNumber);
+                } else {
+                    marks = BigDecimal.ZERO;
+                }
+
+                break;
+            }
+
+            case "HINT": {
+
+                long previousAttempts =
+                        answerEventRepository
+                                .countByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+                                        request.getUserId(),
+                                        request.getQuestionId(),
+                                        request.getAttributeId(),
+                                        request.getAnswerPosition(),
+                                        "ANSWER"
+                                );
+
+                attemptNumber = (int) previousAttempts + 1;
+
+                // Correct or wrong after hint = 0 marks
+                marks = BigDecimal.ZERO;
+
+                break;
+            }
+
+            case "AUTOFILL": {
+
+                attemptNumber = 0;
+                marks = BigDecimal.ZERO;
+
+                break;
+            }
+
+            default:
+
+                throw new IllegalArgumentException(
+                        "Invalid event type: "
+                                + request.getEventType()
+                );
         }
 
-
-        // =====================================================
-        // CHECK HINT / AUTO-FILL HISTORY
-        // =====================================================
-
-        boolean assistanceUsed = false;
-
-        if ("ANSWER".equals(eventType)) {
-
-            boolean hintUsed =
-                    answerEventRepository
-                            .existsByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventType(
-                                    request.getUserId(),
-                                    request.getQuestionId(),
-                                    request.getAttributeId(),
-                                    "HINT"
-                            );
-
-            boolean autoFillUsed =
-                    answerEventRepository
-                            .existsByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventType(
-                                    request.getUserId(),
-                                    request.getQuestionId(),
-                                    request.getAttributeId(),
-                                    "AUTO_FILL"
-                            );
-
-            assistanceUsed = hintUsed || autoFillUsed;
-        }
-
-
-        // =====================================================
-        // CALCULATE MARKS
-        // =====================================================
-
-        BigDecimal marks = calculateMarks(
-                eventType,
-                attemptNumber,
-                request.getIsCorrect(),
-                assistanceUsed
-        );
-
-
-        // =====================================================
-        // CREATE ENTITY
-        // =====================================================
 
         AnswerEvent event = new AnswerEvent();
 
         event.setUser(user);
+
         event.setQuestion(question);
+
         event.setAttribute(attribute);
 
 
-        event.setArithmetic(request.getArithmetic());
+        event.setAnswerPosition(
+                request.getAnswerPosition()
+        );
 
-        event.setEventType(eventType);
 
-        event.setIsCorrect(request.getIsCorrect());
+        event.setArithmetic(
+                request.getArithmetic()
+        );
 
-        event.setAttemptNumber(attemptNumber);
 
-        event.setMarks(marks);
+        event.setEventType(
+                eventType
+        );
 
-        event.setHint(request.getHint());
 
-        event.setDescription(request.getDescription());
+        event.setIsCorrect(
+                request.getIsCorrect()
+        );
 
-        event.setUserAnswer(request.getUserAnswer());
+
+        event.setAttemptNumber(
+                attemptNumber
+        );
+
+
+        event.setMarks(
+                marks
+        );
+
+
+        event.setHint(
+                request.getHint()
+        );
+
+
+        event.setDescription(
+                request.getDescription()
+        );
+
+
+        event.setUserAnswer(
+                request.getUserAnswer()
+        );
+
 
         event.setActiveRow(true);
 
@@ -180,63 +212,18 @@ public class AnswerEventService {
     }
 
 
-    // =========================================================
-    // MARK CALCULATION
-    // =========================================================
+    private BigDecimal calculateAnswerMarks(
+            int attemptNumber) {
 
-    private BigDecimal calculateMarks(
-            String eventType,
-            int attemptNumber,
-            Boolean isCorrect,
-            boolean assistanceUsed) {
+        return switch (attemptNumber) {
 
+            case 1 -> new BigDecimal("1.00");
 
-        // HINT
-        if ("HINT".equals(eventType)) {
-            return BigDecimal.ZERO;
-        }
+            case 2 -> new BigDecimal("0.50");
 
-
-        // AUTO FILL
-        if ("AUTO_FILL".equals(eventType)) {
-            return BigDecimal.ZERO;
-        }
-
-
-        // Only ANSWER gets marks
-        if (!"ANSWER".equals(eventType)) {
-            return BigDecimal.ZERO;
-        }
-
-
-        // Wrong answer
-        if (!Boolean.TRUE.equals(isCorrect)) {
-            return BigDecimal.ZERO;
-        }
-
-
-        // Hint or Auto-fill was already used
-        if (assistanceUsed) {
-            return BigDecimal.ZERO;
-        }
-
-
-        // First correct attempt
-        if (attemptNumber == 1) {
-            return new BigDecimal("1.00");
-        }
-
-
-        // Second correct attempt
-        if (attemptNumber == 2) {
-            return new BigDecimal("0.50");
-        }
-
-
-        // Third or later
-        return BigDecimal.ZERO;
+            default -> BigDecimal.ZERO;
+        };
     }
-
 
 
     public List<AnswerEventResponseDTO> getAllEvents() {
@@ -265,6 +252,19 @@ public class AnswerEventService {
         return convertToResponse(event);
     }
 
+
+    public int resetEvents(
+            Long userId,
+            Long questionId) {
+
+        return answerEventRepository
+                .deactivateByUserAndQuestion(
+                        userId,
+                        questionId
+                );
+    }
+
+
     public List<AnswerEventResponseDTO>
     getByUserQuestionAttribute(
             Long userId,
@@ -281,8 +281,10 @@ public class AnswerEventService {
                 .map(this::convertToResponse)
                 .toList();
     }
-    public List<AnswerEventResponseDTO> getAllMistakesByUser(
-            Long userId) {
+
+
+    public List<AnswerEventResponseDTO>
+    getAllMistakesByUser(Long userId) {
 
         return answerEventRepository
                 .findByUser_UserIdAndEventTypeAndIsCorrectFalse(
@@ -293,6 +295,7 @@ public class AnswerEventService {
                 .map(this::convertToResponse)
                 .toList();
     }
+
 
     public List<AnswerEventResponseDTO>
     getMistakes(
@@ -309,10 +312,14 @@ public class AnswerEventService {
                 .map(this::convertToResponse)
                 .toList();
     }
-    public BigDecimal getOverallMarks(Long userId) {
+
+
+    public BigDecimal getOverallMarks(
+            Long userId) {
 
         List<AnswerEvent> events =
-                answerEventRepository.findByUser_UserId(userId);
+                answerEventRepository
+                        .findByUser_UserId(userId);
 
         return events.stream()
                 .map(AnswerEvent::getMarks)
@@ -322,6 +329,8 @@ public class AnswerEventService {
                         BigDecimal::add
                 );
     }
+
+
     private AnswerEventResponseDTO convertToResponse(
             AnswerEvent event) {
 
@@ -347,6 +356,7 @@ public class AnswerEventService {
 
 
         if (event.getQuestion() != null) {
+
             response.setQuestionId(
                     event.getQuestion().getQuestionId()
             );
@@ -365,10 +375,9 @@ public class AnswerEventService {
         }
 
 
-
-
-
-
+        response.setAnswerPosition(
+                event.getAnswerPosition()
+        );
 
 
         response.setArithmetic(
@@ -414,6 +423,7 @@ public class AnswerEventService {
         response.setUpdatedAt(
                 event.getUpdatedAt()
         );
+
 
         return response;
     }
