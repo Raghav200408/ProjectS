@@ -18,44 +18,25 @@ public class AnswerEvent {
     @Column(name = "answer_event_id")
     private Long answerEventId;
 
-
-    // =========================
-    // USER
-    // =========================
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-
-    // =========================
-    // QUESTION
-    // =========================
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "question_id", nullable = false)
     private Question question;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "attribute_id", nullable = false)
     private TableAttribute attribute;
-
-
-
+    @Column(name = "answer_position")
+    private Integer answerPosition;
     @Column(name = "arithmetic", length = 50)
     private String arithmetic;
-
-
     @Column(name = "event_type", nullable = false, length = 30)
     private String eventType;
 
-
-
     @Column(name = "is_correct")
     private Boolean isCorrect;
-
-
-
     @Column(name = "attempt_number")
     private Integer attemptNumber;
 
