@@ -1,6 +1,7 @@
 package com.project.ProjectS.controller;
 
 import com.project.ProjectS.entity.Question;
+import com.project.ProjectS.model.QuestionExcelUploadResponseDTO;
 import com.project.ProjectS.model.QuestionRequestDTO;
 import com.project.ProjectS.model.QuestionResponseDTO;
 import com.project.ProjectS.service.QuestionService;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -85,5 +87,15 @@ public class QuestionController {
                 questionService.deleteQuestion(questionId)
         );
     }
+    @PostMapping("/upload")
+    public ResponseEntity<QuestionExcelUploadResponseDTO> uploadQuestions(
+            @RequestParam("file") MultipartFile file) {
+
+        QuestionExcelUploadResponseDTO response =
+                questionService.uploadQuestions(file);
+
+        return ResponseEntity.ok(response);
+    }
+
 
 }
