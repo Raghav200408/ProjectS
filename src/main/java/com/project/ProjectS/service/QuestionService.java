@@ -2,14 +2,18 @@ package com.project.ProjectS.service;
 
 import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
+import com.project.ProjectS.processor.QuestionExcelProcessor;
 import com.project.ProjectS.repository.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -35,6 +39,12 @@ public class QuestionService {
 
     @Autowired
     private TableAttributeRepository tableAttributeRepository;
+
+    @Autowired
+    private ExcelUploadService excelUploadService;
+
+    @Autowired
+    private QuestionExcelProcessor questionExcelProcessor;
 
 
     // =========================================================
@@ -155,6 +165,53 @@ public class QuestionService {
                 savedAttributes
         );
     }
+
+
+    // =========================================================
+    // EXCEL UPLOAD QUESTIONS
+    // =========================================================
+
+    public QuestionExcelUploadResponseDTO uploadQuestions(
+            MultipartFile file) {
+
+        if (file == null || file.isEmpty()) {
+
+            throw new RuntimeException(
+                    "Excel file is empty"
+            );
+        }
+
+        try {
+
+            List<Map<String, String>> excelData =
+                    excelUploadService.readExcel(file);
+
+            if (excelData == null || excelData.isEmpty()) {
+
+                throw new RuntimeException(
+                        "Excel file contains no data"
+                );
+            }
+
+            return questionExcelProcessor.process(
+                    excelData
+            );
+
+        } catch (IOException e) {
+
+            throw new RuntimeException(
+                    "Failed to read Excel file: "
+                            + e.getMessage(),
+                    e
+            );
+        }
+    }
+
+
+    // =========================================================
+    // GET ALL QUESTION TEXT
+    // =========================================================
+
     public List<QuestionResponseDTO> getAllQuestionText() {
 
         List<Question> questions = questionRepository.findAll();
@@ -167,8 +224,12 @@ public class QuestionService {
 
             dto.setQuestionId(question.getQuestionId());
             dto.setQuestionText(question.getQuestionText());
-            dto.setCourseId(question.getCourse().getCourseId());
-           dto.setCourseName(
+
+            dto.setCourseId(
+                    question.getCourse().getCourseId()
+            );
+
+            dto.setCourseName(
                     question.getCourse().getName()
             );
 
@@ -189,19 +250,29 @@ public class QuestionService {
             dto.setCategoryName(
                     question.getQuestionCategory().getName()
             );
-            dto.setActiveRow(question.getActiveRow());
 
+            dto.setActiveRow(
+                    question.getActiveRow()
+            );
 
             response.add(dto);
         }
 
         return response;
     }
+
+
+    // =========================================================
+    // GET ALL QUESTIONS
+    // =========================================================
+
     public List<QuestionResponseDTO> getAllQuestions() {
 
-        List<Question> questions = questionRepository.findByActiveRowTrue();
+        List<Question> questions =
+                questionRepository.findByActiveRowTrue();
 
-        List<QuestionResponseDTO> responseList = new ArrayList<>();
+        List<QuestionResponseDTO> responseList =
+                new ArrayList<>();
 
         for (Question question : questions) {
 
@@ -212,14 +283,24 @@ public class QuestionService {
                             );
 
             QuestionResponseDTO response =
-                    convertToResponse(question, attributes);
+                    convertToResponse(
+                            question,
+                            attributes
+                    );
 
             responseList.add(response);
         }
 
         return responseList;
     }
-    public QuestionResponseDTO getQuestionById(Long questionId) {
+
+
+    // =========================================================
+    // GET QUESTION BY ID
+    // =========================================================
+
+    public QuestionResponseDTO getQuestionById(
+            Long questionId) {
 
         Question question =
                 questionRepository.findById(questionId)
@@ -232,13 +313,21 @@ public class QuestionService {
 
         List<QuestionAttribute> attributes =
                 questionAttributeRepository
-                        .findByQuestion_QuestionId(questionId);
+                        .findByQuestion_QuestionId(
+                                questionId
+                        );
 
         return convertToResponse(
                 question,
                 attributes
         );
     }
+
+
+    // =========================================================
+    // UPDATE QUESTION
+    // =========================================================
+
     public QuestionResponseDTO updateQuestion(
             Long questionId,
             QuestionRequestDTO request) {
@@ -248,7 +337,8 @@ public class QuestionService {
                 .findById(questionId)
                 .orElseThrow(() ->
                         new RuntimeException(
-                                "Question not found with id: " + questionId
+                                "Question not found with id: "
+                                        + questionId
                         )
                 );
 
@@ -291,13 +381,16 @@ public class QuestionService {
         question.setCourse(course);
         question.setChapter(chapter);
         question.setQuestionCategory(category);
-        question.setQuestionText(request.getQuestionText());
+        question.setQuestionText(
+                request.getQuestionText()
+        );
 
         Question savedQuestion =
                 questionRepository.save(question);
 
 
         questionAttributeRepository.flush();
+
         questionAttributeRepository
                 .deleteByQuestion_QuestionId(questionId);
 
@@ -335,7 +428,9 @@ public class QuestionService {
                 QuestionAttribute questionAttribute =
                         new QuestionAttribute();
 
-                questionAttribute.setQuestion(savedQuestion);
+                questionAttribute.setQuestion(
+                        savedQuestion
+                );
 
                 questionAttribute.setHeader(header);
                 questionAttribute.setAttribute(attribute);
@@ -372,13 +467,20 @@ public class QuestionService {
                 savedAttributes
         );
     }
+
+
+    // =========================================================
+    // DELETE QUESTION
+    // =========================================================
+
     public String deleteQuestion(Long questionId) {
 
         Question question = questionRepository
                 .findById(questionId)
                 .orElseThrow(() ->
                         new RuntimeException(
-                                "Question not found with id: " + questionId
+                                "Question not found with id: "
+                                        + questionId
                         )
                 );
 
@@ -401,8 +503,14 @@ public class QuestionService {
         QuestionResponseDTO response =
                 new QuestionResponseDTO();
 
-        response.setQuestionId(question.getQuestionId());
-        response.setQuestionText(question.getQuestionText());
+        response.setQuestionId(
+                question.getQuestionId()
+        );
+
+        response.setQuestionText(
+                question.getQuestionText()
+        );
+
 
         // Course
         response.setCourseId(
@@ -413,6 +521,7 @@ public class QuestionService {
                 question.getCourse().getName()
         );
 
+
         // Chapter
         response.setChapterId(
                 question.getChapter().getChapterId()
@@ -422,32 +531,51 @@ public class QuestionService {
                 question.getChapter().getName()
         );
 
+
         // Category
         response.setCategoryId(
-                question.getQuestionCategory().getCategoryId()
+                question
+                        .getQuestionCategory()
+                        .getCategoryId()
         );
 
         response.setCategoryName(
-                question.getQuestionCategory().getName()
+                question
+                        .getQuestionCategory()
+                        .getName()
         );
 
-        response.setActiveRow(question.getActiveRow());
-        response.setCreatedAt(question.getCreatedAt());
-        response.setUpdatedAt(question.getUpdatedAt());
+
+        response.setActiveRow(
+                question.getActiveRow()
+        );
+
+        response.setCreatedAt(
+                question.getCreatedAt()
+        );
+
+        response.setUpdatedAt(
+                question.getUpdatedAt()
+        );
 
 
         // Question Attributes
         List<QuestionAttributeResponseDTO>
-                attributeResponses = new ArrayList<>();
+                attributeResponses =
+                new ArrayList<>();
 
-        for (QuestionAttribute questionAttribute : attributes) {
+        for (QuestionAttribute questionAttribute
+                : attributes) {
 
             QuestionAttributeResponseDTO attributeResponse =
                     new QuestionAttributeResponseDTO();
 
+
             attributeResponse.setQuestionAttributeId(
-                    questionAttribute.getQuestionAttributeId()
+                    questionAttribute
+                            .getQuestionAttributeId()
             );
+
 
             // Header
             if (questionAttribute.getHeader() != null) {
@@ -465,6 +593,7 @@ public class QuestionService {
                 );
             }
 
+
             // Attribute
             if (questionAttribute.getAttribute() != null) {
 
@@ -481,33 +610,42 @@ public class QuestionService {
                 );
             }
 
+
             attributeResponse.setTransactionDate(
-                    questionAttribute.getTransactionDate()
+                    questionAttribute
+                            .getTransactionDate()
             );
 
             attributeResponse.setAmount(
-                    questionAttribute.getAmount()
+                    questionAttribute
+                            .getAmount()
             );
 
             attributeResponse.setAmount2(
-                    questionAttribute.getAmount2()
+                    questionAttribute
+                            .getAmount2()
             );
 
             attributeResponse.setNote(
-                    questionAttribute.getNote()
+                    questionAttribute
+                            .getNote()
             );
 
             attributeResponse.setActiveRow(
-                    questionAttribute.getActiveRow()
+                    questionAttribute
+                            .getActiveRow()
             );
 
-            attributeResponses.add(attributeResponse);
+            attributeResponses.add(
+                    attributeResponse
+            );
         }
 
-        response.setQuestionAttributes(attributeResponses);
+
+        response.setQuestionAttributes(
+                attributeResponses
+        );
 
         return response;
     }
-
-
 }
