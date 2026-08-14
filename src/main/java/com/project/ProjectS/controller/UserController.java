@@ -20,15 +20,16 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-
     @Autowired
-    private UserService userService;
+    public UserController(UserService userService, ExcelUploadService excelUploadService, UserExcelProcessor userExcelProcessor) {
+        this.userService = userService;
+        this.excelUploadService = excelUploadService;
+        this.userExcelProcessor = userExcelProcessor;
+    }
 
-    @Autowired
-    private ExcelUploadService excelUploadService;
-
-    @Autowired
-    private UserExcelProcessor userExcelProcessor;
+    private final UserService userService;
+    private final ExcelUploadService excelUploadService;
+    private final UserExcelProcessor userExcelProcessor;
 
 
 

@@ -14,24 +14,22 @@ import java.util.List;
 @Service
 @Transactional
 public class UserService {
-
     @Autowired
-    private UserRepository userRepository;
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, CollegeRepository collegeRepository, BranchRepository branchRepository, SectionRepository sectionRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.collegeRepository = collegeRepository;
+        this.branchRepository = branchRepository;
+        this.sectionRepository = sectionRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
-    @Autowired
-    private RoleRepository roleRepository;
-
-    @Autowired
-    private CollegeRepository collegeRepository;
-
-    @Autowired
-    private BranchRepository branchRepository;
-
-    @Autowired
-    private SectionRepository sectionRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final CollegeRepository collegeRepository;
+    private final BranchRepository branchRepository;
+    private final SectionRepository sectionRepository;
+    private final PasswordEncoder passwordEncoder;
 
 
 

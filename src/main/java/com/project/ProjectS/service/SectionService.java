@@ -23,21 +23,21 @@ import java.util.stream.Collectors;
 
 @Service
 public class SectionService {
+    @Autowired
+    public SectionService(SectionRepository sectionRepository, CourseRepository courseRepository, CollegeRepository collegeRepository, BranchRepository branchRepository) {
+        this.sectionRepository = sectionRepository;
+        this.courseRepository = courseRepository;
+        this.collegeRepository = collegeRepository;
+        this.branchRepository = branchRepository;
+    }
+
 
     private static final Logger logger =
             LogManager.getLogger(SectionService.class);
-
-    @Autowired
-    private SectionRepository sectionRepository;
-
-    @Autowired
-    private CourseRepository courseRepository;
-
-    @Autowired
-    private CollegeRepository collegeRepository;
-
-    @Autowired
-    private BranchRepository branchRepository;
+    private final SectionRepository sectionRepository;
+    private final CourseRepository courseRepository;
+    private final CollegeRepository collegeRepository;
+    private final BranchRepository branchRepository;
 
     public String create(SectionRequestDTO request) {
 

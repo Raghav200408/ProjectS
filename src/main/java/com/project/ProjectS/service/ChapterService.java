@@ -16,16 +16,17 @@ import java.util.stream.Collectors;
 
 @Service
 public class ChapterService {
+    @Autowired
+    public ChapterService(ChapterRepository chapterRepository, CourseRepository courseRepository) {
+        this.chapterRepository = chapterRepository;
+        this.courseRepository = courseRepository;
+    }
+
 
     private static final Logger logger =
             LogManager.getLogger(ChapterService.class);
-
-    @Autowired
-    private ChapterRepository chapterRepository;
-
-
-    @Autowired
-    private CourseRepository courseRepository;
+    private final ChapterRepository chapterRepository;
+    private final CourseRepository courseRepository;
 
     public String create(ChapterRequestDTO request) {
 

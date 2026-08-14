@@ -13,12 +13,14 @@ import java.util.Map;
 
 @Component
 public class SectionExcelMapper implements ExcelRowMapper<Section> {
-
     @Autowired
-    private CourseRepository courseRepository;
+    public SectionExcelMapper(CourseRepository courseRepository, BranchRepository branchRepository) {
+        this.courseRepository = courseRepository;
+        this.branchRepository = branchRepository;
+    }
 
-    @Autowired
-    private BranchRepository branchRepository;
+    private final CourseRepository courseRepository;
+    private final BranchRepository branchRepository;
 
     @Override
     public Section map(Map<String, String> row) {

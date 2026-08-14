@@ -14,12 +14,14 @@ import java.util.List;
 
 @Service
 public class TableAttributeService {
-
     @Autowired
-    private TableAttributeRepository attributeRepository;
+    public TableAttributeService(TableAttributeRepository attributeRepository, TableHeaderRepository headerRepository) {
+        this.attributeRepository = attributeRepository;
+        this.headerRepository = headerRepository;
+    }
 
-    @Autowired
-    private TableHeaderRepository headerRepository;
+    private final TableAttributeRepository attributeRepository;
+    private final TableHeaderRepository headerRepository;
 
     public String create(TableAttributeRequestDTO request) {
 

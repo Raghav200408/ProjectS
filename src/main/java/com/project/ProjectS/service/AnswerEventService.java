@@ -21,18 +21,18 @@ import java.util.Objects;
 @Service
 @Transactional
 public class AnswerEventService {
-
     @Autowired
-    private AnswerEventRepository answerEventRepository;
+    public AnswerEventService(AnswerEventRepository answerEventRepository, UserRepository userRepository, QuestionRepository questionRepository, TableAttributeRepository tableAttributeRepository) {
+        this.answerEventRepository = answerEventRepository;
+        this.userRepository = userRepository;
+        this.questionRepository = questionRepository;
+        this.tableAttributeRepository = tableAttributeRepository;
+    }
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private QuestionRepository questionRepository;
-
-    @Autowired
-    private TableAttributeRepository tableAttributeRepository;
+    private final AnswerEventRepository answerEventRepository;
+    private final UserRepository userRepository;
+    private final QuestionRepository questionRepository;
+    private final TableAttributeRepository tableAttributeRepository;
 
 
     public AnswerEventResponseDTO createEvent(

@@ -20,21 +20,20 @@ import java.util.Map;
 @RequestMapping("/api/attendance")
 @CrossOrigin(origins = "*")
 public class AttendanceController {
-
     @Autowired
-    private AttendanceService attendanceService;
+    public AttendanceController(AttendanceService attendanceService, AttendanceExcelMapper attendanceMapper, AttendanceRepository attendanceRepository, GenericExcelUploadService genericExcelUploadService, ExcelUploadService excelUploadService) {
+        this.attendanceService = attendanceService;
+        this.attendanceMapper = attendanceMapper;
+        this.attendanceRepository = attendanceRepository;
+        this.genericExcelUploadService = genericExcelUploadService;
+        this.excelUploadService = excelUploadService;
+    }
 
-    @Autowired
-    private AttendanceExcelMapper attendanceMapper;
-
-    @Autowired
-    private AttendanceRepository attendanceRepository;
-
-    @Autowired
-    private GenericExcelUploadService genericExcelUploadService;
-
-    @Autowired
-    private ExcelUploadService excelUploadService;
+    private final AttendanceService attendanceService;
+    private final AttendanceExcelMapper attendanceMapper;
+    private final AttendanceRepository attendanceRepository;
+    private final GenericExcelUploadService genericExcelUploadService;
+    private final ExcelUploadService excelUploadService;
 
     // Create Attendance
     @PostMapping

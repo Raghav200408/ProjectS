@@ -16,15 +16,16 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/table-headers")
 public class TableHeaderController {
-
     @Autowired
-    private TableHeaderService service;
+    public TableHeaderController(TableHeaderService service, ExcelUploadService excelUploadService, TableHeaderExcelProcessor tableHeaderExcelProcessor) {
+        this.service = service;
+        this.excelUploadService = excelUploadService;
+        this.tableHeaderExcelProcessor = tableHeaderExcelProcessor;
+    }
 
-    @Autowired
-    private ExcelUploadService excelUploadService;
-
-    @Autowired
-    private TableHeaderExcelProcessor tableHeaderExcelProcessor;
+    private final TableHeaderService service;
+    private final ExcelUploadService excelUploadService;
+    private final TableHeaderExcelProcessor tableHeaderExcelProcessor;
 
     @PostMapping
     public ResponseEntity<String> create(@RequestBody TableHeaderRequestDTO request) {

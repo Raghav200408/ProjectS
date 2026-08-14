@@ -12,9 +12,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/question_answers")
 public class QuestionAnswerController {
-
     @Autowired
-    private QuestionAnswerService questionAnswerService;
+    public QuestionAnswerController(QuestionAnswerService questionAnswerService) {
+        this.questionAnswerService = questionAnswerService;
+    }
+
+    private final QuestionAnswerService questionAnswerService;
     @PostMapping()
     public ResponseEntity<QuestionAnswerResponseDTO> saveAnswer(@RequestBody QuestionAnswerRequestDTO request)
     {
@@ -63,3 +66,4 @@ public class QuestionAnswerController {
     }
 
 }
+

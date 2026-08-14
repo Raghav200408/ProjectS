@@ -10,21 +10,29 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 @Component
 @Transactional
 public class RuleEngineExcelProcessor implements ExcelProcessor {
     @Autowired
-    private RuleEngineExcelMapper ruleEngineMapper;
-    @Autowired
-    private RuleEngineRepository ruleEngineRepository;
-    @Autowired
-    private ChapterRepository chapterRepository;
-    @Autowired
-    private TableAttributeRepository tableAttributeRepository;
-    @Autowired
-    private TableHeaderRepository tableHeaderRepository;
-    @Autowired
-    private TableNameRepository tableNameRepository;
+    public RuleEngineExcelProcessor(RuleEngineExcelMapper ruleEngineMapper, RuleEngineRepository ruleEngineRepository, ChapterRepository chapterRepository, TableAttributeRepository tableAttributeRepository, TableHeaderRepository tableHeaderRepository, TableNameRepository tableNameRepository) {
+        this.ruleEngineMapper = ruleEngineMapper;
+        this.ruleEngineRepository = ruleEngineRepository;
+        this.chapterRepository = chapterRepository;
+        this.tableAttributeRepository = tableAttributeRepository;
+        this.tableHeaderRepository = tableHeaderRepository;
+        this.tableNameRepository = tableNameRepository;
+    }
+
+
+    private static final Logger logger = LogManager.getLogger(RuleEngineExcelProcessor.class);
+    private final RuleEngineExcelMapper ruleEngineMapper;
+    private final RuleEngineRepository ruleEngineRepository;
+    private final ChapterRepository chapterRepository;
+    private final TableAttributeRepository tableAttributeRepository;
+    private final TableHeaderRepository tableHeaderRepository;
+    private final TableNameRepository tableNameRepository;
 
     @Override
     public void process(List<Map<String, String>> excelData) {
@@ -155,10 +163,7 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
             if (exists) {
 
 
-                System.out.println(
-                        "Duplicate Rule Skipped : "
-                                + ruleEngine.getRelationshipName()
-                );
+                logger.info("Duplicate Rule Skipped : {}", ruleEngine.getRelationshipName());
 
 
                 continue;
@@ -166,19 +171,12 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
             }
 
             //Save Rule Engine
-            System.out.println(
-                    "Saving Rule Engine : "
-                            + ruleEngine.getRelationshipName()
-            );
+            logger.info("Saving Rule Engine : {}", ruleEngine.getRelationshipName());
 
             RuleEngine savedRule =
                     ruleEngineRepository.save(ruleEngine);
 
-            System.out.println(
-                    "========== SAVED RULE ENGINE ID : "
-                            + savedRule.getRuleEngineId()
-                            + " =========="
-            );
+            logger.info("========== SAVED RULE ENGINE ID : {} ==========", savedRule.getRuleEngineId());
         }
     }
     private void setTableAndHeader(

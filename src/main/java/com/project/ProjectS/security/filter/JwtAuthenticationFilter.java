@@ -15,17 +15,23 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-
     @Autowired
-    private JwtUtil jwtUtil;
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, CustomUserDetailsService userDetailsService) {
+        this.jwtUtil = jwtUtil;
+        this.userDetailsService = userDetailsService;
+    }
 
-    @Autowired
-    private CustomUserDetailsService userDetailsService;
+
+    private static final Logger logger = LogManager.getLogger(JwtAuthenticationFilter.class);
+    private final JwtUtil jwtUtil;
+    private final CustomUserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(
@@ -36,15 +42,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
-        System.out.println("=================================");
-        System.out.println("REQUEST: " + request.getMethod()
-                + " " + request.getRequestURI());
+                logger.debug("=================================");
+                logger.debug("REQUEST: {} {}", request.getMethod(), request.getRequestURI());
 
-        System.out.println("Authorization Header: " + authHeader);
+                logger.debug("Authorization Header: {}", authHeader);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
 
-            System.out.println("JWT NOT FOUND");
+                    logger.debug("JWT NOT FOUND");
 
             filterChain.doFilter(request, response);
             return;
@@ -56,7 +61,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             String email = jwtUtil.extractEmail(token);
 
-            System.out.println("JWT EMAIL: " + email);
+                        logger.debug("JWT EMAIL: {}", email);
 
             if (email != null &&
                     SecurityContextHolder.getContext()
@@ -65,10 +70,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UserDetails userDetails =
                         userDetailsService.loadUserByUsername(email);
 
-                System.out.println(
-                        "AUTHORITIES: " +
-                                userDetails.getAuthorities()
-                );
+                logger.debug("AUTHORITIES: {}", userDetails.getAuthorities());
 
                 if (jwtUtil.isTokenValid(token)) {
 
@@ -88,28 +90,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             .getContext()
                             .setAuthentication(authentication);
 
-                    System.out.println(
-                            "JWT AUTHENTICATION SUCCESS"
-                    );
+                    logger.info("JWT AUTHENTICATION SUCCESS");
                 } else {
 
-                    System.out.println("JWT INVALID");
+                    logger.warn("JWT INVALID");
                 }
             }
 
         } catch (Exception e) {
 
-            System.out.println(
-                    "JWT AUTHENTICATION ERROR: "
-                            + e.getMessage()
-            );
+            logger.error("JWT AUTHENTICATION ERROR: {}", e.getMessage(), e);
 
-            e.printStackTrace();
-
-            SecurityContextHolder.clearContext();
+                        SecurityContextHolder.clearContext();
         }
 
-        System.out.println("=================================");
+        logger.debug("=================================");
 
         filterChain.doFilter(request, response);
     }

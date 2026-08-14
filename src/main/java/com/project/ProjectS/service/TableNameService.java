@@ -12,9 +12,12 @@ import java.util.stream.Collectors;
 
 @Service
 public class TableNameService {
-
     @Autowired
-    private TableNameRepository repository;
+    public TableNameService(TableNameRepository repository) {
+        this.repository = repository;
+    }
+
+    private final TableNameRepository repository;
 
     public String create(TableNameRequestDTO request) {
 

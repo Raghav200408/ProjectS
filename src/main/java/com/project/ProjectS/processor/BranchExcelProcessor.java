@@ -11,12 +11,14 @@ import java.util.Map;
 
 @Component
 public class BranchExcelProcessor implements ExcelProcessor {
-
     @Autowired
-    private BranchExcelMapper branchMapper;
+    public BranchExcelProcessor(BranchExcelMapper branchMapper, BranchRepository branchRepository) {
+        this.branchMapper = branchMapper;
+        this.branchRepository = branchRepository;
+    }
 
-    @Autowired
-    private BranchRepository branchRepository;
+    private final BranchExcelMapper branchMapper;
+    private final BranchRepository branchRepository;
 
     @Override
     public void process(List<Map<String, String>> excelData) {

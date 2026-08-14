@@ -18,15 +18,16 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/table-attributes")
 public class TableAttributeController {
-
     @Autowired
-    private TableAttributeService service;
+    public TableAttributeController(TableAttributeService service, ExcelUploadService excelUploadService, TableAttributeExcelProcessor tableAttributeExcelProcessor) {
+        this.service = service;
+        this.excelUploadService = excelUploadService;
+        this.tableAttributeExcelProcessor = tableAttributeExcelProcessor;
+    }
 
-    @Autowired
-    private ExcelUploadService excelUploadService;
-
-    @Autowired
-    private TableAttributeExcelProcessor tableAttributeExcelProcessor;
+    private final TableAttributeService service;
+    private final ExcelUploadService excelUploadService;
+    private final TableAttributeExcelProcessor tableAttributeExcelProcessor;
 
     @PostMapping
     public ResponseEntity<String> create(@RequestBody TableAttributeRequestDTO request){

@@ -18,15 +18,16 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/table-names")
 public class TableNameController {
-
     @Autowired
-    private TableNameService service;
+    public TableNameController(TableNameService service, ExcelUploadService excelUploadService, TableNameExcelProcessor tableNameExcelProcessor) {
+        this.service = service;
+        this.excelUploadService = excelUploadService;
+        this.tableNameExcelProcessor = tableNameExcelProcessor;
+    }
 
-    @Autowired
-    private ExcelUploadService excelUploadService;
-
-    @Autowired
-    private TableNameExcelProcessor tableNameExcelProcessor;
+    private final TableNameService service;
+    private final ExcelUploadService excelUploadService;
+    private final TableNameExcelProcessor tableNameExcelProcessor;
 
     @PostMapping
     public ResponseEntity<String> create(@RequestBody TableNameRequestDTO request) {

@@ -16,23 +16,21 @@ import java.util.List;
 @Transactional
 public class QuestionAnswerService {
     @Autowired
-    private QuestionAnswerRepository questionAnswerRepository;
+    public QuestionAnswerService(QuestionAnswerRepository questionAnswerRepository, UserRepository userRepository, QuestionRepository questionRepository, TableNameRepository tableNameRepository, TableHeaderRepository tableHeaderRepository, TableAttributeRepository tableAttributeRepository) {
+        this.questionAnswerRepository = questionAnswerRepository;
+        this.userRepository = userRepository;
+        this.questionRepository = questionRepository;
+        this.tableNameRepository = tableNameRepository;
+        this.tableHeaderRepository = tableHeaderRepository;
+        this.tableAttributeRepository = tableAttributeRepository;
+    }
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private QuestionRepository questionRepository;
-
-    @Autowired
-    private TableNameRepository tableNameRepository;
-
-    @Autowired
-    private TableHeaderRepository tableHeaderRepository;
-
-
-    @Autowired
-    private TableAttributeRepository tableAttributeRepository;
+    private final QuestionAnswerRepository questionAnswerRepository;
+    private final UserRepository userRepository;
+    private final QuestionRepository questionRepository;
+    private final TableNameRepository tableNameRepository;
+    private final TableHeaderRepository tableHeaderRepository;
+    private final TableAttributeRepository tableAttributeRepository;
     public QuestionAnswerResponseDTO saveAnswer(QuestionAnswerRequestDTO request) {
         User user = userRepository.findById(
                 request.getUserId()
@@ -284,4 +282,5 @@ public class QuestionAnswerService {
 
 
 }
+
 

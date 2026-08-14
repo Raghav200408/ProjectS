@@ -18,33 +18,28 @@ import java.util.Map;
 @Service
 @Transactional
 public class QuestionService {
-
     @Autowired
-    private QuestionRepository questionRepository;
+    public QuestionService(QuestionRepository questionRepository, QuestionAttributeRepository questionAttributeRepository, CourseRepository courseRepository, ChapterRepository chapterRepository, QuestionCategoryRepository questionCategoryRepository, TableHeaderRepository tableHeaderRepository, TableAttributeRepository tableAttributeRepository, ExcelUploadService excelUploadService, QuestionExcelProcessor questionExcelProcessor) {
+        this.questionRepository = questionRepository;
+        this.questionAttributeRepository = questionAttributeRepository;
+        this.courseRepository = courseRepository;
+        this.chapterRepository = chapterRepository;
+        this.questionCategoryRepository = questionCategoryRepository;
+        this.tableHeaderRepository = tableHeaderRepository;
+        this.tableAttributeRepository = tableAttributeRepository;
+        this.excelUploadService = excelUploadService;
+        this.questionExcelProcessor = questionExcelProcessor;
+    }
 
-    @Autowired
-    private QuestionAttributeRepository questionAttributeRepository;
-
-    @Autowired
-    private CourseRepository courseRepository;
-
-    @Autowired
-    private ChapterRepository chapterRepository;
-
-    @Autowired
-    private QuestionCategoryRepository questionCategoryRepository;
-
-    @Autowired
-    private TableHeaderRepository tableHeaderRepository;
-
-    @Autowired
-    private TableAttributeRepository tableAttributeRepository;
-
-    @Autowired
-    private ExcelUploadService excelUploadService;
-
-    @Autowired
-    private QuestionExcelProcessor questionExcelProcessor;
+    private final QuestionRepository questionRepository;
+    private final QuestionAttributeRepository questionAttributeRepository;
+    private final CourseRepository courseRepository;
+    private final ChapterRepository chapterRepository;
+    private final QuestionCategoryRepository questionCategoryRepository;
+    private final TableHeaderRepository tableHeaderRepository;
+    private final TableAttributeRepository tableAttributeRepository;
+    private final ExcelUploadService excelUploadService;
+    private final QuestionExcelProcessor questionExcelProcessor;
 
 
     // =========================================================

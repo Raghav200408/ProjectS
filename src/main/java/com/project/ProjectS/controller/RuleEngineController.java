@@ -19,15 +19,16 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/rule-engines")
 public class RuleEngineController {
-
     @Autowired
-    private RuleEngineService service;
+    public RuleEngineController(RuleEngineService service, ExcelUploadService excelUploadService, RuleEngineExcelProcessor ruleEngineExcelProcessor) {
+        this.service = service;
+        this.excelUploadService = excelUploadService;
+        this.ruleEngineExcelProcessor = ruleEngineExcelProcessor;
+    }
 
-    @Autowired
-    private ExcelUploadService excelUploadService;
-
-    @Autowired
-    private RuleEngineExcelProcessor ruleEngineExcelProcessor;
+    private final RuleEngineService service;
+    private final ExcelUploadService excelUploadService;
+    private final RuleEngineExcelProcessor ruleEngineExcelProcessor;
 
     @PostMapping
     public ResponseEntity<String> create(
@@ -101,3 +102,4 @@ public class RuleEngineController {
         return service.getRuleEngineByAttributeId(attributeId);
     }
 }
+

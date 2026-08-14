@@ -12,9 +12,12 @@ import java.util.stream.Collectors;
 
 @Service
 public class AttendanceService {
-
     @Autowired
-    private AttendanceRepository attendanceRepository;
+    public AttendanceService(AttendanceRepository attendanceRepository) {
+        this.attendanceRepository = attendanceRepository;
+    }
+
+    private final AttendanceRepository attendanceRepository;
 
     // Create Attendance
     public AttendanceResponseDTO createAttendance(

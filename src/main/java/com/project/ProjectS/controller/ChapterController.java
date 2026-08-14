@@ -21,19 +21,19 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/chapter")
 public class ChapterController {
+    @Autowired
+    public ChapterController(ChapterService service, ChapterExcelProcessor chapterExcelProcessor, ExcelUploadService excelUploadService) {
+        this.service = service;
+        this.chapterExcelProcessor = chapterExcelProcessor;
+        this.excelUploadService = excelUploadService;
+    }
+
 
     private static final Logger logger =
             LogManager.getLogger(ChapterController.class);
-
-    @Autowired
-    private ChapterService service;
-
-    @Autowired
-    private ChapterExcelProcessor chapterExcelProcessor;
-
-
-    @Autowired
-    private ExcelUploadService excelUploadService;
+    private final ChapterService service;
+    private final ChapterExcelProcessor chapterExcelProcessor;
+    private final ExcelUploadService excelUploadService;
 
     @PostMapping
     public ResponseEntity<String> create(

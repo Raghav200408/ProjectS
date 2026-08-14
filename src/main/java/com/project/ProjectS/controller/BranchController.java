@@ -25,24 +25,23 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/branch")
 public class BranchController {
+    @Autowired
+    public BranchController(BranchExcelMapper branchMapper, BranchService service, ExcelUploadService excelUploadService, GenericExcelUploadService genericExcelUploadService, BranchRepository branchRepository) {
+        this.branchMapper = branchMapper;
+        this.service = service;
+        this.excelUploadService = excelUploadService;
+        this.genericExcelUploadService = genericExcelUploadService;
+        this.branchRepository = branchRepository;
+    }
+
 
     private static final Logger logger =
             LogManager.getLogger(BranchController.class);
-
-    @Autowired
-    private BranchExcelMapper branchMapper;
-
-    @Autowired
-    private BranchService service;
-
-    @Autowired
-    private ExcelUploadService excelUploadService;
-
-    @Autowired
-    private GenericExcelUploadService genericExcelUploadService;
-
-    @Autowired
-    private BranchRepository branchRepository;
+    private final BranchExcelMapper branchMapper;
+    private final BranchService service;
+    private final ExcelUploadService excelUploadService;
+    private final GenericExcelUploadService genericExcelUploadService;
+    private final BranchRepository branchRepository;
 
     @PostMapping
     public ResponseEntity<String> create(

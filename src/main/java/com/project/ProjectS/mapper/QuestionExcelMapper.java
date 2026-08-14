@@ -19,18 +19,18 @@ import java.util.Map;
 
 @Component
 public class QuestionExcelMapper implements ExcelRowMapper<Question> {
-
     @Autowired
-    private BranchRepository branchRepository;
+    public QuestionExcelMapper(BranchRepository branchRepository, CourseRepository courseRepository, ChapterRepository chapterRepository, QuestionCategoryRepository questionCategoryRepository) {
+        this.branchRepository = branchRepository;
+        this.courseRepository = courseRepository;
+        this.chapterRepository = chapterRepository;
+        this.questionCategoryRepository = questionCategoryRepository;
+    }
 
-    @Autowired
-    private CourseRepository courseRepository;
-
-    @Autowired
-    private ChapterRepository chapterRepository;
-
-    @Autowired
-    private QuestionCategoryRepository questionCategoryRepository;
+    private final BranchRepository branchRepository;
+    private final CourseRepository courseRepository;
+    private final ChapterRepository chapterRepository;
+    private final QuestionCategoryRepository questionCategoryRepository;
 
 
     // =========================================================
