@@ -13,14 +13,14 @@ import java.util.Map;
 
 @Component
 public class CourseExcelProcessor implements ExcelProcessor {
-
-
     @Autowired
-    private CourseExcelMapper courseExcelMapper;
+    public CourseExcelProcessor(CourseExcelMapper courseExcelMapper, CourseRepository courseRepository) {
+        this.courseExcelMapper = courseExcelMapper;
+        this.courseRepository = courseRepository;
+    }
 
-
-    @Autowired
-    private CourseRepository courseRepository;
+    private final CourseExcelMapper courseExcelMapper;
+    private final CourseRepository courseRepository;
 
 
 

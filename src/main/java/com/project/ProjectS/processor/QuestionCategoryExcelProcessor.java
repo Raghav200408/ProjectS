@@ -19,26 +19,29 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+
 @Component
 public class QuestionCategoryExcelProcessor {
-
     @Autowired
-    private QuestionCategoryExcelMapper questionCategoryExcelMapper;
+    public QuestionCategoryExcelProcessor(QuestionCategoryExcelMapper questionCategoryExcelMapper, QuestionCategoryRepository questionCategoryRepository, CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository, ChapterRepository chapterRepository) {
+        this.questionCategoryExcelMapper = questionCategoryExcelMapper;
+        this.questionCategoryRepository = questionCategoryRepository;
+        this.collegeRepository = collegeRepository;
+        this.branchRepository = branchRepository;
+        this.courseRepository = courseRepository;
+        this.chapterRepository = chapterRepository;
+    }
 
-    @Autowired
-    private QuestionCategoryRepository questionCategoryRepository;
 
-    @Autowired
-    private CollegeRepository collegeRepository;
-
-    @Autowired
-    private BranchRepository branchRepository;
-
-    @Autowired
-    private CourseRepository courseRepository;
-
-    @Autowired
-    private ChapterRepository chapterRepository;
+    private static final Logger logger = LogManager.getLogger(QuestionCategoryExcelProcessor.class);
+    private final QuestionCategoryExcelMapper questionCategoryExcelMapper;
+    private final QuestionCategoryRepository questionCategoryRepository;
+    private final CollegeRepository collegeRepository;
+    private final BranchRepository branchRepository;
+    private final CourseRepository courseRepository;
+    private final ChapterRepository chapterRepository;
 
 
     @Transactional
@@ -112,10 +115,7 @@ public class QuestionCategoryExcelProcessor {
 
                 if (colleges.isEmpty()) {
 
-                    System.out.println(
-                            "College not found: "
-                                    + collegeName
-                    );
+                    logger.warn("College not found: {}", collegeName);
 
                     skippedCount++;
                     continue;
@@ -123,10 +123,7 @@ public class QuestionCategoryExcelProcessor {
 
                 if (colleges.size() > 1) {
 
-                    System.out.println(
-                            "Multiple colleges found: "
-                                    + collegeName
-                    );
+                    logger.warn("Multiple colleges found: {}", collegeName);
 
                     skippedCount++;
                     continue;
@@ -164,12 +161,7 @@ public class QuestionCategoryExcelProcessor {
 
                 if (branch == null) {
 
-                    System.out.println(
-                            "Branch not found: "
-                                    + branchName
-                                    + " for College: "
-                                    + collegeName
-                    );
+                    logger.warn("Branch not found: {} for College: {}", branchName, collegeName);
 
                     skippedCount++;
                     continue;
@@ -190,10 +182,7 @@ public class QuestionCategoryExcelProcessor {
 
                 if (course == null) {
 
-                    System.out.println(
-                            "Course not found: "
-                                    + courseName
-                    );
+                    logger.warn("Course not found: {}", courseName);
 
                     skippedCount++;
                     continue;
@@ -214,10 +203,7 @@ public class QuestionCategoryExcelProcessor {
 
                 if (chapter == null) {
 
-                    System.out.println(
-                            "Chapter not found: "
-                                    + chapterName
-                    );
+                    logger.warn("Chapter not found: {}", chapterName);
 
                     skippedCount++;
                     continue;
@@ -238,10 +224,7 @@ public class QuestionCategoryExcelProcessor {
 
                 if (exists) {
 
-                    System.out.println(
-                            "Question Category already exists: "
-                                    + categoryName
-                    );
+                    logger.info("Question Category already exists: {}", categoryName);
 
                     skippedCount++;
                     continue;
@@ -285,19 +268,10 @@ public class QuestionCategoryExcelProcessor {
 
                 skippedCount++;
 
-                System.out.println(
-                        "Failed to process Question Category row: "
-                                + e.getMessage()
-                );
+                logger.error("Failed to process Question Category row: {}", e.getMessage(), e);
             }
         }
 
-        System.out.println(
-                "Question Category upload completed. "
-                        + "Saved: "
-                        + savedCount
-                        + ", Skipped: "
-                        + skippedCount
-        );
+        logger.info("Question Category upload completed. Saved: {}, Skipped: {}", savedCount, skippedCount);
     }
 }

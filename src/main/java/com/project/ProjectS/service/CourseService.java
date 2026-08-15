@@ -25,18 +25,19 @@ import java.util.stream.Collectors;
 
 @Service
 public class CourseService {
+    @Autowired
+    public CourseService(CourseRepository courseRepository, BranchRepository branchRepository, CollegeRepository collegeRepository) {
+        this.courseRepository = courseRepository;
+        this.branchRepository = branchRepository;
+        this.collegeRepository = collegeRepository;
+    }
+
 
     private static final Logger logger =
             LogManager.getLogger(CourseService.class);
-
-    @Autowired
-    private CourseRepository courseRepository;
-
-    @Autowired
-    private BranchRepository branchRepository;
-
-    @Autowired
-    private CollegeRepository collegeRepository;
+    private final CourseRepository courseRepository;
+    private final BranchRepository branchRepository;
+    private final CollegeRepository collegeRepository;
 
     public String create(CourseRequestDTO request) {
 

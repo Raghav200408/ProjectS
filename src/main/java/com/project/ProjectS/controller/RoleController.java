@@ -11,9 +11,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/roles")
 public class RoleController {
-
     @Autowired
-    private RoleService service;
+    public RoleController(RoleService service) {
+        this.service = service;
+    }
+
+    private final RoleService service;
 
     @GetMapping
     public ResponseEntity<List<RoleResponseDTO>> getAll() {

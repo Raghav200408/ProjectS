@@ -13,18 +13,16 @@ import java.util.Map;
 
 @Component
 public class ChapterExcelProcessor {
-
-
     @Autowired
-    private ChapterExcelMapper chapterExcelMapper;
+    public ChapterExcelProcessor(ChapterExcelMapper chapterExcelMapper, ChapterRepository chapterRepository, GenericExcelUploadService genericExcelUploadService) {
+        this.chapterExcelMapper = chapterExcelMapper;
+        this.chapterRepository = chapterRepository;
+        this.genericExcelUploadService = genericExcelUploadService;
+    }
 
-
-    @Autowired
-    private ChapterRepository chapterRepository;
-
-
-    @Autowired
-    private GenericExcelUploadService genericExcelUploadService;
+    private final ChapterExcelMapper chapterExcelMapper;
+    private final ChapterRepository chapterRepository;
+    private final GenericExcelUploadService genericExcelUploadService;
 
 
 

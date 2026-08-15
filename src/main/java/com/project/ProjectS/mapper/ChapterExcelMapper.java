@@ -13,14 +13,14 @@ import java.util.Map;
 
 @Component
 public class ChapterExcelMapper implements ExcelRowMapper<Chapter> {
-
-
     @Autowired
-    private BranchRepository branchRepository;
+    public ChapterExcelMapper(BranchRepository branchRepository, CourseRepository courseRepository) {
+        this.branchRepository = branchRepository;
+        this.courseRepository = courseRepository;
+    }
 
-
-    @Autowired
-    private CourseRepository courseRepository;
+    private final BranchRepository branchRepository;
+    private final CourseRepository courseRepository;
 
 
 

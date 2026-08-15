@@ -21,18 +21,18 @@ import java.util.List;
 
 @Service
 public class QuestionCategoryService {
-
     @Autowired
-    private QuestionCategoryRepository repository;
+    public QuestionCategoryService(QuestionCategoryRepository repository, CourseRepository courseRepository, ChapterRepository chapterRepository, QuestionCategoryExcelProcessor questionCategoryExcelProcessor) {
+        this.repository = repository;
+        this.courseRepository = courseRepository;
+        this.chapterRepository = chapterRepository;
+        this.questionCategoryExcelProcessor = questionCategoryExcelProcessor;
+    }
 
-    @Autowired
-    private CourseRepository courseRepository;
-
-    @Autowired
-    private ChapterRepository chapterRepository;
-
-    @Autowired
-    private QuestionCategoryExcelProcessor questionCategoryExcelProcessor;
+    private final QuestionCategoryRepository repository;
+    private final CourseRepository courseRepository;
+    private final ChapterRepository chapterRepository;
+    private final QuestionCategoryExcelProcessor questionCategoryExcelProcessor;
 
     private static final Logger logger =
             LogManager.getLogger(QuestionCategoryService.class);

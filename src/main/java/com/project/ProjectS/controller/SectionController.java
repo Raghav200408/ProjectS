@@ -22,27 +22,23 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/section")
 public class SectionController {
+    @Autowired
+    public SectionController(SectionService service, ExcelUploadService excelUploadService, GenericExcelUploadService genericExcelUploadService, SectionExcelMapper sectionExcelMapper, SectionRepository sectionRepository) {
+        this.service = service;
+        this.excelUploadService = excelUploadService;
+        this.genericExcelUploadService = genericExcelUploadService;
+        this.sectionExcelMapper = sectionExcelMapper;
+        this.sectionRepository = sectionRepository;
+    }
+
 
     private static final Logger logger =
             LogManager.getLogger(SectionController.class);
-
-    @Autowired
-    private SectionService service;
-
-    @Autowired
-    private ExcelUploadService excelUploadService;
-
-
-    @Autowired
-    private GenericExcelUploadService genericExcelUploadService;
-
-
-    @Autowired
-    private SectionExcelMapper sectionExcelMapper;
-
-
-    @Autowired
-    private SectionRepository sectionRepository;
+    private final SectionService service;
+    private final ExcelUploadService excelUploadService;
+    private final GenericExcelUploadService genericExcelUploadService;
+    private final SectionExcelMapper sectionExcelMapper;
+    private final SectionRepository sectionRepository;
 
     @PostMapping
     public ResponseEntity<String> create(

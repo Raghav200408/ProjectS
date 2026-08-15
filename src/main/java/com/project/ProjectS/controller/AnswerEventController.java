@@ -14,9 +14,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/answer_events")
 public class AnswerEventController {
-
     @Autowired
-    private AnswerEventService answerEventService;
+    public AnswerEventController(AnswerEventService answerEventService) {
+        this.answerEventService = answerEventService;
+    }
+
+    private final AnswerEventService answerEventService;
 
 
 

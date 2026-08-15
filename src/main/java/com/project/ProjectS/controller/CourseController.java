@@ -23,30 +23,25 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/course")
 public class CourseController {
+    @Autowired
+    public CourseController(CourseService service, CourseExcelProcessor courseExcelProcessor, GenericExcelUploadService genericExcelUploadService, ExcelUploadService excelUploadService, CourseRepository courseRepository, CourseExcelMapper courseExcelMapper) {
+        this.service = service;
+        this.courseExcelProcessor = courseExcelProcessor;
+        this.genericExcelUploadService = genericExcelUploadService;
+        this.excelUploadService = excelUploadService;
+        this.courseRepository = courseRepository;
+        this.courseExcelMapper = courseExcelMapper;
+    }
+
 
     private static final Logger logger =
             LogManager.getLogger(CourseController.class);
-
-    @Autowired
-    private CourseService service;
-
-    @Autowired
-    private CourseExcelProcessor courseExcelProcessor;
-
-    @Autowired
-    private GenericExcelUploadService genericExcelUploadService;
-
-
-    @Autowired
-    private ExcelUploadService excelUploadService;
-
-
-    @Autowired
-    private CourseRepository courseRepository;
-
-
-    @Autowired
-    private CourseExcelMapper courseExcelMapper;
+    private final CourseService service;
+    private final CourseExcelProcessor courseExcelProcessor;
+    private final GenericExcelUploadService genericExcelUploadService;
+    private final ExcelUploadService excelUploadService;
+    private final CourseRepository courseRepository;
+    private final CourseExcelMapper courseExcelMapper;
 
     @PostMapping
     public ResponseEntity<String> create(

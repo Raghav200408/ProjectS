@@ -26,21 +26,20 @@ import java.util.Map;
 
 @Service
 public class QuestionExcelProcessor {
-
     @Autowired
-    private QuestionExcelMapper questionExcelMapper;
+    public QuestionExcelProcessor(QuestionExcelMapper questionExcelMapper, QuestionRepository questionRepository, QuestionAttributeRepository questionAttributeRepository, TableHeaderRepository tableHeaderRepository, TableAttributeRepository tableAttributeRepository) {
+        this.questionExcelMapper = questionExcelMapper;
+        this.questionRepository = questionRepository;
+        this.questionAttributeRepository = questionAttributeRepository;
+        this.tableHeaderRepository = tableHeaderRepository;
+        this.tableAttributeRepository = tableAttributeRepository;
+    }
 
-    @Autowired
-    private QuestionRepository questionRepository;
-
-    @Autowired
-    private QuestionAttributeRepository questionAttributeRepository;
-
-    @Autowired
-    private TableHeaderRepository tableHeaderRepository;
-
-    @Autowired
-    private TableAttributeRepository tableAttributeRepository;
+    private final QuestionExcelMapper questionExcelMapper;
+    private final QuestionRepository questionRepository;
+    private final QuestionAttributeRepository questionAttributeRepository;
+    private final TableHeaderRepository tableHeaderRepository;
+    private final TableAttributeRepository tableAttributeRepository;
 
 
     // =========================================================

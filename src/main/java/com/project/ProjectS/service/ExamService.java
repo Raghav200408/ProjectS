@@ -14,29 +14,26 @@ import java.util.List;
 @Service
 @Transactional
 public class ExamService {
+    @Autowired
+    public ExamService(ExamRepository examRepository, ExamQuestionRepository examQuestionRepository, CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository, SectionRepository sectionRepository, QuestionRepository questionRepository, QuestionAttributeRepository questionAttributeRepository) {
+        this.examRepository = examRepository;
+        this.examQuestionRepository = examQuestionRepository;
+        this.collegeRepository = collegeRepository;
+        this.branchRepository = branchRepository;
+        this.courseRepository = courseRepository;
+        this.sectionRepository = sectionRepository;
+        this.questionRepository = questionRepository;
+        this.questionAttributeRepository = questionAttributeRepository;
+    }
 
-    @Autowired
-    private ExamRepository examRepository;
-
-    @Autowired
-    private ExamQuestionRepository examQuestionRepository;
-
-    @Autowired
-    private CollegeRepository collegeRepository;
-
-    @Autowired
-    private BranchRepository branchRepository;
-
-    @Autowired
-    private CourseRepository courseRepository;
-
-    @Autowired
-    private SectionRepository sectionRepository;
-
-    @Autowired
-    private QuestionRepository questionRepository;
-    @Autowired
-    private QuestionAttributeRepository questionAttributeRepository;
+    private final ExamRepository examRepository;
+    private final ExamQuestionRepository examQuestionRepository;
+    private final CollegeRepository collegeRepository;
+    private final BranchRepository branchRepository;
+    private final CourseRepository courseRepository;
+    private final SectionRepository sectionRepository;
+    private final QuestionRepository questionRepository;
+    private final QuestionAttributeRepository questionAttributeRepository;
 
 
     // =========================================================

@@ -19,21 +19,20 @@ import java.util.Map;
 
 @Component
 public class UserExcelMapper implements ExcelRowMapper<User> {
-
     @Autowired
-    private CollegeRepository collegeRepository;
+    public UserExcelMapper(CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository, SectionRepository sectionRepository, RoleRepository roleRepository) {
+        this.collegeRepository = collegeRepository;
+        this.branchRepository = branchRepository;
+        this.courseRepository = courseRepository;
+        this.sectionRepository = sectionRepository;
+        this.roleRepository = roleRepository;
+    }
 
-    @Autowired
-    private BranchRepository branchRepository;
-
-    @Autowired
-    private CourseRepository courseRepository;
-
-    @Autowired
-    private SectionRepository sectionRepository;
-
-    @Autowired
-    private RoleRepository roleRepository;
+    private final CollegeRepository collegeRepository;
+    private final BranchRepository branchRepository;
+    private final CourseRepository courseRepository;
+    private final SectionRepository sectionRepository;
+    private final RoleRepository roleRepository;
 
     @Override
     public User map(Map<String, String> row) {

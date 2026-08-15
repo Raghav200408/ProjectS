@@ -11,12 +11,14 @@ import java.util.Map;
 
 @Component
 public class CollegeExcelProcessor implements ExcelProcessor {
-
     @Autowired
-    private CollegeExcelMapper collegeMapper;
+    public CollegeExcelProcessor(CollegeExcelMapper collegeMapper, CollegeRepository collegeRepository) {
+        this.collegeMapper = collegeMapper;
+        this.collegeRepository = collegeRepository;
+    }
 
-    @Autowired
-    private CollegeRepository collegeRepository;
+    private final CollegeExcelMapper collegeMapper;
+    private final CollegeRepository collegeRepository;
 
     @Override
     public void process(List<Map<String, String>> excelData) {

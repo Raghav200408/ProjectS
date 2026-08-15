@@ -17,9 +17,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/questions")
 public class QuestionController {
-
     @Autowired
-    private QuestionService questionService;
+    public QuestionController(QuestionService questionService) {
+        this.questionService = questionService;
+    }
+
+    private final QuestionService questionService;
 
 
     // CREATE QUESTION

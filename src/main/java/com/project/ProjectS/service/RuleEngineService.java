@@ -25,28 +25,23 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class RuleEngineService {
-
     @Autowired
-    private RuleEngineRepository ruleEngineRepository;
-
-    @Autowired
-    private ChapterRepository chapterRepository;
-
-    @Autowired
-    private TableAttributeRepository tableAttributeRepository;
-
-    @Autowired
-    private TableNameRepository tableNameRepository;
-
-    @Autowired
-    private TableHeaderRepository tableHeaderRepository;
-
-    @Autowired
-    private final RuleEngineMapper mapper;
-
-    public RuleEngineService(RuleEngineMapper mapper) {
+    public RuleEngineService(RuleEngineRepository ruleEngineRepository, ChapterRepository chapterRepository, TableAttributeRepository tableAttributeRepository, TableNameRepository tableNameRepository, TableHeaderRepository tableHeaderRepository,RuleEngineMapper mapper) {
+        this.ruleEngineRepository = ruleEngineRepository;
+        this.chapterRepository = chapterRepository;
+        this.tableAttributeRepository = tableAttributeRepository;
+        this.tableNameRepository = tableNameRepository;
+        this.tableHeaderRepository = tableHeaderRepository;
         this.mapper = mapper;
     }
+
+    private final RuleEngineRepository ruleEngineRepository;
+    private final ChapterRepository chapterRepository;
+    private final TableAttributeRepository tableAttributeRepository;
+    private final TableNameRepository tableNameRepository;
+    private final TableHeaderRepository tableHeaderRepository;
+    private final  RuleEngineMapper mapper;
+
 
     public String create(RuleEngineRequestDTO request) {
 
@@ -298,3 +293,4 @@ public class RuleEngineService {
                 .toList();
     }
 }
+

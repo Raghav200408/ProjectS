@@ -18,9 +18,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/exams")
 public class ExamController {
-
     @Autowired
-    private ExamService examService;
+    public ExamController(ExamService examService) {
+        this.examService = examService;
+    }
+
+    private final ExamService examService;
     @PostMapping
     public ResponseEntity<ExamResponseDTO> createExam(
             @Valid @RequestBody ExamRequestDTO request) {

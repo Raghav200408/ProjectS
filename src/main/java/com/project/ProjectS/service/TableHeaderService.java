@@ -10,9 +10,12 @@ import java.util.List;
 
 @Service
 public class TableHeaderService {
-
     @Autowired
-    private TableHeaderRepository repository;
+    public TableHeaderService(TableHeaderRepository repository) {
+        this.repository = repository;
+    }
+
+    private final TableHeaderRepository repository;
 
     public String create(TableHeaderRequestDTO request) {
 

@@ -20,15 +20,16 @@ import java.io.IOException;
 @Component
 public class CustomOAuth2SuccessHandler
 		extends SimpleUrlAuthenticationSuccessHandler {
+    @Autowired
+    public CustomOAuth2SuccessHandler(UserRepository userRepository, RoleRepository roleRepository, JwtUtil jwtUtil) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.jwtUtil = jwtUtil;
+    }
 
-	@Autowired
-	private UserRepository userRepository;
-
-	@Autowired
-	private RoleRepository roleRepository;
-
-	@Autowired
-	private JwtUtil jwtUtil;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final JwtUtil jwtUtil;
 
 	@Override
 	public void onAuthenticationSuccess(

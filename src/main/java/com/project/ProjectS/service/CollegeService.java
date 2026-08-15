@@ -15,12 +15,15 @@ import java.util.stream.Collectors;
 
 @Service
 public class CollegeService {
+    @Autowired
+    public CollegeService(CollegeRepository repository) {
+        this.repository = repository;
+    }
+
 
     private static final Logger logger =
             LogManager.getLogger(CollegeService.class);
-
-    @Autowired
-    private CollegeRepository repository;
+    private final CollegeRepository repository;
 
     public String create(CollegeRequestDTO request) {
 

@@ -13,12 +13,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/dashboard")
 public class DashboardController {
+    @Autowired
+    public DashboardController(DashboardService service) {
+        this.service = service;
+    }
+
 
     private static final Logger logger =
             LogManager.getLogger(DashboardController.class);
-
-    @Autowired
-    private DashboardService service;
+    private final DashboardService service;
 
     @GetMapping
     public ResponseEntity<DashboardResponseDTO> getDashboard() {

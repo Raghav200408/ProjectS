@@ -11,12 +11,14 @@ import java.util.Map;
 
 @Component
 public class AttendanceExcelProcessor implements ExcelProcessor {
-
     @Autowired
-    private AttendanceExcelMapper attendanceMapper;
+    public AttendanceExcelProcessor(AttendanceExcelMapper attendanceMapper, AttendanceRepository attendanceRepository) {
+        this.attendanceMapper = attendanceMapper;
+        this.attendanceRepository = attendanceRepository;
+    }
 
-    @Autowired
-    private AttendanceRepository attendanceRepository;
+    private final AttendanceExcelMapper attendanceMapper;
+    private final AttendanceRepository attendanceRepository;
 
     @Override
     public void process(List<Map<String, String>> excelData) {

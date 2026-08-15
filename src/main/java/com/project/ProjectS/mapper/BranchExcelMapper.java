@@ -11,9 +11,12 @@ import java.util.Map;
 
 @Component
 public class BranchExcelMapper implements ExcelRowMapper<Branch> {
-
     @Autowired
-    private CollegeRepository collegeRepository;
+    public BranchExcelMapper(CollegeRepository collegeRepository) {
+        this.collegeRepository = collegeRepository;
+    }
+
+    private final CollegeRepository collegeRepository;
 
     @Override
     public Branch map(Map<String, String> row) {

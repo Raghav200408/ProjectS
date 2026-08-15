@@ -12,21 +12,21 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class DashboardService {
+    @Autowired
+    public DashboardService(CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository, SectionRepository sectionRepository) {
+        this.collegeRepository = collegeRepository;
+        this.branchRepository = branchRepository;
+        this.courseRepository = courseRepository;
+        this.sectionRepository = sectionRepository;
+    }
+
 
     private static final Logger logger =
             LogManager.getLogger(DashboardService.class);
-
-    @Autowired
-    private CollegeRepository collegeRepository;
-
-    @Autowired
-    private BranchRepository branchRepository;
-
-    @Autowired
-    private CourseRepository courseRepository;
-
-    @Autowired
-    private SectionRepository sectionRepository;
+    private final CollegeRepository collegeRepository;
+    private final BranchRepository branchRepository;
+    private final CourseRepository courseRepository;
+    private final SectionRepository sectionRepository;
 
     public DashboardResponseDTO getDashboard() {
 

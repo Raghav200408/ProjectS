@@ -17,16 +17,16 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/question-categories")
 public class QuestionCategoryController {
-
     @Autowired
-    private QuestionCategoryService service;
+    public QuestionCategoryController(QuestionCategoryService service, QuestionCategoryExcelProcessor questionCategoryExcelProcessor, ExcelUploadService excelUploadService) {
+        this.service = service;
+        this.questionCategoryExcelProcessor = questionCategoryExcelProcessor;
+        this.excelUploadService = excelUploadService;
+    }
 
-    @Autowired
-    private QuestionCategoryExcelProcessor questionCategoryExcelProcessor;
-
-
-    @Autowired
-    private ExcelUploadService excelUploadService;
+    private final QuestionCategoryService service;
+    private final QuestionCategoryExcelProcessor questionCategoryExcelProcessor;
+    private final ExcelUploadService excelUploadService;
 
     @PostMapping
     public ResponseEntity<String> create(@RequestBody QuestionCategoryRequestDTO request) {

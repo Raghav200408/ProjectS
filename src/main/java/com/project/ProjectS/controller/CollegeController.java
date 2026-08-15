@@ -25,24 +25,23 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/college")
 public class CollegeController {
+    @Autowired
+    public CollegeController(CollegeExcelMapper collegeMapper, CollegeService service, GenericExcelUploadService genericExcelUploadService, CollegeRepository collegeRepository, ExcelUploadService excelUploadService) {
+        this.collegeMapper = collegeMapper;
+        this.service = service;
+        this.genericExcelUploadService = genericExcelUploadService;
+        this.collegeRepository = collegeRepository;
+        this.excelUploadService = excelUploadService;
+    }
+
 
     private static final Logger logger =
             LogManager.getLogger(CollegeController.class);
-
-    @Autowired
-    private CollegeExcelMapper collegeMapper;
-
-    @Autowired
-    private CollegeService service;
-
-    @Autowired
-    private GenericExcelUploadService genericExcelUploadService;
-
-    @Autowired
-    private CollegeRepository collegeRepository;
-
-    @Autowired
-    private ExcelUploadService excelUploadService;
+    private final CollegeExcelMapper collegeMapper;
+    private final CollegeService service;
+    private final GenericExcelUploadService genericExcelUploadService;
+    private final CollegeRepository collegeRepository;
+    private final ExcelUploadService excelUploadService;
 
     @PostMapping
     public ResponseEntity<String> create(@Valid @RequestBody CollegeRequestDTO request) {
