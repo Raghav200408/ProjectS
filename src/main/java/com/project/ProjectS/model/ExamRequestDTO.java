@@ -29,14 +29,14 @@ public class ExamRequestDTO {
     @NotNull(message = "Section Id is required")
     private Long sectionId;
 
-    @NotNull(message = "Start date is required")
-    @Future(message = "Start date must be in the future")
+    @NotEmpty(message = "Please select at least one chapter")
+    private List<Long> chapterIds;
+
+    @NotNull(message = "Start date and time is required")
+    @Future(message = "Start date and time must be in the future")
     private LocalDateTime startDate;
 
-    @NotNull(message = "End date is required")
-    @Future(message = "End date must be in the future")
+    @NotNull(message = "End date and time is required")
+    @Future(message = "End date and time must be in the future")
     private LocalDateTime endDate;
-
-    @NotEmpty(message = "Please select at least one question")
-    private List<Long> questionIds;
 }

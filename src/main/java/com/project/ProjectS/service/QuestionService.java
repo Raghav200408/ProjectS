@@ -4,7 +4,6 @@ import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.processor.QuestionExcelProcessor;
 import com.project.ProjectS.repository.*;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -318,10 +317,40 @@ public class QuestionService {
         );
     }
 
+    public List<QuestionResponseDTO> getQuestionsByIds(
+            List<Long> questionIds) {
 
-    // =========================================================
-    // UPDATE QUESTION
-    // =========================================================
+        List<QuestionResponseDTO> responseList =
+                new ArrayList<>();
+
+        for (Long questionId : questionIds) {
+
+            Question question =
+                    questionRepository.findById(questionId)
+                            .orElseThrow(() ->
+                                    new RuntimeException(
+                                            "Question not found with id: "
+                                                    + questionId
+                                    ));
+
+            List<QuestionAttribute> attributes =
+                    questionAttributeRepository
+                            .findByQuestion_QuestionId(
+                                    questionId
+                            );
+
+            QuestionResponseDTO response =
+                    convertToResponse(
+                            question,
+                            attributes
+                    );
+
+            responseList.add(response);
+        }
+
+        return responseList;
+    }
+
 
     public QuestionResponseDTO updateQuestion(
             Long questionId,
@@ -464,10 +493,6 @@ public class QuestionService {
     }
 
 
-    // =========================================================
-    // DELETE QUESTION
-    // =========================================================
-
     public String deleteQuestion(Long questionId) {
 
         Question question = questionRepository
@@ -486,10 +511,6 @@ public class QuestionService {
         return "Question deleted successfully.";
     }
 
-
-    // =========================================================
-    // ENTITY -> RESPONSE DTO
-    // =========================================================
 
     private QuestionResponseDTO convertToResponse(
             Question question,

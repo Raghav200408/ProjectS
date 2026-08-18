@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "exams")
@@ -13,15 +14,7 @@ import java.time.LocalDateTime;
 public class Exam {
 
     @Id
-    @GeneratedValue(
-            strategy = GenerationType.SEQUENCE,
-            generator = "exam_seq"
-    )
-    @SequenceGenerator(
-            name = "exam_seq",
-            sequenceName = "exams_exam_id_seq",
-            allocationSize = 1
-    )
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "exam_id")
     private Long examId;
 
@@ -44,6 +37,14 @@ public class Exam {
     @JoinColumn(name = "section_id", nullable = false)
     private Section section;
 
+    @ManyToMany
+    @JoinTable(
+            name = "exam_chapters",
+            joinColumns = @JoinColumn(name = "exam_id"),
+            inverseJoinColumns = @JoinColumn(name = "chapter_id")
+    )
+    private List<Chapter> chapters;
+
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 
@@ -63,24 +64,13 @@ public class Exam {
     private LocalDateTime updatedAt;
 
     @PrePersist
-    public void prePersist() {
-
-        LocalDateTime now = LocalDateTime.now();
-
-        createdAt = now;
-        updatedAt = now;
-
-        if (activeRow == null) {
-            activeRow = true;
-        }
-
-        if (rowStatus == null) {
-            rowStatus = 1;
-        }
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
-    public void preUpdate() {
+    protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
 }

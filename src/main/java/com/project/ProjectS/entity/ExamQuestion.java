@@ -11,10 +11,8 @@ import java.time.LocalDateTime;
         name = "exam_questions",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        columnNames = {
-                                "exam_id",
-                                "question_id"
-                        }
+                        name = "uk_exam_question",
+                        columnNames = {"exam_id", "question_id"}
                 )
         }
 )
@@ -23,31 +21,29 @@ import java.time.LocalDateTime;
 public class ExamQuestion {
 
     @Id
-    @GeneratedValue(
-            strategy = GenerationType.SEQUENCE,
-            generator = "exam_question_seq"
-    )
-    @SequenceGenerator(
-            name = "exam_question_seq",
-            sequenceName = "exam_questions_exam_question_id_seq",
-            allocationSize = 1
-    )
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "exam_question_id")
     private Long examQuestionId;
 
-    @ManyToOne
-    @JoinColumn(name = "exam_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "exam_id",
+            nullable = false
+    )
     private Exam exam;
 
-    @ManyToOne
-    @JoinColumn(name = "question_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "question_id",
+            nullable = false
+    )
     private Question question;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @PrePersist
-    public void prePersist() {
+    protected void onCreate() {
         createdAt = LocalDateTime.now();
     }
 }

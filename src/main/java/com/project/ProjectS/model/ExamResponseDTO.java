@@ -15,16 +15,16 @@ public class ExamResponseDTO {
     private String examName;
 
     private Long collegeId;
-    private String collegeName;
 
     private Long branchId;
-    private String branchName;
 
     private Long courseId;
+
     private String courseName;
 
     private Long sectionId;
-    private String sectionName;
+
+    private List<Long> chapterIds;
 
     private LocalDateTime startDate;
 
@@ -33,8 +33,6 @@ public class ExamResponseDTO {
     private Boolean activeRow;
 
     private Integer rowStatus;
-
-    private List<QuestionResponseDTO> questions;
 
     private LocalDateTime createdAt;
 

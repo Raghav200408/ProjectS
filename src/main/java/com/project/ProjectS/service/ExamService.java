@@ -1,65 +1,97 @@
 package com.project.ProjectS.service;
 
 import com.project.ProjectS.entity.*;
-import com.project.ProjectS.model.*;
+import com.project.ProjectS.model.AddExamQuestionsRequestDTO;
+import com.project.ProjectS.model.ExamRequestDTO;
+import com.project.ProjectS.model.ExamResponseDTO;
+import com.project.ProjectS.model.QuestionResponseDTO;
 import com.project.ProjectS.repository.*;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 
-@Service
 @Transactional
+@Service
 public class ExamService {
-    @Autowired
-    public ExamService(ExamRepository examRepository, ExamQuestionRepository examQuestionRepository, CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository, SectionRepository sectionRepository, QuestionRepository questionRepository, QuestionAttributeRepository questionAttributeRepository) {
+
+    private final ExamRepository examRepository;
+    private final QuestionService questionService;
+    private final CollegeRepository collegeRepository;
+    private final BranchRepository branchRepository;
+    private final CourseRepository courseRepository;
+    private final SectionRepository sectionRepository;
+    private final ChapterRepository chapterRepository;
+    private final QuestionRepository questionRepository;
+    private final ExamQuestionRepository examQuestionRepository;
+    private final QuestionAttributeRepository questionAttributeRepository;
+
+    public ExamService(
+            ExamRepository examRepository,
+            ExamQuestionRepository examQuestionRepository,
+            CollegeRepository collegeRepository,
+            BranchRepository branchRepository,
+            CourseRepository courseRepository,
+            SectionRepository sectionRepository,
+            ChapterRepository chapterRepository,
+            QuestionRepository questionRepository,
+            QuestionAttributeRepository questionAttributeRepository,
+            QuestionService questionService) {
+
         this.examRepository = examRepository;
         this.examQuestionRepository = examQuestionRepository;
         this.collegeRepository = collegeRepository;
         this.branchRepository = branchRepository;
         this.courseRepository = courseRepository;
         this.sectionRepository = sectionRepository;
+        this.chapterRepository = chapterRepository;
         this.questionRepository = questionRepository;
         this.questionAttributeRepository = questionAttributeRepository;
+        this.questionService = questionService;
     }
 
-    private final ExamRepository examRepository;
-    private final ExamQuestionRepository examQuestionRepository;
-    private final CollegeRepository collegeRepository;
-    private final BranchRepository branchRepository;
-    private final CourseRepository courseRepository;
-    private final SectionRepository sectionRepository;
-    private final QuestionRepository questionRepository;
-    private final QuestionAttributeRepository questionAttributeRepository;
+
+    @Transactional
+    public ExamResponseDTO createExam(ExamRequestDTO request) {
+
+        College college = collegeRepository
+                .findById(request.getCollegeId())
+                .orElseThrow(() ->
+                        new RuntimeException("College not found"));
+
+        Branch branch = branchRepository
+                .findById(request.getBranchId())
+                .orElseThrow(() ->
+                        new RuntimeException("Branch not found"));
+
+        Course course = courseRepository
+                .findById(request.getCourseId())
+                .orElseThrow(() ->
+                        new RuntimeException("Course not found"));
+
+        Section section = sectionRepository
+                .findById(request.getSectionId())
+                .orElseThrow(() ->
+                        new RuntimeException("Section not found"));
 
 
-    // =========================================================
-    // CREATE EXAM
-    // =========================================================
+        List<Chapter> chapters =
+                chapterRepository.findAllById(
+                        request.getChapterIds()
+                );
 
-    public ExamResponseDTO createExam(
-            ExamRequestDTO request) {
 
-        College college =
-                getCollege(request.getCollegeId());
+        if (chapters.size() != request.getChapterIds().size()) {
+            throw new RuntimeException(
+                    "One or more chapters not found"
+            );
+        }
 
-        Branch branch =
-                getBranch(request.getBranchId());
 
-        Course course =
-                getCourse(request.getCourseId());
-
-        Section section =
-                getSection(request.getSectionId());
-
+        // Create Exam
         Exam exam = new Exam();
 
-        exam.setExamName(
-                request.getExamName()
-        );
+        exam.setExamName(request.getExamName());
 
         exam.setCollege(college);
 
@@ -69,213 +101,151 @@ public class ExamService {
 
         exam.setSection(section);
 
-        exam.setStartDate(
-                request.getStartDate()
-        );
+        exam.setChapters(chapters);
 
-        exam.setEndDate(
-                request.getEndDate()
-        );
+        exam.setStartDate(request.getStartDate());
+
+        exam.setEndDate(request.getEndDate());
 
         exam.setActiveRow(true);
 
         exam.setRowStatus(1);
 
+
         Exam savedExam =
                 examRepository.save(exam);
 
-        for (Long questionId : request.getQuestionIds()) {
-
-            Question question =
-                    getQuestion(questionId);
-
-            ExamQuestion examQuestion =
-                    new ExamQuestion();
-
-            examQuestion.setExam(savedExam);
-
-            examQuestion.setQuestion(question);
-
-            examQuestionRepository.save(
-                    examQuestion
-            );
-        }
 
         return convertToResponse(savedExam);
     }
 
 
-    // =========================================================
-    // GET ALL EXAMS
-    // =========================================================
-
     public List<ExamResponseDTO> getAllExams() {
 
-        List<Exam> exams = examRepository.findByActiveRowTrue();
-        return exams.stream()
+        return examRepository
+                .findAll()
+                .stream()
                 .map(this::convertToResponse)
                 .toList();
     }
 
 
-    // =========================================================
-    // GET EXAM BY ID
-    // =========================================================
+    public ExamResponseDTO getExamById(Long examId) {
 
-    public ExamResponseDTO getExamById(
-            Long examId) {
-
-        Exam exam =
-                examRepository.findById(examId)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Exam not found with id : "
-                                                + examId
-                                )
-                        );
+        Exam exam = examRepository
+                .findById(examId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Exam not found with id: "
+                                        + examId
+                        ));
 
         return convertToResponse(exam);
     }
-    public List<QuestionResponseDTO> getQuestionsByFilter(
-            QuestionFilterRequestDTO request) {
 
-        List<Question> questions =
-                questionRepository
-                        .findByCourse_CourseIdAndChapter_ChapterIdInAndActiveRowTrue(
-                                request.getCourseId(),
-                                request.getChapterIds()
-                        );
-
-        List<QuestionResponseDTO> response =
-                new ArrayList<>();
-
-        for (Question question : questions) {
-
-            response.add(
-                    convertQuestionToResponse(question)
-            );
-        }
-
-        return response;
-    }
-
-    private College getCollege(Long collegeId) {
-
-        return collegeRepository.findById(collegeId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "College not found with id: "
-                                        + collegeId
-                        )
-                );
-    }
-
-    private Branch getBranch(Long branchId) {
-
-        return branchRepository.findById(branchId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Branch not found with id: "
-                                        + branchId
-                        )
-                );
-    }
-
-    private Course getCourse(Long courseId) {
-
-        return courseRepository.findById(courseId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Course not found with id: "
-                                        + courseId
-                        )
-                );
-    }
-
-    private Section getSection(Long sectionId) {
-
-        return sectionRepository.findById(sectionId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Section not found with id: "
-                                        + sectionId
-                        )
-                );
-    }
-
-    private Question getQuestion(Long questionId) {
-
-        return questionRepository.findById(questionId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Question not found with id: "
-                                        + questionId
-                        )
-                );
-    }
 
     public ExamResponseDTO updateExam(
             Long examId,
             ExamRequestDTO request) {
 
-        Exam exam = examRepository.findById(examId)
+        Exam exam = examRepository
+                .findById(examId)
                 .orElseThrow(() ->
                         new RuntimeException(
-                                "Exam not found with id: " + examId
+                                "Exam not found with id: "
+                                        + examId
                         ));
+
+
+        College college = collegeRepository
+                .findById(request.getCollegeId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "College not found"
+                        ));
+
+
+        Branch branch = branchRepository
+                .findById(request.getBranchId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Branch not found"
+                        ));
+
+
+        Course course = courseRepository
+                .findById(request.getCourseId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Course not found"
+                        ));
+
+
+        Section section = sectionRepository
+                .findById(request.getSectionId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Section not found"
+                        ));
+
+
+        List<Chapter> chapters =
+                chapterRepository.findAllById(
+                        request.getChapterIds()
+                );
+
+
+        if (chapters.size() != request.getChapterIds().size()) {
+            throw new RuntimeException(
+                    "One or more chapters not found"
+            );
+        }
+
 
         exam.setExamName(request.getExamName());
 
-        exam.setCollege(
-                getCollege(request.getCollegeId())
-        );
+        exam.setCollege(college);
 
-        exam.setBranch(
-                getBranch(request.getBranchId())
-        );
+        exam.setBranch(branch);
 
-        exam.setCourse(
-                getCourse(request.getCourseId())
-        );
+        exam.setCourse(course);
 
-        exam.setSection(
-                getSection(request.getSectionId())
-        );
+        exam.setSection(section);
 
-        exam.setStartDate(
-                request.getStartDate()
-        );
+        exam.setChapters(chapters);
 
-        exam.setEndDate(
-                request.getEndDate()
-        );
+        exam.setStartDate(request.getStartDate());
 
-        Exam updatedExam = examRepository.save(exam);
+        exam.setEndDate(request.getEndDate());
 
-        examQuestionRepository.deleteByExam_ExamId(
-                updatedExam.getExamId()
-        );
 
-// Force DELETE to execute immediately
-        examQuestionRepository.flush();
+        Exam updatedExam =
+                examRepository.save(exam);
 
-        for (Long questionId : request.getQuestionIds()) {
-
-            ExamQuestion examQuestion = new ExamQuestion();
-
-            examQuestion.setExam(updatedExam);
-
-            examQuestion.setQuestion(
-                    getQuestion(questionId)
-            );
-
-            examQuestionRepository.save(examQuestion);
-        }
 
         return convertToResponse(updatedExam);
     }
 
-    public String deleteExam(Long examId) {
+
+    @Transactional
+    public void deleteExam(Long examId) {
+
+        if (!examRepository.existsById(examId)) {
+
+            throw new RuntimeException(
+                    "Exam not found with id: "
+                            + examId
+            );
+        }
+
+        examRepository.deleteById(examId);
+    }
+
+
+    @Transactional
+    public void addQuestionsToExam(
+            Long examId,
+            AddExamQuestionsRequestDTO request) {
 
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() ->
@@ -283,234 +253,246 @@ public class ExamService {
                                 "Exam not found with id: " + examId
                         ));
 
-        exam.setActiveRow(false);
 
-        examRepository.save(exam);
+        List<Long> examChapterIds = exam.getChapters()
+                .stream()
+                .map(Chapter::getChapterId)
+                .toList();
 
-        return "Exam deleted successfully.";
-    }
-    public String restoreExam(Long examId) {
 
-        Exam exam = examRepository.findById(examId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Exam not found with id: " + examId
-                        ));
-
-        exam.setActiveRow(true);
-
-        examRepository.save(exam);
-
-        return "Exam restored successfully.";
-    }
-
-    private ExamResponseDTO convertToResponse(Exam exam) {
-
-        ExamResponseDTO dto = new ExamResponseDTO();
-
-        dto.setExamId(exam.getExamId());
-
-        dto.setExamName(exam.getExamName());
-
-        // College
-        if (exam.getCollege() != null) {
-
-            dto.setCollegeId(
-                    exam.getCollege().getCollegeId()
-            );
-
-            dto.setCollegeName(
-                    exam.getCollege().getInstituteName()
-            );
-        }
-
-        // Branch
-        if (exam.getBranch() != null) {
-
-            dto.setBranchId(
-                    exam.getBranch().getBranchId()
-            );
-
-            dto.setBranchName(
-                    exam.getBranch().getBranchName()
-            );
-        }
-
-        // Course
-        if (exam.getCourse() != null) {
-
-            dto.setCourseId(
-                    exam.getCourse().getCourseId()
-            );
-
-            dto.setCourseName(
-                    exam.getCourse().getName()
-            );
-        }
-
-        // Section
-        if (exam.getSection() != null) {
-
-            dto.setSectionId(
-                    exam.getSection().getSectionId()
-            );
-
-            dto.setSectionName(
-                    exam.getSection().getSectionName()
-            );
-        }
-
-        dto.setStartDate(exam.getStartDate());
-
-        dto.setEndDate(exam.getEndDate());
-
-        dto.setActiveRow(exam.getActiveRow());
-
-        dto.setRowStatus(exam.getRowStatus());
-
-        dto.setCreatedAt(exam.getCreatedAt());
-
-        dto.setUpdatedAt(exam.getUpdatedAt());
-
-        List<ExamQuestion> examQuestions =
-                examQuestionRepository.findByExam_ExamId(
-                        exam.getExamId()
-                );
-
-        List<QuestionResponseDTO> questionResponses =
-                new ArrayList<>();
-
-        for (ExamQuestion examQuestion : examQuestions) {
-
-            Question question = examQuestion.getQuestion();
-
-            QuestionResponseDTO questionResponse =
-                    convertQuestionToResponse(question);
-
-            questionResponses.add(questionResponse);
-        }
-
-        dto.setQuestions(questionResponses);
-        return dto;
-    }
-
-    private QuestionResponseDTO convertQuestionToResponse(
-            Question question) {
-
-        List<QuestionAttribute> attributes =
-                questionAttributeRepository
-                        .findByQuestion_QuestionId(
-                                question.getQuestionId()
+        List<Question> availableQuestions =
+                questionRepository
+                        .findByCourse_CourseIdAndChapter_ChapterIdInAndActiveRowTrue(
+                                exam.getCourse().getCourseId(),
+                                examChapterIds
                         );
 
-        QuestionResponseDTO response =
-                new QuestionResponseDTO();
+        List<Long> availableQuestionIds =
+                availableQuestions.stream()
+                        .map(Question::getQuestionId)
+                        .toList();
 
-        response.setQuestionId(
-                question.getQuestionId()
+        for (Long questionId : request.getQuestionIds()) {
+
+            // Make sure question belongs to exam's course + chapters
+            if (!availableQuestionIds.contains(questionId)) {
+                throw new RuntimeException(
+                        "Question " + questionId +
+                                " does not belong to the selected chapters of this exam"
+                );
+            }
+
+            Question question = questionRepository.findById(questionId)
+                    .orElseThrow(() ->
+                            new RuntimeException(
+                                    "Question not found with id: " + questionId
+                            ));
+
+            // Prevent duplicate question
+            boolean alreadyExists =
+                    examQuestionRepository
+                            .existsByExam_ExamIdAndQuestion_QuestionId(
+                                    examId,
+                                    questionId
+                            );
+
+            if (alreadyExists) {
+                continue;
+            }
+
+            ExamQuestion examQuestion = new ExamQuestion();
+
+            examQuestion.setExam(exam);
+            examQuestion.setQuestion(question);
+
+            examQuestionRepository.save(examQuestion);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<QuestionResponseDTO> getAvailableQuestions(Long examId) {
+
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Exam not found with id: " + examId
+                        ));
+
+
+        List<Long> examChapterIds = exam.getChapters()
+                .stream()
+                .map(Chapter::getChapterId)
+                .toList();
+
+
+        List<Question> availableQuestions =
+                questionRepository
+                        .findByCourse_CourseIdAndChapter_ChapterIdInAndActiveRowTrue(
+                                exam.getCourse().getCourseId(),
+                                examChapterIds
+                        );
+
+
+        List<ExamQuestion> examQuestions =
+                examQuestionRepository.findByExam_ExamId(examId);
+
+        List<Long> addedQuestionIds =
+                examQuestions.stream()
+                        .map(examQuestion ->
+                                examQuestion.getQuestion().getQuestionId()
+                        )
+                        .toList();
+
+
+        List<Long> availableQuestionIds =
+                availableQuestions.stream()
+                        .map(Question::getQuestionId)
+                        .filter(questionId -> !addedQuestionIds.contains(questionId))
+                        .toList();
+
+
+        return questionService.getQuestionsByIds(availableQuestionIds);
+    }
+
+    @Transactional(readOnly = true)
+    public List<QuestionResponseDTO> getExamQuestions(Long examId) {
+
+        if (!examRepository.existsById(examId)) {
+            throw new RuntimeException(
+                    "Exam not found with id: " + examId
+            );
+        }
+
+        List<ExamQuestion> examQuestions =
+                examQuestionRepository
+                        .findByExam_ExamId(examId);
+
+        List<Long> questionIds =
+                examQuestions.stream()
+                        .map(examQuestion ->
+                                examQuestion
+                                        .getQuestion()
+                                        .getQuestionId()
+                        )
+                        .toList();
+
+        return questionService.getQuestionsByIds(questionIds);
+    }
+
+
+    @Transactional
+    public void removeQuestionFromExam(
+            Long examId,
+            Long questionId) {
+
+        if (!examRepository.existsById(examId)) {
+            throw new RuntimeException(
+                    "Exam not found with id: " + examId
+            );
+        }
+
+        boolean exists =
+                examQuestionRepository
+                        .existsByExam_ExamIdAndQuestion_QuestionId(
+                                examId,
+                                questionId
+                        );
+
+        if (!exists) {
+            throw new RuntimeException(
+                    "Question is not added to this exam"
+            );
+        }
+
+        examQuestionRepository
+                .deleteByExam_ExamIdAndQuestion_QuestionId(
+                        examId,
+                        questionId
+                );
+    }
+
+
+    private ExamResponseDTO convertToResponse(
+            Exam exam) {
+
+        ExamResponseDTO response =
+                new ExamResponseDTO();
+
+
+        response.setExamId(
+                exam.getExamId()
         );
 
-        response.setQuestionText(
-                question.getQuestionText()
+
+        response.setExamName(
+                exam.getExamName()
         );
 
-        // Course
+
+        response.setCollegeId(
+                exam.getCollege()
+                        .getCollegeId()
+        );
+
+
+        response.setBranchId(
+                exam.getBranch()
+                        .getBranchId()
+        );
+
         response.setCourseId(
-                question.getCourse().getCourseId()
+                exam.getCourse()
+                        .getCourseId()
         );
 
         response.setCourseName(
-                question.getCourse().getName()
+                exam.getCourse()
+                        .getName()
         );
 
-        // Chapter
-        response.setChapterId(
-                question.getChapter().getChapterId()
+        response.setSectionId(
+                exam.getSection()
+                        .getSectionId()
         );
 
-        response.setChapterName(
-                question.getChapter().getName()
+
+        response.setChapterIds(
+                exam.getChapters()
+                        .stream()
+                        .map(Chapter::getChapterId)
+                        .toList()
         );
 
-        // Category
-        response.setCategoryId(
-                question.getQuestionCategory().getCategoryId()
+
+        response.setStartDate(
+                exam.getStartDate()
         );
 
-        response.setCategoryName(
-                question.getQuestionCategory().getName()
+
+        response.setEndDate(
+                exam.getEndDate()
         );
+
 
         response.setActiveRow(
-                question.getActiveRow()
+                exam.getActiveRow()
         );
+
+
+        response.setRowStatus(
+                exam.getRowStatus()
+        );
+
 
         response.setCreatedAt(
-                question.getCreatedAt()
+                exam.getCreatedAt()
         );
+
 
         response.setUpdatedAt(
-                question.getUpdatedAt()
+                exam.getUpdatedAt()
         );
 
-        List<QuestionAttributeResponseDTO> attributeResponses =
-                new ArrayList<>();
-
-        for (QuestionAttribute attribute : attributes) {
-
-            QuestionAttributeResponseDTO dto =
-                    new QuestionAttributeResponseDTO();
-
-            dto.setQuestionAttributeId(
-                    attribute.getQuestionAttributeId()
-            );
-
-            if (attribute.getHeader() != null) {
-
-                dto.setHeaderId(
-                        attribute.getHeader().getHeaderId()
-                );
-
-                dto.setHeaderName(
-                        attribute.getHeader().getName()
-                );
-            }
-
-            if (attribute.getAttribute() != null) {
-
-                dto.setAttributeId(
-                        attribute.getAttribute().getAttributeId()
-                );
-
-                dto.setAttributeName(
-                        attribute.getAttribute().getName()
-                );
-            }
-
-            dto.setTransactionDate(
-                    attribute.getTransactionDate()
-            );
-
-            dto.setAmount(
-                    attribute.getAmount()
-            );
-
-            dto.setAmount2(
-                    attribute.getAmount2()
-            );
-
-            dto.setNote(
-                    attribute.getNote()
-            );
-
-            dto.setActiveRow(
-                    attribute.getActiveRow()
-            );
-
-            attributeResponses.add(dto);
-        }
-
-        response.setQuestionAttributes(attributeResponses);
 
         return response;
     }
