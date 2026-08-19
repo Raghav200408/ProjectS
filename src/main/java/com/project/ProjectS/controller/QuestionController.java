@@ -1,11 +1,9 @@
 package com.project.ProjectS.controller;
 
-import com.project.ProjectS.entity.Question;
 import com.project.ProjectS.model.QuestionExcelUploadResponseDTO;
 import com.project.ProjectS.model.QuestionRequestDTO;
 import com.project.ProjectS.model.QuestionResponseDTO;
 import com.project.ProjectS.service.QuestionService;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,7 +49,6 @@ public class QuestionController {
     }
 
 
-
     // GET QUESTION BY ID
     @GetMapping("/{questionId}")
     public ResponseEntity<QuestionResponseDTO> getQuestionById(
@@ -62,13 +59,15 @@ public class QuestionController {
 
         return ResponseEntity.ok(question);
     }
+
     @GetMapping("/QuestionText")
-    public ResponseEntity<List<QuestionResponseDTO>> getAllQuestionText(){
+    public ResponseEntity<List<QuestionResponseDTO>> getAllQuestionText() {
         List<QuestionResponseDTO> questions =
                 questionService.getAllQuestionText();
 
         return ResponseEntity.ok(questions);
     }
+
     @PutMapping("/{questionId}")
     public ResponseEntity<QuestionResponseDTO> updateQuestion(
             @PathVariable Long questionId,
@@ -82,6 +81,7 @@ public class QuestionController {
 
         return ResponseEntity.ok(response);
     }
+
     @DeleteMapping("/{questionId}")
     public ResponseEntity<String> deleteQuestion(
             @PathVariable Long questionId) {
@@ -90,6 +90,7 @@ public class QuestionController {
                 questionService.deleteQuestion(questionId)
         );
     }
+
     @PostMapping("/upload")
     public ResponseEntity<QuestionExcelUploadResponseDTO> uploadQuestions(
             @RequestParam("file") MultipartFile file) {
@@ -98,6 +99,20 @@ public class QuestionController {
                 questionService.uploadQuestions(file);
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/filter")
+    public ResponseEntity<List<QuestionResponseDTO>> getQuestionsByMapping(
+            @RequestParam Long courseId,
+            @RequestParam Long chapterId,
+            @RequestParam Long categoryId) {
+        List<QuestionResponseDTO> questions =
+                questionService.getQuestionsByMapping(
+                        courseId,
+                        chapterId,
+                        categoryId
+                );
+        return ResponseEntity.ok(questions);
     }
 
 

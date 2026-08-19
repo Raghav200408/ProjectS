@@ -3,18 +3,19 @@ package com.project.ProjectS.processor;
 import com.project.ProjectS.entity.*;
 import com.project.ProjectS.mapper.RuleEngineExcelMapper;
 import com.project.ProjectS.repository.*;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
+
 @Component
 @Transactional
 public class RuleEngineExcelProcessor implements ExcelProcessor {
+
     @Autowired
     public RuleEngineExcelProcessor(RuleEngineExcelMapper ruleEngineMapper, RuleEngineRepository ruleEngineRepository, ChapterRepository chapterRepository, TableAttributeRepository tableAttributeRepository, TableHeaderRepository tableHeaderRepository, TableNameRepository tableNameRepository) {
         this.ruleEngineMapper = ruleEngineMapper;
@@ -49,15 +50,13 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
             RuleEngine ruleEngine =
                     ruleEngineMapper.map(row);
 
-            //chapter
+            // Chapter
             String chapterName =
-                    clean(row.get("chapter_name"));
-
+                    clean(row.get("chapter"));
 
             if (chapterName == null) {
-
                 throw new RuntimeException(
-                        "chapter_name is required"
+                        "chapter is required"
                 );
             }
 
@@ -70,17 +69,15 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                                     )
                             );
 
-
             ruleEngine.setChapter(chapter);
 
-             //Pair Attribute
+            // Pair Attribute
             String pairAttributeName =
-                    clean(row.get("pair_attribute_name"));
+                    clean(row.get("pair_attribute"));
 
-            if(pairAttributeName != null) {
+            if (pairAttributeName != null) {
 
-
-                TableAttribute attribute =
+                TableAttribute pairAttribute =
                         tableAttributeRepository
                                 .findByName(pairAttributeName)
                                 .orElseThrow(() ->
@@ -89,115 +86,110 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                                                         + pairAttributeName
                                         )
                                 );
-                ruleEngine.setPairAttribute(attribute);
+
+                ruleEngine.setPairAttribute(
+                        pairAttribute
+                );
             }
-            //field name
-            String fieldName =
-                    clean(row.get("field_name"));
-            if(fieldName != null) {
+
+            // Attribute
+
+            String attributeName =
+                    clean(row.get("attribute"));
+
+            if (attributeName != null) {
+
                 TableAttribute attribute =
                         tableAttributeRepository
-                                .findByName(fieldName)
+                                .findByName(attributeName)
                                 .orElseThrow(() ->
                                         new RuntimeException(
-                                                "Field Name not found : "
-                                                        + fieldName
+                                                "Attribute not found : "
+                                                        + attributeName
                                         )
                                 );
-                ruleEngine.setTableAttributeid(attribute);
 
+                ruleEngine.setTableAttributeid(
+                        attribute
+                );
             }
-            //field type
-            String fieldType =
-                    clean(row.get("field_type"));
-            if(fieldType != null) {
-                TableHeader header =
-                        tableHeaderRepository
-                                .findByName(fieldType)
-                                .orElseThrow(() ->
-                                        new RuntimeException(
-                                                "Field Type not found : "
-                                                        + fieldType
-                                        )
-                                );
-               // ruleEngine.setTableAttributeid(header);
 
-            }
-            //pair order
+            // Pair Order
+
             String pairOrder =
                     clean(row.get("pair_order"));
 
-
-            if(pairOrder != null) {
+            if (pairOrder != null) {
 
                 ruleEngine.setPairOrder(
                         Integer.parseInt(pairOrder)
                 );
-
-            }
-            //Conditions 1 - 4
-            setTableAndHeader(row, ruleEngine, 1);
-
-            setTableAndHeader(row, ruleEngine, 2);
-
-            setTableAndHeader(row, ruleEngine, 3);
-
-            setTableAndHeader(row, ruleEngine, 4);
-            //Duplicate Check
-
-             boolean exists=false;
-//            boolean exists =  @todo the code changes to check existing record
-//                    ruleEngineRepository.existsRule(
-//
-//                            ruleEngine.getChapter()
-//                                    .getChapterId(),
-//
-//
-//                          null,null,
-//
-//                            ruleEngine.getRelationshipName() != null
-//                                    ? ruleEngine.getRelationshipName().trim()
-//                                    : ""
-//                    );
-
-            if (exists) {
-
-
-                logger.info("Duplicate Rule Skipped : {}", ruleEngine.getRelationshipName());
-
-
-                continue;
-
             }
 
-            //Save Rule Engine
-            logger.info("Saving Rule Engine : {}", ruleEngine.getRelationshipName());
+            // Conditions 1 - 4
+
+            setTableAndHeader(
+                    row,
+                    ruleEngine,
+                    1
+            );
+
+            setTableAndHeader(
+                    row,
+                    ruleEngine,
+                    2
+            );
+
+            setTableAndHeader(
+                    row,
+                    ruleEngine,
+                    3
+            );
+
+            setTableAndHeader(
+                    row,
+                    ruleEngine,
+                    4
+            );
+
+            // Save Rule Engine
+
+            System.out.println(
+                    "Saving Rule Engine : "
+                            + ruleEngine.getRelationshipName()
+            );
 
             RuleEngine savedRule =
                     ruleEngineRepository.save(ruleEngine);
 
-            logger.info("========== SAVED RULE ENGINE ID : {} ==========", savedRule.getRuleEngineId());
+            System.out.println(
+                    "========== SAVED RULE ENGINE ID : "
+                            + savedRule.getRuleEngineId()
+                            + " =========="
+            );
         }
     }
+
+    // Table + Header Mapping
+
     private void setTableAndHeader(
-            Map<String,String> row,
+            Map<String, String> row,
             RuleEngine ruleEngine,
             int index
     ) {
+
+        // Table
+        // Excel: table1, table2, table3, table4
+
         String tableName =
                 clean(
                         row.get(
-                                "table" + index + "_name"
+                                "table" + index
                         )
                 );
-        String headerName =
-                clean(
-                        row.get(
-                                "header" + index + "_name"
-                        )
-                );
-        //Table Mapping
-        if(tableName != null) {
+
+        if (tableName != null) {
+
             TableName table =
                     tableNameRepository
                             .findByName(tableName)
@@ -207,26 +199,31 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                                                     + tableName
                                     )
                             );
-            switch(index) {
 
-                case 1 ->
-                        ruleEngine.setTable1(table);
+            switch (index) {
 
-                case 2 ->
-                        ruleEngine.setTable2(table);
+                case 1 -> ruleEngine.setTable1(table);
 
-                case 3 ->
-                        ruleEngine.setTable3(table);
+                case 2 -> ruleEngine.setTable2(table);
 
-                case 4 ->
-                        ruleEngine.setTable4(table);
+                case 3 -> ruleEngine.setTable3(table);
 
+                case 4 -> ruleEngine.setTable4(table);
             }
-
         }
-        //Header Mapping
 
-        if(headerName != null) {
+        // Header
+        // Excel: header1, header2, header3, header4
+
+        String headerName =
+                clean(
+                        row.get(
+                                "header" + index
+                        )
+                );
+
+        if (headerName != null) {
+
             TableHeader header =
                     tableHeaderRepository
                             .findByName(headerName)
@@ -236,32 +233,32 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
                                                     + headerName
                                     )
                             );
-            switch(index) {
 
-                case 1 ->
-                        ruleEngine.setHeader1(header);
+            switch (index) {
 
-                case 2 ->
-                        ruleEngine.setHeader2(header);
+                case 1 -> ruleEngine.setHeader1(header);
 
-                case 3 ->
-                        ruleEngine.setHeader3(header);
+                case 2 -> ruleEngine.setHeader2(header);
 
-                case 4 ->
-                        ruleEngine.setHeader4(header);
+                case 3 -> ruleEngine.setHeader3(header);
 
+                case 4 -> ruleEngine.setHeader4(header);
             }
-
         }
     }
+
+    // Clean Excel Value
+
     private String clean(String value) {
-        if(value == null) {
+
+        if (value == null) {
             return null;
         }
+
         value = value.trim();
+
         return value.isEmpty()
                 ? null
                 : value;
-
     }
 }
