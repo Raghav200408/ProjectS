@@ -16,4 +16,11 @@ public interface QuestionRepository
 
 
     List<Question> findByActiveRowTrue();
+   
+    List<Question>
+    findByCourse_CourseIdAndChapter_ChapterIdAndQuestionCategory_CategoryIdAndActiveRowTrue(
+            Long courseId,
+            Long chapterId,
+            Long categoryId
+    );
 }

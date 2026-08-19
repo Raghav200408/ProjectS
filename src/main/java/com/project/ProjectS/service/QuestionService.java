@@ -510,6 +510,42 @@ public class QuestionService {
 
         return "Question deleted successfully.";
     }
+   
+    public List<QuestionResponseDTO> getQuestionsByMapping(
+            Long courseId,
+            Long chapterId,
+            Long categoryId) {
+
+        List<Question> questions =
+                questionRepository
+                        .findByCourse_CourseIdAndChapter_ChapterIdAndQuestionCategory_CategoryIdAndActiveRowTrue(
+                                courseId,
+                                chapterId,
+                                categoryId
+                        );
+
+        List<QuestionResponseDTO> responseList =
+                new ArrayList<>();
+
+        for (Question question : questions) {
+
+            List<QuestionAttribute> attributes =
+                    questionAttributeRepository
+                            .findByQuestion_QuestionId(
+                                    question.getQuestionId()
+                            );
+
+            QuestionResponseDTO response =
+                    convertToResponse(
+                            question,
+                            attributes
+                    );
+
+            responseList.add(response);
+        }
+
+        return responseList;
+    }
 
 
     private QuestionResponseDTO convertToResponse(
