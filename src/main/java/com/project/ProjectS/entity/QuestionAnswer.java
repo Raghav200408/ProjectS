@@ -48,6 +48,11 @@ public class QuestionAnswer {
     @JoinColumn(name = "attribute_id")
     private TableAttribute attribute;
 
+    // Table Pair Attribute
+    @ManyToOne
+    @JoinColumn(name = "pair_attribute_id")
+    private TableAttribute pairAttribute;
+
 
     // Arithmetic
     @Column(name = "arithmetic")
@@ -57,6 +62,14 @@ public class QuestionAnswer {
     // Amount
     @Column(name = "amount")
     private BigDecimal amount;
+
+    // Total Answers
+    @Column(name = "total_answers")
+    private Long totalAnswers;
+
+    // Condition Id
+    @Column(name = "condition_id")
+    private Long conditionId;
 
 
     // Active Row
