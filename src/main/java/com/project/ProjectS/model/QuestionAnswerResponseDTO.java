@@ -14,6 +14,10 @@ public class QuestionAnswerResponseDTO {
     private Long questionId;
     private Long attributeId;
     private String attributeName;
+    private Long pairAttributeId;
+    private String pairAttributeName;
+    private Long totalAnswers;
+    private Long conditionId;
     private Long tableNameId;
     private String tableName;
     private Long headerId;

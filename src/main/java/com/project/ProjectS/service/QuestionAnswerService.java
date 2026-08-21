@@ -31,6 +31,7 @@ public class QuestionAnswerService {
     private final TableNameRepository tableNameRepository;
     private final TableHeaderRepository tableHeaderRepository;
     private final TableAttributeRepository tableAttributeRepository;
+
     public QuestionAnswerResponseDTO saveAnswer(QuestionAnswerRequestDTO request) {
         User user = userRepository.findById(
                 request.getUserId()
@@ -87,6 +88,20 @@ public class QuestionAnswerService {
             );
         }
 
+        TableAttribute pairAttribute = null;
+
+        if (request.getPairAttributeId() != null) {
+
+            pairAttribute = tableAttributeRepository.findById(
+                    request.getPairAttributeId()
+            ).orElseThrow(() ->
+                    new RuntimeException(
+                            "Table Attribute not found with id: "
+                                    + request.getAttributeId()
+                    )
+            );
+        }
+
 
         QuestionAnswer answer = new QuestionAnswer();
 
@@ -99,6 +114,12 @@ public class QuestionAnswerService {
         answer.setHeader(header);
 
         answer.setAttribute(attribute);
+
+        answer.setPairAttribute(pairAttribute);
+
+        answer.setConditionId(request.getConditionId());
+
+        answer.setTotalAnswers(request.getTotalAnswers());
 
         answer.setArithmetic(
                 request.getArithmetic()
@@ -119,6 +140,7 @@ public class QuestionAnswerService {
 
         return convertToResponse(savedAnswer);
     }
+
     public List<QuestionAnswerResponseDTO>
     getAnswersByQuestionId(Long questionId) {
 
@@ -140,6 +162,7 @@ public class QuestionAnswerService {
                 .map(this::convertToResponse)
                 .toList();
     }
+
     public List<QuestionAnswerResponseDTO>
     getAnswersByUserAndQuestion(
             Long userId,
@@ -168,6 +191,7 @@ public class QuestionAnswerService {
                 .map(this::convertToResponse)
                 .toList();
     }
+
     public String resetAnswersByUserAndQuestion(
             Long userId,
             Long questionId) {
@@ -251,6 +275,31 @@ public class QuestionAnswerService {
             );
         }
 
+        if (answer.getPairAttribute() != null) {
+
+            response.setPairAttributeId(
+                    answer.getPairAttribute().getAttributeId()
+            );
+
+            response.setPairAttributeName(
+                    answer.getPairAttribute().getName()
+            );
+        }
+
+        if (answer.getConditionId() != null) {
+
+            response.setConditionId(
+                    answer.getConditionId()
+            );
+        }
+
+        if (answer.getTotalAnswers() != null) {
+
+            response.setTotalAnswers(
+                    answer.getTotalAnswers()
+            );
+        }
+
 
         response.setArithmetic(
                 answer.getArithmetic()
@@ -282,5 +331,3 @@ public class QuestionAnswerService {
 
 
 }
-
-

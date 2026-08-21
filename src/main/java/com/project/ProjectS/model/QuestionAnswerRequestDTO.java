@@ -22,4 +22,10 @@ public class QuestionAnswerRequestDTO {
     private String arithmetic;
 
     private BigDecimal amount;
+
+    private Long conditionId;
+
+    private Long pairAttributeId;
+
+    private Long totalAnswers;
 }
