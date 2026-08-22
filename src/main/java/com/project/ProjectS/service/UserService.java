@@ -3,7 +3,6 @@ package com.project.ProjectS.service;
 import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.repository.*;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,7 +29,6 @@ public class UserService {
     private final BranchRepository branchRepository;
     private final SectionRepository sectionRepository;
     private final PasswordEncoder passwordEncoder;
-
 
 
     public UserResponseDTO createSuperAdmin(SuperAdminRequestDTO request) {
@@ -61,8 +59,6 @@ public class UserService {
 
         return convertToResponse(savedUser);
     }
-
-
 
 
     public UserResponseDTO createBranchAdmin(
@@ -181,25 +177,27 @@ public class UserService {
 
     public List<UserResponseDTO> getAllSuperAdmins() {
 
-        List<User> users = userRepository.findByRole_RoleName("SUPER_ADMIN");
+        List<User> users = userRepository.findByRole_RoleNameAndActiveRowTrue("SUPER_ADMIN");
 
         return users.stream()
                 .map(this::convertToResponse)
                 .toList();
     }
 
-    public List<UserResponseDTO> getAllBranchAdmins(){
-        List<User> users = userRepository.findByRole_RoleName("BRANCH_ADMIN");
+    public List<UserResponseDTO> getAllBranchAdmins() {
+        List<User> users = userRepository.findByRole_RoleNameAndActiveRowTrue("BRANCH_ADMIN");
         return users.stream()
                 .map(this::convertToResponse)
                 .toList();
     }
-    public  List<UserResponseDTO> getAllStudents(){
-        List<User> users = userRepository.findByRole_RoleName("STUDENT");
+
+    public List<UserResponseDTO> getAllStudents() {
+        List<User> users = userRepository.findByRole_RoleNameAndActiveRowTrue("STUDENT");
         return users.stream()
                 .map(this::convertToResponse)
                 .toList();
     }
+
     public UserResponseDTO getSuperAdminById(Long userId) {
 
         User user = userRepository
@@ -209,6 +207,7 @@ public class UserService {
 
         return convertToResponse(user);
     }
+
     public UserResponseDTO getBranchAdminById(Long userId) {
 
         User user = userRepository
@@ -218,6 +217,7 @@ public class UserService {
 
         return convertToResponse(user);
     }
+
     public UserResponseDTO getStudentById(Long userId) {
 
         User user = userRepository
@@ -227,6 +227,7 @@ public class UserService {
 
         return convertToResponse(user);
     }
+
     public UserResponseDTO getGuestById(Long userId) {
 
         User user = userRepository
@@ -236,6 +237,7 @@ public class UserService {
 
         return convertToResponse(user);
     }
+
     public UserResponseDTO updateSuperAdmin(
             Long userId,
             SuperAdminRequestDTO request) {
@@ -268,6 +270,7 @@ public class UserService {
 
         return convertToResponse(updatedUser);
     }
+
     public UserResponseDTO updateBranchAdmin(
             Long userId,
             BranchAdminRequestDTO request) {
@@ -308,6 +311,7 @@ public class UserService {
 
         return convertToResponse(updatedUser);
     }
+
     public UserResponseDTO updateStudent(
             Long userId,
             StudentRequestDTO request) {
@@ -356,6 +360,7 @@ public class UserService {
 
         return convertToResponse(updatedUser);
     }
+
     public UserResponseDTO updateGuest(
             Long userId,
             GuestUserRequestDTO request) {
@@ -386,6 +391,7 @@ public class UserService {
 
         return convertToResponse(updatedUser);
     }
+
     public String deleteSuperAdmin(Long userId) {
 
         User user = getUserByIdAndRole(userId, "SUPER_ADMIN");
@@ -396,6 +402,7 @@ public class UserService {
 
         return "Super Admin deleted successfully.";
     }
+
     public String deleteBranchAdmin(Long userId) {
 
         User user = getUserByIdAndRole(userId, "BRANCH_ADMIN");
@@ -406,6 +413,7 @@ public class UserService {
 
         return "Branch Admin deleted successfully.";
     }
+
     public String deleteStudent(Long userId) {
 
         User user = getUserByIdAndRole(userId, "STUDENT");
@@ -416,6 +424,7 @@ public class UserService {
 
         return "Student deleted successfully.";
     }
+
     public String deleteGuest(Long userId) {
 
         User user = getUserByIdAndRole(userId, "GUEST");
@@ -426,6 +435,7 @@ public class UserService {
 
         return "Guest deleted successfully.";
     }
+
     public List<UserResponseDTO> getAllStudentsAndGuest() {
 
         List<User> users = userRepository.findByRole_RoleNameIn(
@@ -436,6 +446,7 @@ public class UserService {
                 .map(this::convertToResponse)
                 .toList();
     }
+
     public List<UserResponseDTO> getAllUsers() {
 
         List<User> users = userRepository.findAll();
@@ -496,7 +507,7 @@ public class UserService {
     }
 
 
-     //get branch
+    //get branch
     private Branch getBranch(Long branchId) {
 
         return branchRepository.findById(branchId)
@@ -519,6 +530,7 @@ public class UserService {
                         )
                 );
     }
+
     private void validateUserForUpdate(
             Long userId,
             String email,
@@ -538,6 +550,7 @@ public class UserService {
             );
         }
     }
+
     private User getUserByIdAndRole(Long userId, String roleName) {
 
         return userRepository
@@ -549,8 +562,7 @@ public class UserService {
     }
 
 
-
-     //Entity to Response
+    //Entity to Response
     private UserResponseDTO convertToResponse(User user) {
 
         UserResponseDTO dto = new UserResponseDTO();
@@ -624,7 +636,6 @@ public class UserService {
         dto.setProfilePicture(user.getProfilePicture());
 
         dto.setLoginType(user.getLoginType());
-
 
 
         dto.setCreatedAt(user.getCreatedAt());

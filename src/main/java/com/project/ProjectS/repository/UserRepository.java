@@ -22,16 +22,27 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByGoogleId(String googleId);
 
     List<User> findByRole_RoleName(String roleName);
+
     List<User> findByRole_RoleNameAndBranch_BranchId(
             String roleName,
             Long branchId
     );
+
     Optional<User> findByUserIdAndRole_RoleName(
             Long userId,
             String roleName
     );
+
     List<User> findByRole_RoleNameIn(List<String> roleNames);
+
     boolean existsByEmailAndUserIdNot(String email, Long userId);
+
+    List<User> findByRole_RoleNameAndActiveRowTrue(String roleName);
+
+    List<User> findByRole_RoleNameAndBranch_BranchIdAndActiveRowTrue(
+            String roleName,
+            Long branchId
+    );
 
     boolean existsByPhoneNumberAndUserIdNot(String phoneNumber, Long userId);
 }
