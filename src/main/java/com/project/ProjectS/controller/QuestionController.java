@@ -15,13 +15,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/questions")
 public class QuestionController {
+
+    private final QuestionService questionService;
+
     @Autowired
     public QuestionController(QuestionService questionService) {
         this.questionService = questionService;
     }
-
-    private final QuestionService questionService;
-
 
     // CREATE QUESTION
     @PostMapping
@@ -37,7 +37,6 @@ public class QuestionController {
         );
     }
 
-
     // GET ALL QUESTIONS
     @GetMapping
     public ResponseEntity<List<QuestionResponseDTO>> getAllQuestions() {
@@ -47,7 +46,6 @@ public class QuestionController {
 
         return ResponseEntity.ok(questions);
     }
-
 
     // GET QUESTION BY ID
     @GetMapping("/{questionId}")
@@ -60,14 +58,17 @@ public class QuestionController {
         return ResponseEntity.ok(question);
     }
 
+    // GET ALL QUESTION TEXT
     @GetMapping("/QuestionText")
     public ResponseEntity<List<QuestionResponseDTO>> getAllQuestionText() {
+
         List<QuestionResponseDTO> questions =
                 questionService.getAllQuestionText();
 
         return ResponseEntity.ok(questions);
     }
 
+    // UPDATE QUESTION
     @PutMapping("/{questionId}")
     public ResponseEntity<QuestionResponseDTO> updateQuestion(
             @PathVariable Long questionId,
@@ -82,6 +83,7 @@ public class QuestionController {
         return ResponseEntity.ok(response);
     }
 
+    // DELETE QUESTION
     @DeleteMapping("/{questionId}")
     public ResponseEntity<String> deleteQuestion(
             @PathVariable Long questionId) {
@@ -91,29 +93,41 @@ public class QuestionController {
         );
     }
 
+    // EXCEL UPLOAD
     @PostMapping("/upload")
     public ResponseEntity<QuestionExcelUploadResponseDTO> uploadQuestions(
-            @RequestParam("file") MultipartFile file) {
-
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("courseId") Integer courseId,
+            @RequestParam("chapterId") Integer chapterId,
+            @RequestParam("categoryId") Integer categoryId) {
+        System.out.println("course id "+courseId);
+        System.out.println("category id "+categoryId);
+        System.out.println("chapter id "+chapterId);
         QuestionExcelUploadResponseDTO response =
-                questionService.uploadQuestions(file);
+                questionService.uploadQuestions(
+                        file,
+                        courseId,
+                        chapterId,
+                        categoryId
+                );
 
         return ResponseEntity.ok(response);
     }
 
+    // FILTER QUESTIONS
     @GetMapping("/filter")
     public ResponseEntity<List<QuestionResponseDTO>> getQuestionsByMapping(
             @RequestParam Long courseId,
             @RequestParam Long chapterId,
             @RequestParam Long categoryId) {
+
         List<QuestionResponseDTO> questions =
                 questionService.getQuestionsByMapping(
                         courseId,
                         chapterId,
                         categoryId
                 );
+
         return ResponseEntity.ok(questions);
     }
-
-
 }

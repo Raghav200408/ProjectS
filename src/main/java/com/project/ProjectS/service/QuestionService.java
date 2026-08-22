@@ -4,6 +4,7 @@ import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.processor.QuestionExcelProcessor;
 import com.project.ProjectS.repository.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,28 +18,66 @@ import java.util.Map;
 @Service
 @Transactional
 public class QuestionService {
-    @Autowired
-    public QuestionService(QuestionRepository questionRepository, QuestionAttributeRepository questionAttributeRepository, CourseRepository courseRepository, ChapterRepository chapterRepository, QuestionCategoryRepository questionCategoryRepository, TableHeaderRepository tableHeaderRepository, TableAttributeRepository tableAttributeRepository, ExcelUploadService excelUploadService, QuestionExcelProcessor questionExcelProcessor) {
-        this.questionRepository = questionRepository;
-        this.questionAttributeRepository = questionAttributeRepository;
-        this.courseRepository = courseRepository;
-        this.chapterRepository = chapterRepository;
-        this.questionCategoryRepository = questionCategoryRepository;
-        this.tableHeaderRepository = tableHeaderRepository;
-        this.tableAttributeRepository = tableAttributeRepository;
-        this.excelUploadService = excelUploadService;
-        this.questionExcelProcessor = questionExcelProcessor;
-    }
+
 
     private final QuestionRepository questionRepository;
+
     private final QuestionAttributeRepository questionAttributeRepository;
+
     private final CourseRepository courseRepository;
+
     private final ChapterRepository chapterRepository;
+
     private final QuestionCategoryRepository questionCategoryRepository;
+
     private final TableHeaderRepository tableHeaderRepository;
+
     private final TableAttributeRepository tableAttributeRepository;
+
     private final ExcelUploadService excelUploadService;
+
     private final QuestionExcelProcessor questionExcelProcessor;
+
+
+    @Autowired
+    public QuestionService(
+            QuestionRepository questionRepository,
+            QuestionAttributeRepository questionAttributeRepository,
+            CourseRepository courseRepository,
+            ChapterRepository chapterRepository,
+            QuestionCategoryRepository questionCategoryRepository,
+            TableHeaderRepository tableHeaderRepository,
+            TableAttributeRepository tableAttributeRepository,
+            ExcelUploadService excelUploadService,
+            QuestionExcelProcessor questionExcelProcessor) {
+
+        this.questionRepository =
+                questionRepository;
+
+        this.questionAttributeRepository =
+                questionAttributeRepository;
+
+        this.courseRepository =
+                courseRepository;
+
+        this.chapterRepository =
+                chapterRepository;
+
+        this.questionCategoryRepository =
+                questionCategoryRepository;
+
+        this.tableHeaderRepository =
+                tableHeaderRepository;
+
+        this.tableAttributeRepository =
+                tableAttributeRepository;
+
+        this.excelUploadService =
+                excelUploadService;
+
+        this.questionExcelProcessor =
+                questionExcelProcessor;
+    }
 
 
     // =========================================================
@@ -48,30 +87,38 @@ public class QuestionService {
     public QuestionResponseDTO createQuestion(
             QuestionRequestDTO request) {
 
-        // Get Course
-        Course course = courseRepository
-                .findById(request.getCourseId())
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Course not found with id: "
-                                        + request.getCourseId()
-                        )
-                );
 
-        // Get Chapter
-        Chapter chapter = chapterRepository
-                .findById(request.getChapterId())
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Chapter not found with id: "
-                                        + request.getChapterId()
+        Course course =
+                courseRepository
+                        .findById(
+                                request.getCourseId()
                         )
-                );
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Course not found with id: "
+                                                + request.getCourseId()
+                                )
+                        );
 
-        // Get Question Category
+
+        Chapter chapter =
+                chapterRepository
+                        .findById(
+                                request.getChapterId()
+                        )
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Chapter not found with id: "
+                                                + request.getChapterId()
+                                )
+                        );
+
+
         QuestionCategory category =
                 questionCategoryRepository
-                        .findById(request.getCategoryId())
+                        .findById(
+                                request.getCategoryId()
+                        )
                         .orElseThrow(() ->
                                 new RuntimeException(
                                         "Question category not found with id: "
@@ -80,30 +127,43 @@ public class QuestionService {
                         );
 
 
-        // Create Question
-        Question question = new Question();
+        Question question =
+                new Question();
+
 
         question.setCourse(course);
+
         question.setChapter(chapter);
+
         question.setQuestionCategory(category);
-        question.setQuestionText(request.getQuestionText());
+
+        question.setQuestionText(
+                request.getQuestionText()
+        );
+
 
         Question savedQuestion =
-                questionRepository.save(question);
+                questionRepository.save(
+                        question
+                );
 
 
-        // Save Question Attributes
         List<QuestionAttribute> savedAttributes =
                 new ArrayList<>();
 
+
         if (request.getQuestionAttributes() != null) {
+
 
             for (QuestionAttributeRequestDTO attributeRequest
                     : request.getQuestionAttributes()) {
 
+
                 TableHeader header =
                         tableHeaderRepository
-                                .findById(attributeRequest.getHeaderId())
+                                .findById(
+                                        attributeRequest.getHeaderId()
+                                )
                                 .orElseThrow(() ->
                                         new RuntimeException(
                                                 "Header not found with id: "
@@ -111,9 +171,12 @@ public class QuestionService {
                                         )
                                 );
 
+
                 TableAttribute attribute =
                         tableAttributeRepository
-                                .findById(attributeRequest.getAttributeId())
+                                .findById(
+                                        attributeRequest.getAttributeId()
+                                )
                                 .orElseThrow(() ->
                                         new RuntimeException(
                                                 "Attribute not found with id: "
@@ -121,12 +184,18 @@ public class QuestionService {
                                         )
                                 );
 
+
                 QuestionAttribute questionAttribute =
                         new QuestionAttribute();
 
-                questionAttribute.setQuestion(savedQuestion);
+
+                questionAttribute.setQuestion(
+                        savedQuestion
+                );
+
 
                 questionAttribute.setHeader(header);
+
                 questionAttribute.setAttribute(attribute);
 
                 questionAttribute.setTransactionDate(
@@ -145,14 +214,19 @@ public class QuestionService {
                         attributeRequest.getNote()
                 );
 
+
                 QuestionAttribute savedAttribute =
                         questionAttributeRepository.save(
                                 questionAttribute
                         );
 
-                savedAttributes.add(savedAttribute);
+
+                savedAttributes.add(
+                        savedAttribute
+                );
             }
         }
+
 
         return convertToResponse(
                 savedQuestion,
@@ -162,34 +236,90 @@ public class QuestionService {
 
 
     // =========================================================
-    // EXCEL UPLOAD QUESTIONS
+    // EXCEL UPLOAD
     // =========================================================
 
     public QuestionExcelUploadResponseDTO uploadQuestions(
-            MultipartFile file) {
+            MultipartFile file,
+            Integer courseId,
+            Integer chapterId,
+            Integer categoryId) {
 
-        if (file == null || file.isEmpty()) {
+
+        // =====================================================
+        // FILE VALIDATION
+        // =====================================================
+
+        if (file == null ||
+                file.isEmpty()) {
 
             throw new RuntimeException(
                     "Excel file is empty"
             );
         }
 
+
+        // =====================================================
+        // ID VALIDATION
+        // =====================================================
+
+        if (courseId == null) {
+
+            throw new RuntimeException(
+                    "Course ID is required"
+            );
+        }
+
+
+        if (chapterId == null) {
+
+            throw new RuntimeException(
+                    "Chapter ID is required"
+            );
+        }
+
+
+        if (categoryId == null) {
+
+            throw new RuntimeException(
+                    "Category ID is required"
+            );
+        }
+
+
         try {
 
-            List<Map<String, String>> excelData =
-                    excelUploadService.readExcel(file);
 
-            if (excelData == null || excelData.isEmpty()) {
+            // =================================================
+            // READ EXCEL
+            // =================================================
+
+            List<Map<String, String>> excelData =
+                    excelUploadService.readExcel(
+                            file
+                    );
+
+
+            if (excelData == null ||
+                    excelData.isEmpty()) {
 
                 throw new RuntimeException(
                         "Excel file contains no data"
                 );
             }
 
+
+            // =================================================
+            // PROCESS QUESTIONS
+            // =================================================
+
             return questionExcelProcessor.process(
-                    excelData
+                    excelData,
+                    categoryId,
+                    chapterId,
+                    courseId
             );
+
 
         } catch (IOException e) {
 
@@ -208,49 +338,73 @@ public class QuestionService {
 
     public List<QuestionResponseDTO> getAllQuestionText() {
 
-        List<Question> questions = questionRepository.findAll();
+        List<Question> questions =
+                questionRepository.findAll();
 
-        List<QuestionResponseDTO> response = new ArrayList<>();
+
+        List<QuestionResponseDTO> response =
+                new ArrayList<>();
+
 
         for (Question question : questions) {
 
-            QuestionResponseDTO dto = new QuestionResponseDTO();
 
-            dto.setQuestionId(question.getQuestionId());
-            dto.setQuestionText(question.getQuestionText());
+            QuestionResponseDTO dto =
+                    new QuestionResponseDTO();
+
+
+            dto.setQuestionId(
+                    question.getQuestionId()
+            );
+
+
+            dto.setQuestionText(
+                    question.getQuestionText()
+            );
+
 
             dto.setCourseId(
                     question.getCourse().getCourseId()
             );
 
+
             dto.setCourseName(
                     question.getCourse().getName()
             );
 
-            // Chapter
+
             dto.setChapterId(
                     question.getChapter().getChapterId()
             );
+
 
             dto.setChapterName(
                     question.getChapter().getName()
             );
 
-            // Category
+
             dto.setCategoryId(
-                    question.getQuestionCategory().getCategoryId()
+                    question
+                            .getQuestionCategory()
+                            .getCategoryId()
             );
 
+
             dto.setCategoryName(
-                    question.getQuestionCategory().getName()
+                    question
+                            .getQuestionCategory()
+                            .getName()
             );
+
 
             dto.setActiveRow(
                     question.getActiveRow()
             );
 
+
             response.add(dto);
         }
+
 
         return response;
     }
@@ -263,12 +417,16 @@ public class QuestionService {
     public List<QuestionResponseDTO> getAllQuestions() {
 
         List<Question> questions =
-                questionRepository.findByActiveRowTrue();
+                questionRepository
+                        .findByActiveRowTrue();
+
 
         List<QuestionResponseDTO> responseList =
                 new ArrayList<>();
 
+
         for (Question question : questions) {
+
 
             List<QuestionAttribute> attributes =
                     questionAttributeRepository
@@ -276,14 +434,15 @@ public class QuestionService {
                                     question.getQuestionId()
                             );
 
-            QuestionResponseDTO response =
+
+            responseList.add(
                     convertToResponse(
                             question,
                             attributes
-                    );
-
-            responseList.add(response);
+                    )
+            );
         }
+
 
         return responseList;
     }
@@ -296,8 +455,10 @@ public class QuestionService {
     public QuestionResponseDTO getQuestionById(
             Long questionId) {
 
+
         Question question =
-                questionRepository.findById(questionId)
+                questionRepository
+                        .findById(questionId)
                         .orElseThrow(() ->
                                 new RuntimeException(
                                         "Question not found with id: "
@@ -305,11 +466,13 @@ public class QuestionService {
                                 )
                         );
 
+
         List<QuestionAttribute> attributes =
                 questionAttributeRepository
                         .findByQuestion_QuestionId(
                                 questionId
                         );
+
 
         return convertToResponse(
                 question,
@@ -317,21 +480,31 @@ public class QuestionService {
         );
     }
 
+
+    // =========================================================
+    // GET QUESTIONS BY IDS
+    // =========================================================
+
     public List<QuestionResponseDTO> getQuestionsByIds(
             List<Long> questionIds) {
+
 
         List<QuestionResponseDTO> responseList =
                 new ArrayList<>();
 
+
         for (Long questionId : questionIds) {
 
+
             Question question =
-                    questionRepository.findById(questionId)
+                    questionRepository
+                            .findById(questionId)
                             .orElseThrow(() ->
                                     new RuntimeException(
                                             "Question not found with id: "
                                                     + questionId
                                     ));
+
 
             List<QuestionAttribute> attributes =
                     questionAttributeRepository
@@ -339,60 +512,71 @@ public class QuestionService {
                                     questionId
                             );
 
-            QuestionResponseDTO response =
+
+            responseList.add(
                     convertToResponse(
                             question,
                             attributes
-                    );
-
-            responseList.add(response);
+                    )
+            );
         }
+
 
         return responseList;
     }
 
 
+    // =========================================================
+    // UPDATE QUESTION
+    // =========================================================
+
     public QuestionResponseDTO updateQuestion(
             Long questionId,
             QuestionRequestDTO request) {
 
-        // Get existing question
-        Question question = questionRepository
-                .findById(questionId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Question not found with id: "
-                                        + questionId
+
+        Question question =
+                questionRepository
+                        .findById(questionId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Question not found with id: "
+                                                + questionId
+                                )
+                        );
+
+
+        Course course =
+                courseRepository
+                        .findById(
+                                request.getCourseId()
                         )
-                );
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Course not found with id: "
+                                                + request.getCourseId()
+                                )
+                        );
 
 
-        // Get Course
-        Course course = courseRepository
-                .findById(request.getCourseId())
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Course not found with id: "
-                                        + request.getCourseId()
+        Chapter chapter =
+                chapterRepository
+                        .findById(
+                                request.getChapterId()
                         )
-                );
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Chapter not found with id: "
+                                                + request.getChapterId()
+                                )
+                        );
 
 
-        // Get Chapter
-        Chapter chapter = chapterRepository
-                .findById(request.getChapterId())
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Chapter not found with id: "
-                                        + request.getChapterId()
-                        )
-                );
-
-
-        // Get Category
         QuestionCategory category =
                 questionCategoryRepository
-                        .findById(request.getCategoryId())
+                        .findById(
+                                request.getCategoryId()
+                        )
                         .orElseThrow(() ->
                                 new RuntimeException(
                                         "Question category not found with id: "
@@ -401,36 +585,48 @@ public class QuestionService {
                         );
 
 
-        // Update Question
         question.setCourse(course);
+
         question.setChapter(chapter);
+
         question.setQuestionCategory(category);
+
         question.setQuestionText(
                 request.getQuestionText()
         );
 
+
         Question savedQuestion =
-                questionRepository.save(question);
+                questionRepository.save(
+                        question
+                );
 
 
         questionAttributeRepository.flush();
 
+
         questionAttributeRepository
-                .deleteByQuestion_QuestionId(questionId);
+                .deleteByQuestion_QuestionId(
+                        questionId
+                );
 
 
-        // Create updated Question Attributes
         List<QuestionAttribute> savedAttributes =
                 new ArrayList<>();
 
+
         if (request.getQuestionAttributes() != null) {
+
 
             for (QuestionAttributeRequestDTO attributeRequest
                     : request.getQuestionAttributes()) {
 
+
                 TableHeader header =
                         tableHeaderRepository
-                                .findById(attributeRequest.getHeaderId())
+                                .findById(
+                                        attributeRequest.getHeaderId()
+                                )
                                 .orElseThrow(() ->
                                         new RuntimeException(
                                                 "Header not found with id: "
@@ -438,9 +634,12 @@ public class QuestionService {
                                         )
                                 );
 
+
                 TableAttribute attribute =
                         tableAttributeRepository
-                                .findById(attributeRequest.getAttributeId())
+                                .findById(
+                                        attributeRequest.getAttributeId()
+                                )
                                 .orElseThrow(() ->
                                         new RuntimeException(
                                                 "Attribute not found with id: "
@@ -452,11 +651,14 @@ public class QuestionService {
                 QuestionAttribute questionAttribute =
                         new QuestionAttribute();
 
+
                 questionAttribute.setQuestion(
                         savedQuestion
                 );
 
+
                 questionAttribute.setHeader(header);
+
                 questionAttribute.setAttribute(attribute);
 
                 questionAttribute.setTransactionDate(
@@ -481,7 +683,10 @@ public class QuestionService {
                                 questionAttribute
                         );
 
-                savedAttributes.add(savedAttribute);
+
+                savedAttributes.add(
+                        savedAttribute
+                );
             }
         }
 
@@ -493,28 +698,46 @@ public class QuestionService {
     }
 
 
-    public String deleteQuestion(Long questionId) {
+    // =========================================================
+    // DELETE QUESTION
+    // =========================================================
 
-        Question question = questionRepository
-                .findById(questionId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Question not found with id: "
-                                        + questionId
-                        )
-                );
+    public String deleteQuestion(
+            Long questionId) {
+
+
+        Question question =
+                questionRepository
+                        .findById(questionId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Question not found with id: "
+                                                + questionId
+                                )
+                        );
+
 
         question.setActiveRow(false);
 
-        questionRepository.save(question);
+
+        questionRepository.save(
+                question
+        );
+
 
         return "Question deleted successfully.";
     }
-   
+
+
+    // =========================================================
+    // FILTER QUESTIONS
+    // =========================================================
+
     public List<QuestionResponseDTO> getQuestionsByMapping(
             Long courseId,
             Long chapterId,
             Long categoryId) {
+
 
         List<Question> questions =
                 questionRepository
@@ -524,10 +747,13 @@ public class QuestionService {
                                 categoryId
                         );
 
+
         List<QuestionResponseDTO> responseList =
                 new ArrayList<>();
 
+
         for (Question question : questions) {
+
 
             List<QuestionAttribute> attributes =
                     questionAttributeRepository
@@ -535,61 +761,89 @@ public class QuestionService {
                                     question.getQuestionId()
                             );
 
-            QuestionResponseDTO response =
+
+            responseList.add(
                     convertToResponse(
                             question,
                             attributes
-                    );
-
-            responseList.add(response);
+                    )
+            );
         }
+
 
         return responseList;
     }
 
 
+    // =========================================================
+    // CONVERT TO RESPONSE
+    // =========================================================
+
     private QuestionResponseDTO convertToResponse(
             Question question,
             List<QuestionAttribute> attributes) {
 
+
         QuestionResponseDTO response =
                 new QuestionResponseDTO();
+
 
         response.setQuestionId(
                 question.getQuestionId()
         );
+
 
         response.setQuestionText(
                 question.getQuestionText()
         );
 
 
-        // Course
+        // =====================================================
+        // COURSE
+        // =====================================================
+
         response.setCourseId(
-                question.getCourse().getCourseId()
+                question
+                        .getCourse()
+                        .getCourseId()
         );
+
 
         response.setCourseName(
-                question.getCourse().getName()
+                question
+                        .getCourse()
+                        .getName()
         );
 
 
-        // Chapter
+        // =====================================================
+        // CHAPTER
+        // =====================================================
+
         response.setChapterId(
-                question.getChapter().getChapterId()
+                question
+                        .getChapter()
+                        .getChapterId()
         );
+
 
         response.setChapterName(
-                question.getChapter().getName()
+                question
+                        .getChapter()
+                        .getName()
         );
 
 
-        // Category
+        // =====================================================
+        // CATEGORY
+        // =====================================================
+
         response.setCategoryId(
                 question
                         .getQuestionCategory()
                         .getCategoryId()
         );
+
 
         response.setCategoryName(
                 question
@@ -602,24 +856,32 @@ public class QuestionService {
                 question.getActiveRow()
         );
 
+
         response.setCreatedAt(
                 question.getCreatedAt()
         );
+
 
         response.setUpdatedAt(
                 question.getUpdatedAt()
         );
 
 
-        // Question Attributes
+        // =====================================================
+        // QUESTION ATTRIBUTES
+        // =====================================================
+
         List<QuestionAttributeResponseDTO>
                 attributeResponses =
                 new ArrayList<>();
 
+
         for (QuestionAttribute questionAttribute
                 : attributes) {
 
-            QuestionAttributeResponseDTO attributeResponse =
+
+            QuestionAttributeResponseDTO
+                    attributeResponse =
                     new QuestionAttributeResponseDTO();
 
 
@@ -629,14 +891,19 @@ public class QuestionService {
             );
 
 
-            // Header
+            // =================================================
+            // HEADER
+            // =================================================
+
             if (questionAttribute.getHeader() != null) {
+
 
                 attributeResponse.setHeaderId(
                         questionAttribute
                                 .getHeader()
                                 .getHeaderId()
                 );
+
 
                 attributeResponse.setHeaderName(
                         questionAttribute
@@ -646,14 +913,19 @@ public class QuestionService {
             }
 
 
-            // Attribute
+            // =================================================
+            // ATTRIBUTE
+            // =================================================
+
             if (questionAttribute.getAttribute() != null) {
+
 
                 attributeResponse.setAttributeId(
                         questionAttribute
                                 .getAttribute()
                                 .getAttributeId()
                 );
+
 
                 attributeResponse.setAttributeName(
                         questionAttribute
@@ -668,25 +940,30 @@ public class QuestionService {
                             .getTransactionDate()
             );
 
+
             attributeResponse.setAmount(
                     questionAttribute
                             .getAmount()
             );
+
 
             attributeResponse.setAmount2(
                     questionAttribute
                             .getAmount2()
             );
 
+
             attributeResponse.setNote(
                     questionAttribute
                             .getNote()
             );
 
+
             attributeResponse.setActiveRow(
                     questionAttribute
                             .getActiveRow()
             );
+
 
             attributeResponses.add(
                     attributeResponse
@@ -697,6 +974,7 @@ public class QuestionService {
         response.setQuestionAttributes(
                 attributeResponses
         );
+
 
         return response;
     }

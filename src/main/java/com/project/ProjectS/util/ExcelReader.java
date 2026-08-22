@@ -10,53 +10,86 @@ import java.util.*;
 @Component
 public class ExcelReader {
 
-    public List<Map<String, String>> readExcel(MultipartFile file) throws IOException {
+    public List<Map<String, String>> readExcel(
+            MultipartFile file) throws IOException {
 
-        List<Map<String, String>> excelData = new ArrayList<>();
+        List<Map<String, String>> excelData =
+                new ArrayList<>();
 
-        try (Workbook workbook = WorkbookFactory.create(file.getInputStream())) {
+        try (Workbook workbook =
+                     WorkbookFactory.create(
+                             file.getInputStream())) {
 
-            Sheet sheet = workbook.getSheetAt(0);
+            Sheet sheet =
+                    workbook.getSheetAt(0);
 
             if (sheet == null) {
                 return excelData;
             }
 
-            Row headerRow = sheet.getRow(0);
+            Row headerRow =
+                    sheet.getRow(0);
 
             if (headerRow == null) {
                 return excelData;
             }
 
-            List<String> headers = new ArrayList<>();
+            List<String> headers =
+                    new ArrayList<>();
 
-            // Read header row
+            // =================================================
+            // READ HEADER ROW
+            // =================================================
+
             for (Cell cell : headerRow) {
 
-                String header = getCellValue(cell)
-                        .trim()
-                        .toLowerCase()
-                        .replace(" ", "_");
+                String header =
+                        getCellValue(cell)
+                                .trim()
+                                .toLowerCase()
+                                .replace(" ", "_");
 
                 headers.add(header);
             }
 
-            // Read data rows
-            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+            System.out.println(
+                    "Excel Headers = "
+                            + headers
+            );
 
-                Row row = sheet.getRow(i);
+            // =================================================
+            // READ DATA ROWS
+            // =================================================
+
+            for (int i = 1;
+                 i <= sheet.getLastRowNum();
+                 i++) {
+
+                Row row =
+                        sheet.getRow(i);
 
                 if (row == null) {
                     continue;
                 }
 
-                Map<String, String> rowData = new LinkedHashMap<>();
+                Map<String, String> rowData =
+                        new LinkedHashMap<>();
 
-                for (int j = 0; j < headers.size(); j++) {
+                for (int j = 0;
+                     j < headers.size();
+                     j++) {
 
-                    Cell cell = row.getCell(j, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    Cell cell =
+                            row.getCell(
+                                    j,
+                                    Row.MissingCellPolicy
+                                            .CREATE_NULL_AS_BLANK
+                            );
 
-                    rowData.put(headers.get(j), getCellValue(cell));
+                    rowData.put(
+                            headers.get(j),
+                            getCellValue(cell)
+                    );
                 }
 
                 excelData.add(rowData);
@@ -66,9 +99,10 @@ public class ExcelReader {
         return excelData;
     }
 
-    /**
-     * Converts any Excel cell to String.
-     */
+    // =========================================================
+    // GET CELL VALUE
+    // =========================================================
+
     private String getCellValue(Cell cell) {
 
         if (cell == null) {
@@ -77,26 +111,101 @@ public class ExcelReader {
 
         return switch (cell.getCellType()) {
 
-            case STRING -> cell.getStringCellValue().trim();
+            case STRING -> {
+
+                String value =
+                        cell.getStringCellValue();
+
+                yield value == null
+                        ? ""
+                        : value.trim();
+            }
 
             case NUMERIC -> {
 
                 if (DateUtil.isCellDateFormatted(cell)) {
-                    yield cell.getLocalDateTimeCellValue().toString();
+
+                    yield cell
+                            .getLocalDateTimeCellValue()
+                            .toLocalDate()
+                            .toString();
                 }
 
-                double value = cell.getNumericCellValue();
+                double value =
+                        cell.getNumericCellValue();
 
                 if (value == (long) value) {
-                    yield String.valueOf((long) value);
+
+                    yield String.valueOf(
+                            (long) value
+                    );
                 }
 
                 yield String.valueOf(value);
             }
 
-            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
+            case BOOLEAN ->
+                    String.valueOf(
+                            cell.getBooleanCellValue()
+                    );
 
-            case FORMULA -> cell.getCellFormula();
+            case FORMULA -> {
+
+                try {
+
+                    FormulaEvaluator evaluator =
+                            cell.getSheet()
+                                    .getWorkbook()
+                                    .getCreationHelper()
+                                    .createFormulaEvaluator();
+
+                    CellValue cellValue =
+                            evaluator.evaluate(cell);
+
+                    if (cellValue == null) {
+                        yield "";
+                    }
+
+                    yield switch (
+                            cellValue.getCellType()) {
+
+                        case STRING ->
+                                cellValue
+                                        .getStringValue()
+                                        .trim();
+
+                        case NUMERIC -> {
+
+                            double value =
+                                    cellValue
+                                            .getNumberValue();
+
+                            if (value ==
+                                    (long) value) {
+
+                                yield String.valueOf(
+                                        (long) value
+                                );
+                            }
+
+                            yield String.valueOf(
+                                    value
+                            );
+                        }
+
+                        case BOOLEAN ->
+                                String.valueOf(
+                                        cellValue
+                                                .getBooleanValue()
+                                );
+
+                        default -> "";
+                    };
+                } catch (Exception e) {
+
+                    yield "";
+                }
+            }
 
             case BLANK -> "";
 
