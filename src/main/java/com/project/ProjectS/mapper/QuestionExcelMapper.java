@@ -1,12 +1,10 @@
 package com.project.ProjectS.mapper;
 
-import com.project.ProjectS.entity.Branch;
 import com.project.ProjectS.entity.Chapter;
 import com.project.ProjectS.entity.Course;
 import com.project.ProjectS.entity.Question;
 import com.project.ProjectS.entity.QuestionCategory;
 
-import com.project.ProjectS.repository.BranchRepository;
 import com.project.ProjectS.repository.ChapterRepository;
 import com.project.ProjectS.repository.CourseRepository;
 import com.project.ProjectS.repository.QuestionCategoryRepository;
@@ -14,83 +12,45 @@ import com.project.ProjectS.repository.QuestionCategoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Map;
 
 @Component
-public class QuestionExcelMapper implements ExcelRowMapper<Question> {
-    @Autowired
-    public QuestionExcelMapper(BranchRepository branchRepository, CourseRepository courseRepository, ChapterRepository chapterRepository, QuestionCategoryRepository questionCategoryRepository) {
-        this.branchRepository = branchRepository;
-        this.courseRepository = courseRepository;
-        this.chapterRepository = chapterRepository;
-        this.questionCategoryRepository = questionCategoryRepository;
-    }
+public class QuestionExcelMapper {
 
-    private final BranchRepository branchRepository;
     private final CourseRepository courseRepository;
+
     private final ChapterRepository chapterRepository;
+
     private final QuestionCategoryRepository questionCategoryRepository;
 
+    @Autowired
+    public QuestionExcelMapper(
+            CourseRepository courseRepository,
+            ChapterRepository chapterRepository,
+            QuestionCategoryRepository questionCategoryRepository) {
+
+        this.courseRepository =
+                courseRepository;
+
+        this.chapterRepository =
+                chapterRepository;
+
+        this.questionCategoryRepository =
+                questionCategoryRepository;
+    }
 
     // =========================================================
     // MAP EXCEL ROW TO QUESTION
     // =========================================================
 
-    @Override
-    public Question map(Map<String, String> row) {
-
-        // =====================================================
-        // READ EXCEL VALUES
-        // =====================================================
-
-        String branchName =
-                row.get("branch_name");
-
-        String courseName =
-                row.get("course_name");
-
-        String chapterName =
-                row.get("chapter_name");
-
-        String categoryName =
-                row.get("category_name");
+    public Question map(
+            Map<String, String> row,
+            Integer courseId,
+            Integer chapterId,
+            Integer categoryId) {
 
         String questionText =
                 row.get("question_text");
-
-
-        // =====================================================
-        // VALIDATION
-        // =====================================================
-
-        if (isBlank(branchName)) {
-
-            throw new RuntimeException(
-                    "Branch name is required"
-            );
-        }
-
-        if (isBlank(courseName)) {
-
-            throw new RuntimeException(
-                    "Course name is required"
-            );
-        }
-
-        if (isBlank(chapterName)) {
-
-            throw new RuntimeException(
-                    "Chapter name is required"
-            );
-        }
-
-        if (isBlank(categoryName)) {
-
-            throw new RuntimeException(
-                    "Category name is required"
-            );
-        }
 
         if (isBlank(questionText)) {
 
@@ -99,35 +59,26 @@ public class QuestionExcelMapper implements ExcelRowMapper<Question> {
             );
         }
 
-
-        // =====================================================
-        // FIND BRANCH
-        // =====================================================
-
-        List<Branch> branches =
-                branchRepository.findByBranchName(
-                        branchName.trim()
-                );
-
-        if (branches.isEmpty()) {
+        if (courseId == null) {
 
             throw new RuntimeException(
-                    "Branch not found: "
-                            + branchName
+                    "Course ID is required"
             );
         }
 
-        if (branches.size() > 1) {
+        if (chapterId == null) {
 
             throw new RuntimeException(
-                    "Multiple branches found with name: "
-                            + branchName
+                    "Chapter ID is required"
             );
         }
 
-        Branch branch =
-                branches.get(0);
+        if (categoryId == null) {
 
+            throw new RuntimeException(
+                    "Category ID is required"
+            );
+        }
 
         // =====================================================
         // FIND COURSE
@@ -135,19 +86,15 @@ public class QuestionExcelMapper implements ExcelRowMapper<Question> {
 
         Course course =
                 courseRepository
-                        .findByNameAndBranch(
-                                courseName.trim(),
-                                branch
+                        .findById(
+                                courseId.longValue()
                         )
                         .orElseThrow(() ->
                                 new RuntimeException(
-                                        "Course not found: "
-                                                + courseName
-                                                + " for branch: "
-                                                + branchName
+                                        "Course not found with id: "
+                                                + courseId
                                 )
                         );
-
 
         // =====================================================
         // FIND CHAPTER
@@ -155,40 +102,79 @@ public class QuestionExcelMapper implements ExcelRowMapper<Question> {
 
         Chapter chapter =
                 chapterRepository
-                        .findByNameAndCourse(
-                                chapterName.trim(),
-                                course
+                        .findById(
+                                chapterId.longValue()
                         )
                         .orElseThrow(() ->
                                 new RuntimeException(
-                                        "Chapter not found: "
-                                                + chapterName
-                                                + " for course: "
-                                                + courseName
+                                        "Chapter not found with id: "
+                                                + chapterId
                                 )
                         );
 
+        // =====================================================
+        // VALIDATE CHAPTER -> COURSE
+        // =====================================================
+
+        if (chapter.getCourse() == null ||
+                !chapter.getCourse()
+                        .getCourseId()
+                        .equals(course.getCourseId())) {
+
+            throw new RuntimeException(
+                    "Chapter " + chapterId +
+                            " does not belong to course " +
+                            courseId
+            );
+        }
 
         // =====================================================
-        // FIND QUESTION CATEGORY
+        // FIND CATEGORY
         // =====================================================
 
         QuestionCategory category =
                 questionCategoryRepository
-                        .findByCourseAndChapterAndName(
-                                course,
-                                chapter,
-                                categoryName.trim()
+                        .findById(
+                                categoryId.longValue()
                         )
                         .orElseThrow(() ->
                                 new RuntimeException(
-                                        "Question category not found: "
-                                                + categoryName
-                                                + " for chapter: "
-                                                + chapterName
+                                        "Question category not found with id: "
+                                                + categoryId
                                 )
                         );
 
+        // =====================================================
+        // VALIDATE CATEGORY -> COURSE
+        // =====================================================
+
+        if (category.getCourse() == null ||
+                !category.getCourse()
+                        .getCourseId()
+                        .equals(course.getCourseId())) {
+
+            throw new RuntimeException(
+                    "Question category " + categoryId +
+                            " does not belong to course " +
+                            courseId
+            );
+        }
+
+        // =====================================================
+        // VALIDATE CATEGORY -> CHAPTER
+        // =====================================================
+
+        if (category.getChapter() == null ||
+                !category.getChapter()
+                        .getChapterId()
+                        .equals(chapter.getChapterId())) {
+
+            throw new RuntimeException(
+                    "Question category " + categoryId +
+                            " does not belong to chapter " +
+                            chapterId
+            );
+        }
 
         // =====================================================
         // CREATE QUESTION
@@ -209,13 +195,11 @@ public class QuestionExcelMapper implements ExcelRowMapper<Question> {
 
         question.setActiveRow(true);
 
-
         return question;
     }
 
-
     // =========================================================
-    // HELPER
+    // IS BLANK
     // =========================================================
 
     private boolean isBlank(String value) {

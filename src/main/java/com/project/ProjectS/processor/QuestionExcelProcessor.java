@@ -26,21 +26,40 @@ import java.util.Map;
 
 @Service
 public class QuestionExcelProcessor {
-    @Autowired
-    public QuestionExcelProcessor(QuestionExcelMapper questionExcelMapper, QuestionRepository questionRepository, QuestionAttributeRepository questionAttributeRepository, TableHeaderRepository tableHeaderRepository, TableAttributeRepository tableAttributeRepository) {
-        this.questionExcelMapper = questionExcelMapper;
-        this.questionRepository = questionRepository;
-        this.questionAttributeRepository = questionAttributeRepository;
-        this.tableHeaderRepository = tableHeaderRepository;
-        this.tableAttributeRepository = tableAttributeRepository;
-    }
 
     private final QuestionExcelMapper questionExcelMapper;
+
     private final QuestionRepository questionRepository;
+
     private final QuestionAttributeRepository questionAttributeRepository;
+
     private final TableHeaderRepository tableHeaderRepository;
+
     private final TableAttributeRepository tableAttributeRepository;
 
+    @Autowired
+    public QuestionExcelProcessor(
+            QuestionExcelMapper questionExcelMapper,
+            QuestionRepository questionRepository,
+            QuestionAttributeRepository questionAttributeRepository,
+            TableHeaderRepository tableHeaderRepository,
+            TableAttributeRepository tableAttributeRepository) {
+
+        this.questionExcelMapper =
+                questionExcelMapper;
+
+        this.questionRepository =
+                questionRepository;
+
+        this.questionAttributeRepository =
+                questionAttributeRepository;
+
+        this.tableHeaderRepository =
+                tableHeaderRepository;
+
+        this.tableAttributeRepository =
+                tableAttributeRepository;
+    }
 
     // =========================================================
     // PROCESS EXCEL
@@ -48,13 +67,47 @@ public class QuestionExcelProcessor {
 
     @Transactional
     public QuestionExcelUploadResponseDTO process(
-            List<Map<String, String>> excelData) {
+            List<Map<String, String>> excelData,
+            Integer categoryId,
+            Integer chapterId,
+            Integer courseId) {
 
         QuestionExcelUploadResponseDTO response =
                 new QuestionExcelUploadResponseDTO();
 
-        response.setTotalRows(excelData.size());
+        response.setTotalRows(
+                excelData.size()
+        );
 
+        // =====================================================
+        // VALIDATE IDS
+        // =====================================================
+
+        if (courseId == null) {
+            throw new RuntimeException(
+                    "Course ID is required"
+            );
+        }
+
+        if (chapterId == null) {
+            throw new RuntimeException(
+                    "Chapter ID is required"
+            );
+        }
+
+        if (categoryId == null) {
+            throw new RuntimeException(
+                    "Category ID is required"
+            );
+        }
+
+        System.out.println("======================================");
+        System.out.println("PROCESSING QUESTION EXCEL");
+        System.out.println("Course ID   = " + courseId);
+        System.out.println("Chapter ID  = " + chapterId);
+        System.out.println("Category ID = " + categoryId);
+        System.out.println("Total Rows  = " + excelData.size());
+        System.out.println("======================================");
 
         // =====================================================
         // GROUP EXCEL ROWS BY QUESTION
@@ -63,17 +116,25 @@ public class QuestionExcelProcessor {
         Map<String, List<Map<String, String>>> questionRowsMap =
                 new LinkedHashMap<>();
 
-
         for (Map<String, String> row : excelData) {
+
+            // =================================================
+            // IGNORE EMPTY ROW
+            // =================================================
 
             if (row == null ||
                     row.values()
                             .stream()
                             .allMatch(value ->
-                                    value == null || value.isBlank())) {
+                                    value == null ||
+                                            value.isBlank())) {
 
                 continue;
             }
+
+            // =================================================
+            // QUESTION TEXT
+            // =================================================
 
             String questionText =
                     row.get("question_text");
@@ -85,20 +146,19 @@ public class QuestionExcelProcessor {
                 );
 
                 response.getMessages().add(
-                        "Question upload failed: Question text is required"
+                        "Question upload failed: " +
+                                "Question text is required"
                 );
 
                 continue;
             }
 
+            // =================================================
+            // GROUP BY QUESTION TEXT
+            // =================================================
 
-            /*
-             * Same question text + course + chapter + category
-             * belongs to one question.
-             */
             String questionKey =
                     buildQuestionKey(row);
-
 
             questionRowsMap
                     .computeIfAbsent(
@@ -108,24 +168,29 @@ public class QuestionExcelProcessor {
                     .add(row);
         }
 
+        // =====================================================
+        // PROCESS EACH QUESTION
+        // =====================================================
 
-        // =====================================================
-        // PROCESS ONE COMPLETE QUESTION AT A TIME
-        // =====================================================
+        System.out.println(
+                "Number of questions found = "
+                        + questionRowsMap.size()
+        );
 
         for (List<Map<String, String>> questionRows
                 : questionRowsMap.values()) {
 
             processCompleteQuestion(
                     questionRows,
-                    response
+                    response,
+                    courseId,
+                    chapterId,
+                    categoryId
             );
         }
 
-
         return response;
     }
-
 
     // =========================================================
     // PROCESS COMPLETE QUESTION
@@ -133,66 +198,61 @@ public class QuestionExcelProcessor {
 
     private void processCompleteQuestion(
             List<Map<String, String>> questionRows,
-            QuestionExcelUploadResponseDTO response) {
+            QuestionExcelUploadResponseDTO response,
+            Integer courseId,
+            Integer chapterId,
+            Integer categoryId) {
 
+        if (questionRows == null ||
+                questionRows.isEmpty()) {
 
-        if (questionRows == null || questionRows.isEmpty()) {
             return;
         }
 
-
         // =====================================================
         // VALIDATION PHASE
-        //
-        // IMPORTANT:
-        // NOTHING IS SAVED TO QUESTION TABLE HERE
         // =====================================================
 
-        Question question = null;
-
-        /*
-         * Store validated attributes here.
-         *
-         * We only save these after ALL rows pass validation.
-         */
         List<ValidatedAttribute> validatedAttributes =
                 new ArrayList<>();
-
 
         boolean questionValid = true;
 
         String failureMessage = null;
 
-
         try {
 
             // =================================================
             // STEP 1
-            // MAP FIRST ROW TO QUESTION
+            // CREATE QUESTION OBJECT
             //
-            // Mapper finds:
-            // Branch
-            // Course
-            // Chapter
-            // Category
-            // Question
+            // NOTHING SAVED YET
             // =================================================
 
-            question =
+            Question question =
                     questionExcelMapper.map(
-                            questionRows.get(0)
+                            questionRows.get(0),
+                            courseId,
+                            chapterId,
+                            categoryId
                     );
 
+            System.out.println("--------------------------------------");
+            System.out.println(
+                    "Validating question: "
+                            + question.getQuestionText()
+            );
 
             // =================================================
-            // STEP 2 - CHECK EVERY ROW
+            // STEP 2
+            // VALIDATE EVERY ATTRIBUTE
             // =================================================
 
-            for (Map<String, String> row : questionRows) {
-
+            for (Map<String, String> row
+                    : questionRows) {
 
                 // =================================================
-                // FIND HEADER
+                // HEADER
                 // =================================================
 
                 String headerName =
@@ -204,7 +264,6 @@ public class QuestionExcelProcessor {
                             "Header name is required"
                     );
                 }
-
 
                 TableHeader header =
                         tableHeaderRepository
@@ -218,9 +277,15 @@ public class QuestionExcelProcessor {
                                         )
                                 );
 
+                System.out.println(
+                        "Header found: "
+                                + header.getName()
+                                + " | ID = "
+                                + header.getHeaderId()
+                );
 
                 // =================================================
-                // FIND ATTRIBUTE
+                // ATTRIBUTE
                 // =================================================
 
                 String attributeName =
@@ -233,7 +298,6 @@ public class QuestionExcelProcessor {
                     );
                 }
 
-
                 TableAttribute attribute =
                         tableAttributeRepository
                                 .findByNameAndTableHeader(
@@ -242,16 +306,16 @@ public class QuestionExcelProcessor {
                                 )
                                 .orElse(null);
 
-
                 // =================================================
                 // ATTRIBUTE NOT FOUND
-                //
-                // CREATE ATTRIBUTE AS DRAFT
-                //
-                // STOP ENTIRE QUESTION
                 // =================================================
 
                 if (attribute == null) {
+
+                    System.out.println(
+                            "Attribute NOT FOUND: "
+                                    + attributeName
+                    );
 
                     TableAttribute newAttribute =
                             new TableAttribute();
@@ -276,18 +340,28 @@ public class QuestionExcelProcessor {
                             false
                     );
 
+                    TableAttribute savedAttribute =
+                            tableAttributeRepository.save(
+                                    newAttribute
+                            );
 
-                    tableAttributeRepository.save(
-                            newAttribute
+                    tableAttributeRepository.flush();
+
+                    System.out.println(
+                            "NEW ATTRIBUTE CREATED:"
+                                    + " ID = "
+                                    + savedAttribute.getAttributeId()
+                                    + " | Name = "
+                                    + savedAttribute.getName()
+                                    + " | Status = DRAFT"
                     );
-
 
                     response.setCreatedAttributes(
                             response.getCreatedAttributes() + 1
                     );
 
-
                     throw new QuestionRejectedException(
+
                             "Rule not defined for this attribute: "
                                     + attributeName
                                     + ". Attribute was created as DRAFT. "
@@ -295,61 +369,83 @@ public class QuestionExcelProcessor {
                     );
                 }
 
-
                 // =================================================
                 // ATTRIBUTE FOUND
-                // CHECK ROW STATUS
+                // =================================================
+
+                System.out.println(
+                        "Attribute found: "
+                                + attribute.getName()
+                                + " | ID = "
+                                + attribute.getAttributeId()
+                                + " | Status = "
+                                + attribute.getRowStatus()
+                );
+
+                // =================================================
+                // CHECK ATTRIBUTE STATUS
                 // =================================================
 
                 if (!"RULE".equalsIgnoreCase(
                         attribute.getRowStatus())) {
 
-
-                    // =============================================
-                    // ATTRIBUTE IS DRAFT
-                    //
-                    // STOP ENTIRE QUESTION
-                    // =============================================
-
                     throw new QuestionRejectedException(
+
                             "Rule not defined for this attribute: "
                                     + attributeName
                                     + ". Define the rule and upload again."
                     );
                 }
 
-
                 // =================================================
                 // ATTRIBUTE IS RULE
-                // VALIDATE DATA
+                // STORE FOR LATER
                 // =================================================
 
                 ValidatedAttribute validated =
                         new ValidatedAttribute();
 
                 validated.setRow(row);
+
                 validated.setHeader(header);
+
                 validated.setAttribute(attribute);
 
-                validatedAttributes.add(validated);
+                validatedAttributes.add(
+                        validated
+                );
             }
 
+            // =====================================================
+            // ALL ATTRIBUTES ARE VALID
+            // NOW SAVE QUESTION
+            // =====================================================
 
-            // =====================================================
-            // ALL ATTRIBUTES ARE RULE
-            //
-            // NOW QUESTION CAN BE SAVED
-            // =====================================================
+            System.out.println(
+                    "VALIDATED ATTRIBUTES COUNT = "
+                            + validatedAttributes.size()
+            );
 
             Question savedQuestion =
                     questionRepository.save(
                             question
                     );
 
+            questionRepository.flush();
+
+            System.out.println(
+                    "QUESTION SAVED:"
+                            + " ID = "
+                            + savedQuestion.getQuestionId()
+                            + " | Text = "
+                            + savedQuestion.getQuestionText()
+            );
 
             // =====================================================
-            // SAVE ALL QUESTION ATTRIBUTES
+            // SAVE QUESTION ATTRIBUTES
             // =====================================================
+
+            int savedAttributeCount = 0;
 
             for (ValidatedAttribute validated
                     : validatedAttributes) {
@@ -357,25 +453,32 @@ public class QuestionExcelProcessor {
                 QuestionAttribute questionAttribute =
                         new QuestionAttribute();
 
+                // =================================================
+                // QUESTION
+                // =================================================
 
                 questionAttribute.setQuestion(
                         savedQuestion
                 );
 
+                // =================================================
+                // HEADER
+                // =================================================
 
                 questionAttribute.setHeader(
                         validated.getHeader()
                 );
 
+                // =================================================
+                // ATTRIBUTE
+                // =================================================
 
                 questionAttribute.setAttribute(
                         validated.getAttribute()
                 );
 
-
                 Map<String, String> row =
                         validated.getRow();
-
 
                 // =================================================
                 // TRANSACTION DATE
@@ -384,8 +487,9 @@ public class QuestionExcelProcessor {
                 String transactionDate =
                         row.get("transaction_date");
 
-
-                if (!isBlank(transactionDate)) {
+                if (!isBlank(transactionDate)
+                        && !"null".equalsIgnoreCase(
+                        transactionDate.trim())) {
 
                     try {
 
@@ -404,7 +508,6 @@ public class QuestionExcelProcessor {
                     }
                 }
 
-
                 // =================================================
                 // AMOUNT
                 // =================================================
@@ -412,8 +515,9 @@ public class QuestionExcelProcessor {
                 String amount =
                         row.get("amount");
 
-
-                if (!isBlank(amount)) {
+                if (!isBlank(amount)
+                        && !"null".equalsIgnoreCase(
+                        amount.trim())) {
 
                     try {
 
@@ -432,7 +536,6 @@ public class QuestionExcelProcessor {
                     }
                 }
 
-
                 // =================================================
                 // AMOUNT 2
                 // =================================================
@@ -440,8 +543,9 @@ public class QuestionExcelProcessor {
                 String amount2 =
                         row.get("amount2");
 
-
-                if (!isBlank(amount2)) {
+                if (!isBlank(amount2)
+                        && !"null".equalsIgnoreCase(
+                        amount2.trim())) {
 
                     try {
 
@@ -460,49 +564,120 @@ public class QuestionExcelProcessor {
                     }
                 }
 
-
                 // =================================================
                 // NOTE
                 // =================================================
 
-                questionAttribute.setNote(
-                        row.get("note")
-                );
+                String note =
+                        row.get("note");
 
+                if (!isBlank(note)
+                        && !"null".equalsIgnoreCase(
+                        note.trim())) {
+
+                    questionAttribute.setNote(
+                            note.trim()
+                    );
+                }
+
+                // =================================================
+                // ACTIVE ROW
+                // =================================================
+
+                questionAttribute.setActiveRow(true);
 
                 // =================================================
                 // SAVE QUESTION ATTRIBUTE
                 // =================================================
 
-                questionAttributeRepository.save(
-                        questionAttribute
+                QuestionAttribute savedQuestionAttribute =
+                        questionAttributeRepository.save(
+                                questionAttribute
+                        );
+
+                questionAttributeRepository.flush();
+
+                savedAttributeCount++;
+
+                System.out.println(
+                        "QUESTION ATTRIBUTE SAVED:"
+                );
+
+                System.out.println(
+                        "  Question Attribute ID = "
+                                + savedQuestionAttribute
+                                .getQuestionAttributeId()
+                );
+
+                System.out.println(
+                        "  Question ID = "
+                                + savedQuestion
+                                .getQuestionId()
+                );
+
+                System.out.println(
+                        "  Header ID = "
+                                + validated
+                                .getHeader()
+                                .getHeaderId()
+                );
+
+                System.out.println(
+                        "  Attribute ID = "
+                                + validated
+                                .getAttribute()
+                                .getAttributeId()
+                );
+
+                System.out.println(
+                        "  Attribute Name = "
+                                + validated
+                                .getAttribute()
+                                .getName()
+                );
+
+                System.out.println(
+                        "  Amount = "
+                                + savedQuestionAttribute
+                                .getAmount()
                 );
             }
 
+            // =====================================================
+            // VERIFY ATTRIBUTE COUNT
+            // =====================================================
+
+            System.out.println(
+                    "TOTAL QUESTION ATTRIBUTES SAVED = "
+                            + savedAttributeCount
+            );
 
             // =====================================================
-            // QUESTION SUCCESSFULLY UPLOADED
+            // SUCCESS
             // =====================================================
 
             response.setUploadedQuestions(
                     response.getUploadedQuestions() + 1
             );
 
+            System.out.println(
+                    "QUESTION UPLOAD SUCCESSFUL:"
+                            + " Question ID = "
+                            + savedQuestion.getQuestionId()
+            );
+
+            System.out.println("--------------------------------------");
 
         } catch (QuestionRejectedException e) {
 
             // =====================================================
-            // ENTIRE QUESTION REJECTED
-            //
-            // IMPORTANT:
-            // No Question was saved.
-            // No QuestionAttribute was saved.
+            // QUESTION REJECTED
             // =====================================================
 
             questionValid = false;
 
-            failureMessage = e.getMessage();
-
+            failureMessage =
+                    e.getMessage();
 
         } catch (Exception e) {
 
@@ -515,8 +690,9 @@ public class QuestionExcelProcessor {
             failureMessage =
                     "Question upload failed: "
                             + e.getMessage();
-        }
 
+            e.printStackTrace();
+        }
 
         // =====================================================
         // HANDLE REJECTED QUESTION
@@ -529,14 +705,17 @@ public class QuestionExcelProcessor {
                             + questionRows.size()
             );
 
-
             response.getMessages().add(
                     "Question skipped: "
                             + failureMessage
             );
+
+            System.out.println(
+                    "QUESTION SKIPPED: "
+                            + failureMessage
+            );
         }
     }
-
 
     // =========================================================
     // BUILD QUESTION KEY
@@ -546,27 +725,9 @@ public class QuestionExcelProcessor {
             Map<String, String> row) {
 
         return safeValue(
-                row.get("branch_name")
-        )
-                + "|"
-                + safeValue(
-                row.get("course_name")
-        )
-                + "|"
-                + safeValue(
-                row.get("chapter_name")
-        )
-                + "|"
-                + safeValue(
-                row.get("category_name")
-        )
-                + "|"
-                + safeValue(
                 row.get("question_text")
-        )
-                .trim();
+        );
     }
-
 
     // =========================================================
     // SAFE VALUE
@@ -581,7 +742,6 @@ public class QuestionExcelProcessor {
         return value.trim();
     }
 
-
     // =========================================================
     // IS BLANK
     // =========================================================
@@ -591,7 +751,6 @@ public class QuestionExcelProcessor {
         return value == null
                 || value.trim().isEmpty();
     }
-
 
     // =========================================================
     // VALIDATED ATTRIBUTE
@@ -605,11 +764,9 @@ public class QuestionExcelProcessor {
 
         private TableAttribute attribute;
 
-
         public Map<String, String> getRow() {
             return row;
         }
-
 
         public void setRow(
                 Map<String, String> row) {
@@ -617,11 +774,9 @@ public class QuestionExcelProcessor {
             this.row = row;
         }
 
-
         public TableHeader getHeader() {
             return header;
         }
-
 
         public void setHeader(
                 TableHeader header) {
@@ -629,11 +784,9 @@ public class QuestionExcelProcessor {
             this.header = header;
         }
 
-
         public TableAttribute getAttribute() {
             return attribute;
         }
-
 
         public void setAttribute(
                 TableAttribute attribute) {
@@ -641,7 +794,6 @@ public class QuestionExcelProcessor {
             this.attribute = attribute;
         }
     }
-
 
     // =========================================================
     // QUESTION REJECTED EXCEPTION
