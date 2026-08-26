@@ -131,12 +131,8 @@ public class RuleEngineService {
         entity.setAmountPosition4(request.getAmountPosition4());
         entity.setInformation4(request.getInformation4());
 
-//        entity.setActiveRow(request.getActiveRow());
-//        entity.setRowStatus(request.getRowStatus());
         entity.setActiveRow(request.getActiveRow());
-        if (request.getRowStatus() != null) {
-            entity.setRowStatus(request.getRowStatus());
-        }
+        entity.setRowStatus(request.getRowStatus());
     }
 
     private Chapter getChapter(String name) {

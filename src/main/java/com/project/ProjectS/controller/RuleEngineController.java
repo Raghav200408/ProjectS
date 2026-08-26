@@ -1,7 +1,9 @@
 package com.project.ProjectS.controller;
 
 import com.project.ProjectS.entity.RuleEngine;
-import com.project.ProjectS.model.*;
+import com.project.ProjectS.model.RuleEngineRequestDTO;
+import com.project.ProjectS.model.RuleEngineResponse;
+import com.project.ProjectS.model.RuleEngineResponseDTO;
 import com.project.ProjectS.service.RuleEngineService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,34 +66,33 @@ public class RuleEngineController {
     }
 
     @PostMapping("/excel/upload")
-    public ResponseEntity<RuleEngineExcelUploadResponseDTO> uploadExcel(
+    public ResponseEntity<String> uploadExcel(
             @RequestParam("file") MultipartFile file) {
 
         try {
+
+            // Step 1: Read Excel file
             List<Map<String, String>> excelData =
                     excelUploadService.readExcel(file);
 
-            RuleEngineExcelUploadResponseDTO response =
-                    ruleEngineExcelProcessor.process(excelData);
-            return ResponseEntity.ok(response);
+
+            // Step 2: Process Excel data and save RuleEngine
+            ruleEngineExcelProcessor.process(excelData);
+
+
+            return ResponseEntity.ok(
+                    "Rule Engine Excel uploaded successfully"
+            );
+
 
         } catch (Exception e) {
 
-            RuleEngineExcelUploadResponseDTO response =
-                    new RuleEngineExcelUploadResponseDTO();
-
-            response.setFailedRows(1);
-
-            response.getFailed().add(
-                    new RuleEngineFailedRowDTO(
-                            0,
-                            "Excel upload failed : " + e.getMessage()
-                    )
-            );
-
             return ResponseEntity
                     .badRequest()
-                    .body(response);
+                    .body(
+                            "Excel upload failed : "
+                                    + e.getMessage()
+                    );
         }
     }
 
