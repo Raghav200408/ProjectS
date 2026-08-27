@@ -14,8 +14,10 @@ public class QuestionRequestDTO {
     private Long chapterId;
 
     private Long categoryId;
+    private Long questionTypeId;
 
     private String questionText;
+
 
     private List<QuestionAttributeRequestDTO> questionAttributes;
 }

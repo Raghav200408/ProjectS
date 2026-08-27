@@ -24,6 +24,9 @@ public class QuestionResponseDTO {
     private Long categoryId;
     private String categoryName;
 
+    private Long questionTypeId;
+    private String questionType;
+
 
     private String questionText;
 

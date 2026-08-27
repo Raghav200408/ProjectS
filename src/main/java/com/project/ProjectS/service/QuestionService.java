@@ -4,7 +4,6 @@ import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.processor.QuestionExcelProcessor;
 import com.project.ProjectS.repository.*;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +27,8 @@ public class QuestionService {
 
     private final ChapterRepository chapterRepository;
 
+    private final QuestionTypeRepository questionTypeRepository;
+
     private final QuestionCategoryRepository questionCategoryRepository;
 
     private final TableHeaderRepository tableHeaderRepository;
@@ -46,6 +47,7 @@ public class QuestionService {
             CourseRepository courseRepository,
             ChapterRepository chapterRepository,
             QuestionCategoryRepository questionCategoryRepository,
+            QuestionTypeRepository questionTypeRepository,
             TableHeaderRepository tableHeaderRepository,
             TableAttributeRepository tableAttributeRepository,
             ExcelUploadService excelUploadService,
@@ -65,6 +67,9 @@ public class QuestionService {
 
         this.questionCategoryRepository =
                 questionCategoryRepository;
+
+        this.questionTypeRepository =
+                questionTypeRepository;
 
         this.tableHeaderRepository =
                 tableHeaderRepository;
@@ -127,6 +132,12 @@ public class QuestionService {
                         );
 
 
+        QuestionType questionType =
+                getQuestionType(
+                        request.getQuestionTypeId()
+                );
+
+
         Question question =
                 new Question();
 
@@ -136,6 +147,8 @@ public class QuestionService {
         question.setChapter(chapter);
 
         question.setQuestionCategory(category);
+
+        question.setQuestionType(questionType);
 
         question.setQuestionText(
                 request.getQuestionText()
@@ -396,6 +409,20 @@ public class QuestionService {
                             .getName()
             );
 
+            if (question.getQuestionType() != null) {
+
+                dto.setQuestionTypeId(
+                        question
+                                .getQuestionType()
+                                .getQuestionTypeId()
+                );
+
+                dto.setQuestionType(
+                        question
+                                .getQuestionType()
+                                .getQuestionType()
+                );
+            }
 
             dto.setActiveRow(
                     question.getActiveRow()
@@ -585,11 +612,19 @@ public class QuestionService {
                         );
 
 
+        QuestionType questionType =
+                getQuestionType(
+                        request.getQuestionTypeId()
+                );
+
+
         question.setCourse(course);
 
         question.setChapter(chapter);
 
         question.setQuestionCategory(category);
+
+        question.setQuestionType(questionType);
 
         question.setQuestionText(
                 request.getQuestionText()
@@ -851,6 +886,20 @@ public class QuestionService {
                         .getName()
         );
 
+        if (question.getQuestionType() != null) {
+
+            response.setQuestionTypeId(
+                    question
+                            .getQuestionType()
+                            .getQuestionTypeId()
+            );
+
+            response.setQuestionType(
+                    question
+                            .getQuestionType()
+                            .getQuestionType()
+            );
+        }
 
         response.setActiveRow(
                 question.getActiveRow()
@@ -977,5 +1026,22 @@ public class QuestionService {
 
 
         return response;
+    }
+
+    private QuestionType getQuestionType(
+            Long questionTypeId) {
+
+        if (questionTypeId == null) {
+            return null;
+        }
+
+        return questionTypeRepository
+                .findById(questionTypeId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Question Type not found with id: "
+                                        + questionTypeId
+                        )
+                );
     }
 }
