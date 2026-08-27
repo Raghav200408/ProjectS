@@ -25,7 +25,7 @@ public class TableAttributeService {
 
     public String create(TableAttributeRequestDTO request) {
 
-        if(attributeRepository.existsByName(request.getName())){
+        if (attributeRepository.existsByName(request.getName())) {
             throw new RuntimeException("Table Attribute already exists");
         }
 
@@ -59,7 +59,7 @@ public class TableAttributeService {
         List<TableAttribute> attributes = attributeRepository.findAll();
         List<TableAttributeResponseDTO> response = new ArrayList<>();
 
-        for(TableAttribute entity : attributes){
+        for (TableAttribute entity : attributes) {
 
             TableAttributeResponseDTO dto = new TableAttributeResponseDTO();
 
@@ -147,4 +147,41 @@ public class TableAttributeService {
         return "Table Attribute deleted successfully";
     }
 
+    public List<TableAttributeResponseDTO> getRuleAttributes() {
+
+        List<TableAttribute> attributes =
+                attributeRepository.findByRowStatusIgnoreCase("RULE");
+
+        List<TableAttributeResponseDTO> response =
+                new ArrayList<>();
+
+        for (TableAttribute entity : attributes) {
+
+            TableAttributeResponseDTO dto =
+                    new TableAttributeResponseDTO();
+
+            dto.setAttributeId(entity.getAttributeId());
+            dto.setName(entity.getName());
+
+            dto.setActiveRow(entity.getActiveRow());
+            dto.setRowStatus(entity.getRowStatus());
+            dto.setCreatedAt(entity.getCreatedAt());
+            dto.setUpdatedAt(entity.getUpdatedAt());
+
+            dto.setTableHeaderName(
+                    entity.getTableHeader().getName()
+            );
+
+            dto.setAmount1(entity.getAmount1());
+            dto.setAmount2(entity.getAmount2());
+
+            dto.setRowDisable(
+                    entity.getRowDisable()
+            );
+
+            response.add(dto);
+        }
+
+        return response;
+    }
 }

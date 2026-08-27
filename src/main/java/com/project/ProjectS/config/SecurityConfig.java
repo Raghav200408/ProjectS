@@ -67,6 +67,7 @@ public class SecurityConfig {
                                         "/api/users/superAdmin",
                                         "/api/users/superAdmins",
                                         "/api/users/branchAdmins",
+                                        "/api/users/branchAdmin",
                                         "/api/users/students",
                                         "/api/users/superAdmin/**",
                                         "/api/users/excel/upload",
