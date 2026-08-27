@@ -74,6 +74,10 @@ public class ExcelReader {
 
                 Map<String, String> rowData =
                         new LinkedHashMap<>();
+                rowData.put(
+                        "_excel_row_number",
+                        String.valueOf(i + 1)
+                );
 
                 for (int j = 0;
                      j < headers.size();
@@ -201,6 +205,7 @@ public class ExcelReader {
 
                         default -> "";
                     };
+
                 } catch (Exception e) {
 
                     yield "";
