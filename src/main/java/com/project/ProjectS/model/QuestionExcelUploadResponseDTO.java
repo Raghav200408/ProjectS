@@ -18,6 +18,13 @@ public class QuestionExcelUploadResponseDTO {
 
     private int skippedRows;
 
-    private List<String> messages = new ArrayList<>();
+    private int failedQuestions;
+
+    private boolean success;
+
+    private String message;
+
+    private List<QuestionUploadErrorDTO> errors =
+            new ArrayList<>();
 
 }

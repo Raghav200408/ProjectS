@@ -1,5 +1,6 @@
 package com.project.ProjectS.controller;
 
+import com.project.ProjectS.model.QuestionExcelUploadRequestDTO;
 import com.project.ProjectS.model.QuestionExcelUploadResponseDTO;
 import com.project.ProjectS.model.QuestionRequestDTO;
 import com.project.ProjectS.model.QuestionResponseDTO;
@@ -94,21 +95,21 @@ public class QuestionController {
     }
 
     // EXCEL UPLOAD
-    @PostMapping("/upload")
+    @PostMapping(value = "/upload", consumes = "multipart/form-data")
     public ResponseEntity<QuestionExcelUploadResponseDTO> uploadQuestions(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("courseId") Integer courseId,
-            @RequestParam("chapterId") Integer chapterId,
-            @RequestParam("categoryId") Integer categoryId) {
-        System.out.println("course id "+courseId);
-        System.out.println("category id "+categoryId);
-        System.out.println("chapter id "+chapterId);
+            @RequestPart("file") MultipartFile file,
+            @RequestPart("request") QuestionExcelUploadRequestDTO request) {
+
+        System.out.println("course id " + request.getCourseId());
+        System.out.println("category id " + request.getCategoryId());
+        System.out.println("chapter id " + request.getChapterId());
+
         QuestionExcelUploadResponseDTO response =
                 questionService.uploadQuestions(
                         file,
-                        courseId,
-                        chapterId,
-                        categoryId
+                        request.getCourseId(),
+                        request.getChapterId(),
+                        request.getCategoryId()
                 );
 
         return ResponseEntity.ok(response);
