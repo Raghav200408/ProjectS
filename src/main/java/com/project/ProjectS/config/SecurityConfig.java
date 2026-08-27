@@ -59,6 +59,7 @@ public class SecurityConfig {
                                         "/api/table-headers/**",
                                         "/api/table-attributes/**",
                                         "/api/question-categories/**",
+                                        "/api/question-types/**",
                                         "/api/roles/**",
                                         "/api/chapter/**",
                                         "/api/rule-engines/**",

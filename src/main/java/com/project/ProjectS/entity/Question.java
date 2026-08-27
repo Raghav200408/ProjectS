@@ -34,6 +34,10 @@ public class Question {
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     private QuestionCategory questionCategory;
+    
+    @ManyToOne
+    @JoinColumn(name = "question_type_id")
+    private QuestionType questionType;
 
 
     // Question Text
