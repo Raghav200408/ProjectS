@@ -80,7 +80,8 @@ public class SecurityConfig {
                                         "/api/exams/questions/filter",
                                         "/api/question_answers/**",
                                         "/api/attendance/**",
-                                        "/api/answer_events/**"
+                                        "/api/answer_events/**",
+                                        "/api/mcq-questions/**"
 
 
                                 ).permitAll()

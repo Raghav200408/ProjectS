@@ -26,7 +26,7 @@ public class AnswerEvent {
     @JoinColumn(name = "question_id", nullable = false)
     private Question question;
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "attribute_id", nullable = false)
+    @JoinColumn(name = "attribute_id")
     private TableAttribute attribute;
     @Column(name = "answer_position")
     private Integer answerPosition;
@@ -63,6 +63,9 @@ public class AnswerEvent {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "option_id")
+    private Long optionId;
 
 
     @PrePersist

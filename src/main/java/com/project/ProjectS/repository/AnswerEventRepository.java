@@ -13,6 +13,12 @@ import java.util.List;
 public interface AnswerEventRepository
         extends JpaRepository<AnswerEvent, Long> {
 
+    // MCQ attempt count
+    long countByUser_UserIdAndQuestion_QuestionIdAndEventTypeAndActiveRowTrue(
+            Long userId,
+            Long questionId,
+            String eventType
+    );
 
     long countByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
             Long userId,
@@ -30,7 +36,6 @@ public interface AnswerEventRepository
             String eventType
     );
 
-
     // Get all events for attribute
     List<AnswerEvent>
     findByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeId(
@@ -38,7 +43,6 @@ public interface AnswerEventRepository
             Long questionId,
             Long attributeId
     );
-
 
     // Get wrong ANSWER events
     List<AnswerEvent>
@@ -68,6 +72,4 @@ public interface AnswerEventRepository
             @Param("userId") Long userId,
             @Param("questionId") Long questionId
     );
-
-
 }

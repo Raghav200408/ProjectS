@@ -53,6 +53,12 @@ public class QuestionAnswer {
     @JoinColumn(name = "pair_attribute_id")
     private TableAttribute pairAttribute;
 
+    @Column(name = "option_id")
+    private Long optionId;
+
+    @Column(name = "answer_text", columnDefinition = "TEXT")
+    private String answerText;
+
 
     // Arithmetic
     @Column(name = "arithmetic")
