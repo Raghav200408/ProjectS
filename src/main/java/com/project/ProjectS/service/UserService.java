@@ -99,6 +99,104 @@ public class UserService {
     }
 
 
+    // ----------------------------
+    // College Admin
+    // ----------------------------
+    public UserResponseDTO createCollegeAdmin(CollegeAdminRequestDTO request) {
+
+        validateUser(request.getEmail(), request.getPhoneNumber());
+
+        Role role = getRole("COLLEGE_ADMIN");
+
+        College college = getCollege(request.getCollegeId());
+
+        User user = new User();
+
+        user.setName(request.getName());
+        user.setDesignation(request.getDesignation());
+        user.setAddress(request.getAddress());
+        user.setEmployeeId(request.getEmployeeId());
+
+        user.setCollege(college);
+
+        user.setEmail(request.getEmail());
+        user.setPhoneNumber(request.getPhoneNumber());
+
+        user.setPassword(
+                passwordEncoder.encode(request.getPassword())
+        );
+
+        user.setRole(role);
+
+        user.setLoginType("NORMAL");
+
+        User savedUser = userRepository.save(user);
+
+        return convertToResponse(savedUser);
+    }
+
+    public List<UserResponseDTO> getAllCollegeAdmins() {
+        List<User> users = userRepository.findByRole_RoleNameAndActiveRowTrue("COLLEGE_ADMIN");
+        return users.stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
+
+    public UserResponseDTO getCollegeAdminById(Long userId) {
+        User user = userRepository
+                .findByUserIdAndRole_RoleName(userId, "COLLEGE_ADMIN")
+                .orElseThrow(() ->
+                        new RuntimeException("College Admin not found with id: " + userId));
+
+        return convertToResponse(user);
+    }
+
+    public UserResponseDTO updateCollegeAdmin(Long userId, CollegeAdminRequestDTO request) {
+        User user = getUserByIdAndRole(userId, "COLLEGE_ADMIN");
+
+        validateUserForUpdate(
+                userId,
+                request.getEmail(),
+                request.getPhoneNumber()
+        );
+
+        user.setName(request.getName());
+        user.setDesignation(request.getDesignation());
+        user.setAddress(request.getAddress());
+        user.setEmployeeId(request.getEmployeeId());
+
+        user.setCollege(
+                getCollege(request.getCollegeId())
+        );
+
+        user.setEmail(request.getEmail());
+        user.setPhoneNumber(request.getPhoneNumber());
+
+        if (request.getPassword() != null &&
+                !request.getPassword().isBlank()) {
+
+            user.setPassword(
+                    passwordEncoder.encode(request.getPassword())
+            );
+        }
+
+        User updatedUser = userRepository.save(user);
+
+        return convertToResponse(updatedUser);
+    }
+
+    public String deleteCollegeAdmin(Long userId) {
+
+        User user = getUserByIdAndRole(userId, "COLLEGE_ADMIN");
+
+        user.setActiveRow(false);
+
+        userRepository.save(user);
+
+        return "College Admin deleted successfully.";
+    }
+
+
     public UserResponseDTO createStudent(StudentRequestDTO request) {
 
         validateUser(request.getEmail(), request.getPhoneNumber());

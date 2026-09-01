@@ -116,6 +116,53 @@ public class UserController {
         List<UserResponseDTO> branchAdmins = userService.getAllBranchAdmins();
         return ResponseEntity.ok(branchAdmins);
     }
+    
+    @PostMapping("/collegeAdmin")
+    public ResponseEntity<UserResponseDTO> createCollegeAdmin(
+            @Valid @RequestBody CollegeAdminRequestDTO request) {
+
+       UserResponseDTO response =
+                userService.createCollegeAdmin(request);
+ return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
+    }
+
+    @GetMapping("/collegeAdmin")
+    public ResponseEntity<List<UserResponseDTO>> getAllCollegeAdmins(){
+        List<UserResponseDTO> admins = userService.getAllCollegeAdmins();
+        return ResponseEntity.ok(admins);
+    }
+
+    @GetMapping("/collegeAdmin/{userId}")
+    public ResponseEntity<UserResponseDTO> getCollegeAdminById(
+            @PathVariable Long userId) {
+
+        UserResponseDTO response =
+                userService.getCollegeAdminById(userId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/collegeAdmin/{userId}")
+    public ResponseEntity<UserResponseDTO> updateCollegeAdmin(
+            @PathVariable Long userId,
+            @Valid @RequestBody CollegeAdminRequestDTO request) {
+
+        UserResponseDTO response =
+                userService.updateCollegeAdmin(userId, request);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/collegeAdmin/{userId}")
+    public ResponseEntity<String> deleteCollegeAdmin(
+            @PathVariable Long userId) {
+
+        String response = userService.deleteCollegeAdmin(userId);
+
+        return ResponseEntity.ok(response);
+    }
     @PutMapping("/superAdmin/{userId}")
     public ResponseEntity<UserResponseDTO> updateSuperAdmin(
             @PathVariable Long userId,
