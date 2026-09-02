@@ -51,6 +51,9 @@ public class Exam {
     @Column(name = "end_date", nullable = false)
     private LocalDateTime endDate;
 
+    @Column(name = "pass_percentage", nullable = false)
+    private Integer passPercentage;
+
     @Column(name = "active_row")
     private Boolean activeRow = true;
 

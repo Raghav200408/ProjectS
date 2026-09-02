@@ -1,6 +1,8 @@
 package com.project.ProjectS.model;
 
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -39,4 +41,9 @@ public class ExamRequestDTO {
     @NotNull(message = "End date and time is required")
     @Future(message = "End date and time must be in the future")
     private LocalDateTime endDate;
+
+    @NotNull(message = "Pass percentage is required")
+    @Min(value = 0, message = "Pass percentage must be at least 0")
+    @Max(value = 100, message = "Pass percentage must be at most 100")
+    private Integer passPercentage;
 }
