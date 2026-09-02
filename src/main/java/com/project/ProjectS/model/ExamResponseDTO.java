@@ -30,6 +30,8 @@ public class ExamResponseDTO {
 
     private LocalDateTime endDate;
 
+    private Integer passPercentage;
+
     private Boolean activeRow;
 
     private Integer rowStatus;
