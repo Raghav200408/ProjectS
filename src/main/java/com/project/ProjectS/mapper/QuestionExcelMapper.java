@@ -4,10 +4,12 @@ import com.project.ProjectS.entity.Chapter;
 import com.project.ProjectS.entity.Course;
 import com.project.ProjectS.entity.Question;
 import com.project.ProjectS.entity.QuestionCategory;
+import com.project.ProjectS.entity.QuestionType;
 
 import com.project.ProjectS.repository.ChapterRepository;
 import com.project.ProjectS.repository.CourseRepository;
 import com.project.ProjectS.repository.QuestionCategoryRepository;
+import com.project.ProjectS.repository.QuestionTypeRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -23,11 +25,14 @@ public class QuestionExcelMapper {
 
     private final QuestionCategoryRepository questionCategoryRepository;
 
+    private final QuestionTypeRepository questionTypeRepository;
+
     @Autowired
     public QuestionExcelMapper(
             CourseRepository courseRepository,
             ChapterRepository chapterRepository,
-            QuestionCategoryRepository questionCategoryRepository) {
+            QuestionCategoryRepository questionCategoryRepository,
+            QuestionTypeRepository questionTypeRepository) {
 
         this.courseRepository =
                 courseRepository;
@@ -37,6 +42,9 @@ public class QuestionExcelMapper {
 
         this.questionCategoryRepository =
                 questionCategoryRepository;
+
+        this.questionTypeRepository =
+                questionTypeRepository;
     }
 
     // =========================================================
@@ -49,6 +57,10 @@ public class QuestionExcelMapper {
             Integer chapterId,
             Integer categoryId) {
 
+        // =====================================================
+        // QUESTION TEXT
+        // =====================================================
+
         String questionText =
                 row.get("question_text");
 
@@ -58,6 +70,24 @@ public class QuestionExcelMapper {
                     "Question text is required"
             );
         }
+
+        // =====================================================
+        // QUESTION TYPE
+        // =====================================================
+
+        String questionTypeName =
+                row.get("question_type");
+
+        if (isBlank(questionTypeName)) {
+
+            throw new RuntimeException(
+                    "Question type is required"
+            );
+        }
+
+        // =====================================================
+        // VALIDATE IDS
+        // =====================================================
 
         if (courseId == null) {
 
@@ -177,6 +207,22 @@ public class QuestionExcelMapper {
         }
 
         // =====================================================
+        // FIND QUESTION TYPE
+        // =====================================================
+
+        QuestionType questionType =
+                questionTypeRepository
+                        .findByQuestionType(
+                                questionTypeName.trim()
+                        )
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Question type not found: "
+                                                + questionTypeName
+                                )
+                        );
+
+        // =====================================================
         // CREATE QUESTION
         // =====================================================
 
@@ -188,6 +234,8 @@ public class QuestionExcelMapper {
         question.setChapter(chapter);
 
         question.setQuestionCategory(category);
+
+        question.setQuestionType(questionType);
 
         question.setQuestionText(
                 questionText.trim()

@@ -1,14 +1,15 @@
 package com.project.ProjectS.controller;
-
 import com.project.ProjectS.model.McqQuestionRequestDTO;
 import com.project.ProjectS.model.McqQuestionResponseDTO;
 import com.project.ProjectS.model.McqSubmissionRequestDTO;
 import com.project.ProjectS.model.McqSubmissionResponseDTO;
+import com.project.ProjectS.processor.McqExcelUploadProcessor;
 import com.project.ProjectS.service.McqQuestionService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -16,21 +17,23 @@ import java.util.List;
 @RequestMapping("/api/mcq-questions")
 @CrossOrigin(origins = "*")
 public class McqQuestionController {
-
     private final McqQuestionService mcqQuestionService;
+    private final McqExcelUploadProcessor mcqExcelUploadProcessor;
 
     public McqQuestionController(
-            McqQuestionService mcqQuestionService
-    ) {
-        this.mcqQuestionService = mcqQuestionService;
+            McqQuestionService mcqQuestionService,
+            McqExcelUploadProcessor mcqExcelUploadProcessor) {
+
+        this.mcqQuestionService =
+                mcqQuestionService;
+
+        this.mcqExcelUploadProcessor =
+                mcqExcelUploadProcessor;
     }
 
-
-    // 1. CREATE MCQ
     @PostMapping
     public ResponseEntity<McqQuestionResponseDTO> createMcqQuestion(
-            @RequestBody McqQuestionRequestDTO request
-    ) {
+            @RequestBody McqQuestionRequestDTO request) {
 
         McqQuestionResponseDTO response =
                 mcqQuestionService.createMcqQuestion(request);
@@ -41,23 +44,21 @@ public class McqQuestionController {
         );
     }
 
-
-    // 2. GET MCQ BY QUESTION ID
     @GetMapping("/{questionId}")
     public ResponseEntity<McqQuestionResponseDTO> getMcqQuestionById(
-            @PathVariable Long questionId
-    ) {
+            @PathVariable Long questionId) {
 
         McqQuestionResponseDTO response =
-                mcqQuestionService.getMcqQuestionById(questionId);
+                mcqQuestionService.getMcqQuestionById(
+                        questionId
+                );
 
         return ResponseEntity.ok(response);
     }
 
-
-    // 3. GET ALL MCQs
     @GetMapping
-    public ResponseEntity<List<McqQuestionResponseDTO>> getAllMcqQuestions() {
+    public ResponseEntity<List<McqQuestionResponseDTO>>
+    getAllMcqQuestions() {
 
         List<McqQuestionResponseDTO> response =
                 mcqQuestionService.getAllMcqQuestions();
@@ -65,17 +66,18 @@ public class McqQuestionController {
         return ResponseEntity.ok(response);
     }
 
-
-    // 4. GET MCQs BY COURSE, CHAPTER AND CATEGORY
     @GetMapping("/filter")
-    public ResponseEntity<List<McqQuestionResponseDTO>> getMcqQuestionsByFilter(
+    public ResponseEntity<List<McqQuestionResponseDTO>>
+    getMcqQuestionsByFilter(
 
-            @RequestParam Long courseId,
+            @RequestParam("courseId")
+            Long courseId,
 
-            @RequestParam Long chapterId,
+            @RequestParam("chapterId")
+            Long chapterId,
 
-            @RequestParam Long categoryId
-    ) {
+            @RequestParam("categoryId")
+            Long categoryId) {
 
         List<McqQuestionResponseDTO> response =
                 mcqQuestionService.getMcqQuestionsByFilter(
@@ -87,15 +89,13 @@ public class McqQuestionController {
         return ResponseEntity.ok(response);
     }
 
-
-    // 5. UPDATE MCQ
     @PutMapping("/{questionId}")
-    public ResponseEntity<McqQuestionResponseDTO> updateMcqQuestion(
+    public ResponseEntity<McqQuestionResponseDTO>
+    updateMcqQuestion(
 
             @PathVariable Long questionId,
 
-            @RequestBody McqQuestionRequestDTO request
-    ) {
+            @RequestBody McqQuestionRequestDTO request) {
 
         McqQuestionResponseDTO response =
                 mcqQuestionService.updateMcqQuestion(
@@ -106,28 +106,152 @@ public class McqQuestionController {
         return ResponseEntity.ok(response);
     }
 
-
-    // 6. DELETE MCQ
     @DeleteMapping("/{questionId}")
     public ResponseEntity<Void> deleteMcqQuestion(
-            @PathVariable Long questionId
-    ) {
+            @PathVariable Long questionId) {
 
-        mcqQuestionService.deleteMcqQuestion(questionId);
+        mcqQuestionService.deleteMcqQuestion(
+                questionId
+        );
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity
+                .noContent()
+                .build();
     }
 
-
-    // 7. SUBMIT MCQ ANSWERS
     @PostMapping("/submit")
-    public ResponseEntity<McqSubmissionResponseDTO> submitMcqAnswers(
-            @RequestBody McqSubmissionRequestDTO request
-    ) {
+    public ResponseEntity<McqSubmissionResponseDTO>
+    submitMcqAnswers(
+            @RequestBody McqSubmissionRequestDTO request) {
 
         McqSubmissionResponseDTO response =
-                mcqQuestionService.submitMcqAnswers(request);
+                mcqQuestionService.submitMcqAnswers(
+                        request
+                );
 
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping(
+            value = "/mcq/upload",
+            consumes = "multipart/form-data"
+    )
+    public ResponseEntity<String> uploadMcqQuestions(
+
+            @RequestPart("file")
+            MultipartFile file,
+
+            @RequestParam("courseId")
+            Long courseId,
+
+            @RequestParam("chapterId")
+            Long chapterId,
+
+            @RequestParam("categoryId")
+            Long categoryId) {
+
+        try {
+
+            System.out.println();
+            System.out.println("==========================================");
+            System.out.println("MCQ EXCEL UPLOAD STARTED");
+            System.out.println("==========================================");
+
+            if (file == null || file.isEmpty()) {
+
+                return ResponseEntity
+                        .badRequest()
+                        .body("Excel file is required");
+            }
+
+            if (courseId == null) {
+
+                return ResponseEntity
+                        .badRequest()
+                        .body("Course ID is required");
+            }
+
+            if (chapterId == null) {
+
+                return ResponseEntity
+                        .badRequest()
+                        .body("Chapter ID is required");
+            }
+
+            if (categoryId == null) {
+
+                return ResponseEntity
+                        .badRequest()
+                        .body("Category ID is required");
+            }
+
+            System.out.println(
+                    "File Name = "
+                            + file.getOriginalFilename()
+            );
+
+            System.out.println(
+                    "Course ID = "
+                            + courseId
+            );
+
+            System.out.println(
+                    "Chapter ID = "
+                            + chapterId
+            );
+
+            System.out.println(
+                    "Category ID = "
+                            + categoryId
+            );
+
+            System.out.println("==========================================");
+
+            int uploadedCount =
+                    mcqExcelUploadProcessor.processExcel(
+                            file,
+                            courseId,
+                            chapterId,
+                            categoryId
+                    );
+
+            System.out.println("==========================================");
+            System.out.println("MCQ EXCEL UPLOAD COMPLETED");
+
+            System.out.println(
+                    "Uploaded Count = "
+                            + uploadedCount
+            );
+
+            System.out.println("==========================================");
+
+            return ResponseEntity.ok(
+                    uploadedCount
+                            + " MCQ questions uploaded successfully"
+            );
+
+        } catch (Exception e) {
+
+            System.out.println("==========================================");
+            System.out.println("MCQ EXCEL UPLOAD FAILED");
+
+            System.out.println(
+                    "Error = "
+                            + e.getMessage()
+            );
+
+            e.printStackTrace();
+
+            System.out.println("==========================================");
+
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(
+                            "MCQ upload failed: "
+                                    + e.getMessage()
+                    );
+        }
+    }
+
 }
+
