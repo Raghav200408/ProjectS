@@ -1,9 +1,6 @@
 package com.project.ProjectS.controller;
 
-import com.project.ProjectS.model.AddExamQuestionsRequestDTO;
-import com.project.ProjectS.model.ExamRequestDTO;
-import com.project.ProjectS.model.ExamResponseDTO;
-import com.project.ProjectS.model.QuestionResponseDTO;
+import com.project.ProjectS.model.*;
 import com.project.ProjectS.service.ExamService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -129,5 +126,16 @@ public class ExamController {
         return ResponseEntity.ok(
                 examService.getAvailableQuestions(examId)
         );
+    }
+
+    @PostMapping("/{examId}/submit")
+    public ResponseEntity<ExamSubmitResponseDTO> submitExam(
+            @PathVariable Long examId,
+            @RequestBody ExamSubmitRequestDTO request) {
+
+        ExamSubmitResponseDTO response =
+                examService.submitExam(examId, request);
+
+        return ResponseEntity.ok(response);
     }
 }
