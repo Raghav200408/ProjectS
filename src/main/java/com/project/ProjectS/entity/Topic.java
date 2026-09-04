@@ -9,13 +9,13 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @Setter
-@Table(name = "question_categories")
-public class QuestionCategory {
+@Table(name = "topic")
+public class Topic {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "category_id")
-    private Long categoryId;
+    @Column(name = "topic_id")
+    private Long topicId;
 
     @ManyToOne
     @JoinColumn(name = "course_id", nullable = false)
@@ -25,7 +25,11 @@ public class QuestionCategory {
     @JoinColumn(name = "chapter_id", nullable = false)
     private Chapter chapter;
 
-    @Column(name = "name", nullable = false, length = 150)
+    @ManyToOne
+    @JoinColumn(name = "subject_id", nullable = false)
+    private Subject subject;
+
+    @Column(name = "topic_name", nullable = false, length = 150)
     private String name;
 
     @Column(name = "active_row")

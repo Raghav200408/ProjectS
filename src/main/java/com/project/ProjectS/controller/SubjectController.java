@@ -1,10 +1,9 @@
 package com.project.ProjectS.controller;
 
-
 import com.project.ProjectS.model.SubjectRequestDTO;
 import com.project.ProjectS.model.SubjectResponseDTO;
 import com.project.ProjectS.service.SubjectService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,85 +13,41 @@ import java.util.List;
 @RequestMapping("/api/subjects")
 public class SubjectController {
 
-    private final SubjectService subjectService;
+    private final SubjectService service;
 
-    @Autowired
-    public SubjectController(SubjectService subjectService) {
-        this.subjectService = subjectService;
+    public SubjectController(SubjectService service) {
+        this.service = service;
     }
 
-    // CREATE
     @PostMapping
-    public ResponseEntity<String> create(
-            @RequestBody SubjectRequestDTO request) {
+    public ResponseEntity<SubjectResponseDTO> create(
+            @Valid @RequestBody SubjectRequestDTO request) {
 
-        String response = subjectService.create(request);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.create(request));
     }
 
-    // GET ALL
     @GetMapping
     public ResponseEntity<List<SubjectResponseDTO>> getAll() {
-
-        List<SubjectResponseDTO> response =
-                subjectService.getAll();
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.getAll());
     }
 
-    // GET BY ID
     @GetMapping("/{id}")
-    public ResponseEntity<SubjectResponseDTO> getById(
-            @PathVariable Long id) {
-
-        SubjectResponseDTO response =
-                subjectService.getById(id);
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<SubjectResponseDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getById(id));
     }
 
-    // GET ACTIVE SUBJECTS
-    @GetMapping("/active")
-    public ResponseEntity<List<SubjectResponseDTO>> getActiveSubjects() {
-
-        List<SubjectResponseDTO> response =
-                subjectService.getActiveSubjects();
-
-        return ResponseEntity.ok(response);
-    }
-
-    // GET SUBJECTS BY COURSE
-    @GetMapping("/course/{courseId}")
-    public ResponseEntity<List<SubjectResponseDTO>> getByCourseId(
-            @PathVariable Long courseId) {
-
-        List<SubjectResponseDTO> response =
-                subjectService.getByCourseId(courseId);
-
-        return ResponseEntity.ok(response);
-    }
-
-    // UPDATE
     @PutMapping("/{id}")
-    public ResponseEntity<String> update(
+    public ResponseEntity<SubjectResponseDTO> update(
             @PathVariable Long id,
-            @RequestBody SubjectRequestDTO request) {
+            @Valid @RequestBody SubjectRequestDTO request) {
 
-        String response =
-                subjectService.update(id, request);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.update(id, request));
     }
 
-    // DELETE
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> delete(
-            @PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        service.delete(id);
 
-        String response =
-                subjectService.delete(id);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -1,10 +1,10 @@
 package com.project.ProjectS.controller;
 
-import com.project.ProjectS.model.QuestionCategoryRequestDTO;
-import com.project.ProjectS.model.QuestionCategoryResponseDTO;
-import com.project.ProjectS.processor.QuestionCategoryExcelProcessor;
+import com.project.ProjectS.model.TopicRequestDTO;
+import com.project.ProjectS.model.TopicResponseDTO;
+import com.project.ProjectS.processor.TopicExcelProcessor;
 import com.project.ProjectS.service.ExcelUploadService;
-import com.project.ProjectS.service.QuestionCategoryService;
+import com.project.ProjectS.service.TopicService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,43 +15,47 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/question-categories")
-public class QuestionCategoryController {
+@RequestMapping("/api/topics")
+public class TopicController {
+
     @Autowired
-    public QuestionCategoryController(QuestionCategoryService service, QuestionCategoryExcelProcessor questionCategoryExcelProcessor, ExcelUploadService excelUploadService) {
+    public TopicController(
+            TopicService service,
+            TopicExcelProcessor topicExcelProcessor,
+            ExcelUploadService excelUploadService) {
         this.service = service;
-        this.questionCategoryExcelProcessor = questionCategoryExcelProcessor;
+        this.topicExcelProcessor = topicExcelProcessor;
         this.excelUploadService = excelUploadService;
     }
 
-    private final QuestionCategoryService service;
-    private final QuestionCategoryExcelProcessor questionCategoryExcelProcessor;
+    private final TopicService service;
+    private final TopicExcelProcessor topicExcelProcessor;
     private final ExcelUploadService excelUploadService;
 
     @PostMapping
-    public ResponseEntity<String> create(@RequestBody QuestionCategoryRequestDTO request) {
+    public ResponseEntity<String> create(@RequestBody TopicRequestDTO request) {
 
         String response = service.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
-    public ResponseEntity<List<QuestionCategoryResponseDTO>> getAll() {
+    public ResponseEntity<List<TopicResponseDTO>> getAll() {
 
-        List<QuestionCategoryResponseDTO> response = service.getAll();
+        List<TopicResponseDTO> response = service.getAll();
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<QuestionCategoryResponseDTO> getById(@PathVariable Long id) {
+    public ResponseEntity<TopicResponseDTO> getById(@PathVariable Long id) {
 
-        QuestionCategoryResponseDTO response = service.getById(id);
+        TopicResponseDTO response = service.getById(id);
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<String> update(@PathVariable Long id,
-                                         @RequestBody QuestionCategoryRequestDTO request) {
+                                         @RequestBody TopicRequestDTO request) {
 
         String response = service.update(id, request);
         return ResponseEntity.ok(response);
@@ -65,7 +69,7 @@ public class QuestionCategoryController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadQuestionCategory(
+    public ResponseEntity<String> uploadTopic(
             @RequestParam("file") MultipartFile file) {
 
         try {
@@ -73,10 +77,10 @@ public class QuestionCategoryController {
             List<Map<String,String>> excelData =
                     excelUploadService.readExcel(file);
 
-            questionCategoryExcelProcessor.process(excelData);
+            topicExcelProcessor.process(excelData);
 
             return ResponseEntity.ok(
-                    "Question Category Excel uploaded successfully"
+                    "Topic Excel uploaded successfully"
             );
 
         } catch (Exception e) {
@@ -84,7 +88,7 @@ public class QuestionCategoryController {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .body(
-                            "Question Category Excel upload failed : "
+                            "Topic Excel upload failed : "
                                     + e.getMessage()
                     );
         }

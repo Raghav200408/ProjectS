@@ -7,15 +7,18 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class QuestionCategoryRequestDTO {
+public class TopicRequestDTO {
 
     @NotNull(message = "Course ID is required")
     private Long courseId;
 
+    @NotNull(message = "Subject ID is required")
+    private Long subjectId;
+
     @NotNull(message = "Chapter ID is required")
     private Long chapterId;
 
-    @NotBlank(message = "Category name is required")
+    @NotBlank(message = "Topic name is required")
     private String name;
 
     private Boolean activeRow;
