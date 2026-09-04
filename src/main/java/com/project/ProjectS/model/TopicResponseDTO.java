@@ -7,9 +7,9 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-public class ChapterResponseDTO {
+public class TopicResponseDTO {
 
-    private Long chapterId;
+    private Long topicId;
 
     private Long courseId;
     private String courseName;
@@ -17,13 +17,15 @@ public class ChapterResponseDTO {
     private Long subjectId;
     private String subjectName;
 
+    private Long chapterId;
+    private String chapterName;
+
     private String name;
 
     private Boolean activeRow;
     private Integer rowStatus;
+    private Integer orderOf;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
-
 }

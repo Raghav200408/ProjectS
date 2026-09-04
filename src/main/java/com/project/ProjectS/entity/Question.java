@@ -30,10 +30,14 @@ public class Question {
     private Chapter chapter;
 
 
-    // Question Category
+    // Topic
     @ManyToOne
-    @JoinColumn(name = "category_id", nullable = false)
-    private QuestionCategory questionCategory;
+    @JoinColumn(name = "topic_id", nullable = false)
+    private Topic topic;
+
+    @ManyToOne
+    @JoinColumn(name = "subject_id", nullable = false)
+    private Subject subject;
     
     @ManyToOne
     @JoinColumn(name = "question_type_id")

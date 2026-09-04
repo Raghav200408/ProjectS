@@ -1,25 +1,25 @@
 package com.project.ProjectS.mapper;
 
-import com.project.ProjectS.entity.QuestionCategory;
+import com.project.ProjectS.entity.Topic;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
 @Component
-public class QuestionCategoryExcelMapper
-        implements ExcelRowMapper<QuestionCategory> {
+public class TopicExcelMapper
+        implements ExcelRowMapper<Topic> {
 
     @Override
-    public QuestionCategory map(Map<String, String> row) {
+    public Topic map(Map<String, String> row) {
 
-        QuestionCategory category =
-                new QuestionCategory();
+        Topic topic =
+                new Topic();
 
         // name
         String name = row.get("name");
 
         if (name != null && !name.isBlank()) {
-            category.setName(name.trim());
+            topic.setName(name.trim());
         }
 
         // active_row
@@ -29,7 +29,7 @@ public class QuestionCategoryExcelMapper
         if (activeRow != null &&
                 !activeRow.isBlank()) {
 
-            category.setActiveRow(
+            topic.setActiveRow(
                     Boolean.parseBoolean(
                             activeRow.trim()
                     )
@@ -43,7 +43,7 @@ public class QuestionCategoryExcelMapper
         if (rowStatus != null &&
                 !rowStatus.isBlank()) {
 
-            category.setRowStatus(
+            topic.setRowStatus(
                     Integer.parseInt(
                             rowStatus.trim()
                     )
@@ -57,13 +57,13 @@ public class QuestionCategoryExcelMapper
         if (orderOf != null &&
                 !orderOf.isBlank()) {
 
-            category.setOrderOf(
+            topic.setOrderOf(
                     Integer.parseInt(
                             orderOf.trim()
                     )
             );
         }
 
-        return category;
+        return topic;
     }
 }

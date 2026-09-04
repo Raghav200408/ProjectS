@@ -69,7 +69,7 @@ public class QuestionExcelProcessor {
     @Transactional
     public QuestionExcelUploadResponseDTO process(
             List<Map<String, String>> excelData,
-            Integer categoryId,
+            Integer topicId,
             Integer chapterId,
             Integer courseId) {
 
@@ -96,9 +96,9 @@ public class QuestionExcelProcessor {
             );
         }
 
-        if (categoryId == null) {
+        if (topicId == null) {
             throw new RuntimeException(
-                    "Category ID is required"
+                    "Topic ID is required"
             );
         }
 
@@ -106,7 +106,7 @@ public class QuestionExcelProcessor {
         System.out.println("PROCESSING QUESTION EXCEL");
         System.out.println("Course ID   = " + courseId);
         System.out.println("Chapter ID  = " + chapterId);
-        System.out.println("Category ID = " + categoryId);
+        System.out.println("Topic ID = " + topicId);
         System.out.println("Total Rows  = " + excelData.size());
         System.out.println("======================================");
 
@@ -190,7 +190,7 @@ public class QuestionExcelProcessor {
                     response,
                     courseId,
                     chapterId,
-                    categoryId
+                    topicId
             );
         }
 
@@ -227,7 +227,7 @@ public class QuestionExcelProcessor {
             QuestionExcelUploadResponseDTO response,
             Integer courseId,
             Integer chapterId,
-            Integer categoryId) {
+            Integer topicId) {
 
         if (questionRows == null ||
                 questionRows.isEmpty()) {
@@ -258,7 +258,7 @@ public class QuestionExcelProcessor {
                             questionRows.get(0),
                             courseId,
                             chapterId,
-                            categoryId
+                            topicId
                     );
 
         } catch (Exception e) {

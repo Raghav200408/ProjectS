@@ -16,13 +16,16 @@ public class QuestionResponseDTO {
     private Long courseId;
     private String courseName;
 
+    private Long subjectId;
+    private String subjectName;
+
 
     private Long chapterId;
     private String chapterName;
 
 
-    private Long categoryId;
-    private String categoryName;
+    private Long topicId;
+    private String topicName;
 
     private Long questionTypeId;
     private String questionType;

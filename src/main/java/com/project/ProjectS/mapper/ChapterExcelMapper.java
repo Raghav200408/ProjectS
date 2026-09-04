@@ -3,8 +3,10 @@ package com.project.ProjectS.mapper;
 import com.project.ProjectS.entity.Branch;
 import com.project.ProjectS.entity.Chapter;
 import com.project.ProjectS.entity.Course;
+import com.project.ProjectS.entity.Subject;
 import com.project.ProjectS.repository.BranchRepository;
 import com.project.ProjectS.repository.CourseRepository;
+import com.project.ProjectS.repository.SubjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -14,13 +16,15 @@ import java.util.Map;
 @Component
 public class ChapterExcelMapper implements ExcelRowMapper<Chapter> {
     @Autowired
-    public ChapterExcelMapper(BranchRepository branchRepository, CourseRepository courseRepository) {
+    public ChapterExcelMapper(BranchRepository branchRepository, CourseRepository courseRepository, SubjectRepository subjectRepository) {
         this.branchRepository = branchRepository;
         this.courseRepository = courseRepository;
+        this.subjectRepository = subjectRepository;
     }
 
     private final BranchRepository branchRepository;
     private final CourseRepository courseRepository;
+    private final SubjectRepository subjectRepository;
 
 
 
@@ -38,6 +42,8 @@ public class ChapterExcelMapper implements ExcelRowMapper<Chapter> {
 
         String chapterName =
                 row.get("chapter_name");
+
+        String subjectName = row.get("subject_name");
 
 
 
@@ -78,6 +84,10 @@ public class ChapterExcelMapper implements ExcelRowMapper<Chapter> {
 
 
         chapter.setCourse(course);
+
+        Subject subject = subjectRepository.findBySubjectNameAndCourse(subjectName, course)
+                .orElseThrow(() -> new RuntimeException("Subject not found: " + subjectName));
+        chapter.setSubject(subject);
 
 
         chapter.setName(chapterName);

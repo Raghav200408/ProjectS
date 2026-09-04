@@ -20,8 +20,8 @@ public class McqQuestionResponseDTO {
     private Long chapterId;
     private String chapterName;
 
-    private Long categoryId;
-    private String categoryName;
+    private Long topicId;
+    private String topicName;
 
     // MCQ configuration
     private String questionType;

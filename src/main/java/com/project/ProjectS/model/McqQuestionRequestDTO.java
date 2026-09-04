@@ -13,7 +13,7 @@ public class McqQuestionRequestDTO {
 
     private Long chapterId;
 
-    private Long categoryId;
+    private Long topicId;
 
     private String questionText;
 

@@ -30,8 +30,8 @@ public class McqExcelMapper {
                 getLongValue(row, 1, "Chapter ID", rowNumber)
         );
 
-        request.setCategoryId(
-                getLongValue(row, 2, "Category ID", rowNumber)
+        request.setTopicId(
+                getLongValue(row, 2, "Topic ID", rowNumber)
         );
 
         request.setQuestionText(
