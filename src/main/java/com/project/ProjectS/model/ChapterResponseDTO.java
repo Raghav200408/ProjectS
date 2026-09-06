@@ -14,6 +14,9 @@ public class ChapterResponseDTO {
     private Long courseId;
     private String courseName;
 
+    private Long subjectId;
+    private String subjectName;
+
     private String name;
 
     private Boolean activeRow;

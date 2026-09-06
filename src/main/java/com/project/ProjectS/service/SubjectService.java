@@ -1,16 +1,13 @@
 package com.project.ProjectS.service;
 
-
 import com.project.ProjectS.entity.Course;
 import com.project.ProjectS.entity.Subject;
 import com.project.ProjectS.model.SubjectRequestDTO;
 import com.project.ProjectS.model.SubjectResponseDTO;
 import com.project.ProjectS.repository.CourseRepository;
 import com.project.ProjectS.repository.SubjectRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -19,169 +16,92 @@ public class SubjectService {
     private final SubjectRepository subjectRepository;
     private final CourseRepository courseRepository;
 
-    @Autowired
     public SubjectService(
             SubjectRepository subjectRepository,
             CourseRepository courseRepository) {
-
         this.subjectRepository = subjectRepository;
         this.courseRepository = courseRepository;
     }
 
-    // CREATE
-    public String create(SubjectRequestDTO request) {
+    public SubjectResponseDTO create(SubjectRequestDTO request) {
 
-        if (subjectRepository.existsBySubjectNameAndCourse_CourseId(
-                request.getSubjectName(),
-                request.getCourseId())) {
+        Course course = course(request.getCourseId());
 
-            throw new RuntimeException(
-                    "Subject already exists for this course"
-            );
+        if (subjectRepository.existsBySubjectNameAndCourse(request.getSubjectName(), course)) {
+            throw new RuntimeException("Subject already exists for this course");
         }
-
-        Course course = courseRepository.findById(request.getCourseId())
-                .orElseThrow(() ->
-                        new RuntimeException("Course not found"));
 
         Subject subject = new Subject();
 
-        subject.setSubjectName(request.getSubjectName());
-        subject.setCourse(course);
+        apply(subject, request, course);
 
-        if (request.getActiveRow() != null) {
-            subject.setActiveRow(request.getActiveRow());
-        } else {
-            subject.setActiveRow(true);
-        }
-
-        if (request.getRowStatus() != null) {
-            subject.setRowStatus(request.getRowStatus());
-        } else {
-            subject.setRowStatus(1);
-        }
-
-        subjectRepository.save(subject);
-
-        return "Subject created successfully";
+        return toDto(subjectRepository.save(subject));
     }
 
-    // GET ALL
     public List<SubjectResponseDTO> getAll() {
-
-        List<Subject> subjects = subjectRepository.findAll();
-
-        List<SubjectResponseDTO> response = new ArrayList<>();
-
-        for (Subject subject : subjects) {
-            response.add(convertToResponse(subject));
-        }
-
-        return response;
+        return subjectRepository.findAll()
+                .stream()
+                .map(this::toDto)
+                .toList();
     }
 
-    // GET BY ID
     public SubjectResponseDTO getById(Long id) {
-
-        Subject subject = subjectRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Subject not found"));
-
-        return convertToResponse(subject);
+        return toDto(subject(id));
     }
 
-    // GET ACTIVE SUBJECTS
-    public List<SubjectResponseDTO> getActiveSubjects() {
+    public SubjectResponseDTO update(Long id, SubjectRequestDTO request) {
+        Subject subject = subject(id);
+        Course course = course(request.getCourseId());
 
-        List<Subject> subjects = subjectRepository.findByActiveRowTrue();
+        boolean nameOrCourseChanged =
+                !subject.getSubjectName().equals(request.getSubjectName())
+                        || !subject.getCourse().getCourseId().equals(course.getCourseId());
 
-        List<SubjectResponseDTO> response = new ArrayList<>();
-
-        for (Subject subject : subjects) {
-            response.add(convertToResponse(subject));
+        if (nameOrCourseChanged
+                && subjectRepository.existsBySubjectNameAndCourse(request.getSubjectName(), course)) {
+            throw new RuntimeException("Subject already exists for this course");
         }
 
-        return response;
+        apply(subject, request, course);
+
+        return toDto(subjectRepository.save(subject));
     }
 
-    // GET SUBJECTS BY COURSE
-    public List<SubjectResponseDTO> getByCourseId(Long courseId) {
-
-        List<Subject> subjects =
-                subjectRepository.findByCourse_CourseId(courseId);
-
-        List<SubjectResponseDTO> response = new ArrayList<>();
-
-        for (Subject subject : subjects) {
-            response.add(convertToResponse(subject));
-        }
-
-        return response;
+    public void delete(Long id) {
+        subjectRepository.delete(subject(id));
     }
 
-    // UPDATE
-    public String update(Long id, SubjectRequestDTO request) {
+    private Subject subject(Long id) {
+        return subjectRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Subject not found"));
+    }
 
-        Subject subject = subjectRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Subject not found"));
+    private Course course(Long id) {
+        return courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+    }
 
-        if (subjectRepository
-                .existsBySubjectNameAndCourse_CourseIdAndSubjectIdNot(
-                        request.getSubjectName(),
-                        request.getCourseId(),
-                        id)) {
+    private void apply(
+            Subject subject,
+            SubjectRequestDTO request,
+            Course course) {
 
-            throw new RuntimeException(
-                    "Subject already exists for this course"
-            );
-        }
-
-        Course course = courseRepository.findById(request.getCourseId())
-                .orElseThrow(() ->
-                        new RuntimeException("Course not found"));
-
-        subject.setSubjectName(request.getSubjectName());
         subject.setCourse(course);
-
-        if (request.getActiveRow() != null) {
-            subject.setActiveRow(request.getActiveRow());
-        }
-
-        if (request.getRowStatus() != null) {
-            subject.setRowStatus(request.getRowStatus());
-        }
-
-        subjectRepository.save(subject);
-
-        return "Subject updated successfully";
+        subject.setSubjectName(request.getSubjectName());
+        subject.setActiveRow(
+                request.getActiveRow() == null
+                        ? true
+                        : request.getActiveRow()
+        );
     }
 
-    // DELETE
-    public String delete(Long id) {
-
-        Subject subject = subjectRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Subject not found"));
-
-        subjectRepository.delete(subject);
-
-        return "Subject deleted successfully";
-    }
-
-    // CONVERT ENTITY TO DTO
-    private SubjectResponseDTO convertToResponse(Subject subject) {
-
+    private SubjectResponseDTO toDto(Subject subject) {
         SubjectResponseDTO dto = new SubjectResponseDTO();
 
         dto.setSubjectId(subject.getSubjectId());
         dto.setSubjectName(subject.getSubjectName());
-
-        if (subject.getCourse() != null) {
-            dto.setCourseId(subject.getCourse().getCourseId());
-            dto.setCourseName(subject.getCourse().getName());
-        }
-
+        dto.setCourseId(subject.getCourse().getCourseId());
+        dto.setCourseName(subject.getCourse().getName());
         dto.setActiveRow(subject.getActiveRow());
         dto.setRowStatus(subject.getRowStatus());
         dto.setCreatedAt(subject.getCreatedAt());

@@ -76,14 +76,14 @@ public class McqQuestionController {
             @RequestParam("chapterId")
             Long chapterId,
 
-            @RequestParam("categoryId")
-            Long categoryId) {
+            @RequestParam("topicId")
+            Long topicId) {
 
         List<McqQuestionResponseDTO> response =
                 mcqQuestionService.getMcqQuestionsByFilter(
                         courseId,
                         chapterId,
-                        categoryId
+                        topicId
                 );
 
         return ResponseEntity.ok(response);
@@ -147,8 +147,8 @@ public class McqQuestionController {
             @RequestParam("chapterId")
             Long chapterId,
 
-            @RequestParam("categoryId")
-            Long categoryId) {
+            @RequestParam("topicId")
+            Long topicId) {
 
         try {
 
@@ -178,11 +178,11 @@ public class McqQuestionController {
                         .body("Chapter ID is required");
             }
 
-            if (categoryId == null) {
+            if (topicId == null) {
 
                 return ResponseEntity
                         .badRequest()
-                        .body("Category ID is required");
+                        .body("Topic ID is required");
             }
 
             System.out.println(
@@ -201,8 +201,8 @@ public class McqQuestionController {
             );
 
             System.out.println(
-                    "Category ID = "
-                            + categoryId
+                    "Topic ID = "
+                            + topicId
             );
 
             System.out.println("==========================================");
@@ -212,7 +212,7 @@ public class McqQuestionController {
                             file,
                             courseId,
                             chapterId,
-                            categoryId
+                            topicId
                     );
 
             System.out.println("==========================================");

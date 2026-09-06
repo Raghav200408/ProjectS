@@ -7,12 +7,15 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-public class QuestionCategoryResponseDTO {
+public class TopicResponseDTO {
 
-    private Long categoryId;
+    private Long topicId;
 
     private Long courseId;
     private String courseName;
+
+    private Long subjectId;
+    private String subjectName;
 
     private Long chapterId;
     private String chapterName;

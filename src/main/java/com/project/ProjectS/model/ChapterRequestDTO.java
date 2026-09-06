@@ -12,6 +12,9 @@ public class ChapterRequestDTO {
     @NotNull(message = "Course ID is required")
     private Long courseId;
 
+    @NotNull(message = "Subject ID is required")
+    private Long subjectId;
+
     @NotBlank(message = "Chapter name is required")
     private String name;
 

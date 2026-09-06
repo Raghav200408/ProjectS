@@ -2,13 +2,15 @@ package com.project.ProjectS.service;
 
 import com.project.ProjectS.entity.Chapter;
 import com.project.ProjectS.entity.Course;
-import com.project.ProjectS.entity.QuestionCategory;
-import com.project.ProjectS.model.QuestionCategoryRequestDTO;
-import com.project.ProjectS.model.QuestionCategoryResponseDTO;
+import com.project.ProjectS.entity.Topic;
+import com.project.ProjectS.entity.Subject;
+import com.project.ProjectS.model.TopicRequestDTO;
+import com.project.ProjectS.model.TopicResponseDTO;
 import com.project.ProjectS.repository.ChapterRepository;
 import com.project.ProjectS.repository.CourseRepository;
-import com.project.ProjectS.repository.QuestionCategoryRepository;
-import com.project.ProjectS.processor.QuestionCategoryExcelProcessor;
+import com.project.ProjectS.repository.TopicRepository;
+import com.project.ProjectS.repository.SubjectRepository;
+import com.project.ProjectS.processor.TopicExcelProcessor;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,32 +22,34 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class QuestionCategoryService {
+public class TopicService {
     @Autowired
-    public QuestionCategoryService(QuestionCategoryRepository repository, CourseRepository courseRepository, ChapterRepository chapterRepository, QuestionCategoryExcelProcessor questionCategoryExcelProcessor) {
+    public TopicService(TopicRepository repository, CourseRepository courseRepository, ChapterRepository chapterRepository, SubjectRepository subjectRepository, TopicExcelProcessor topicExcelProcessor) {
         this.repository = repository;
         this.courseRepository = courseRepository;
         this.chapterRepository = chapterRepository;
-        this.questionCategoryExcelProcessor = questionCategoryExcelProcessor;
+        this.subjectRepository = subjectRepository;
+        this.topicExcelProcessor = topicExcelProcessor;
     }
 
-    private final QuestionCategoryRepository repository;
+    private final TopicRepository repository;
     private final CourseRepository courseRepository;
     private final ChapterRepository chapterRepository;
-    private final QuestionCategoryExcelProcessor questionCategoryExcelProcessor;
+    private final SubjectRepository subjectRepository;
+    private final TopicExcelProcessor topicExcelProcessor;
 
     private static final Logger logger =
-            LogManager.getLogger(QuestionCategoryService.class);
+            LogManager.getLogger(TopicService.class);
 
 
     // =========================================================
     // CREATE
     // =========================================================
 
-    public String create(QuestionCategoryRequestDTO request) {
+    public String create(TopicRequestDTO request) {
 
         logger.info(
-                "Creating question category with name: {}",
+                "Creating topic with name: {}",
                 request.getName()
         );
 
@@ -78,45 +82,51 @@ public class QuestionCategoryService {
             );
         });
 
+        Subject subject = subjectRepository.findById(request.getSubjectId())
+                .orElseThrow(() -> new RuntimeException("Subject not found"));
+        validateHierarchy(course, subject, chapter);
+
 
         // Duplicate check based on
-        // Course + Chapter + Category Name
+        // Course + Chapter + Topic Name
 
-        if (repository.existsByCourseAndChapterAndName(
+        if (repository.existsByCourseAndSubjectAndChapterAndName(
                 course,
+                subject,
                 chapter,
                 request.getName()
         )) {
 
             logger.warn(
-                    "Question Category already exists: {}",
+                    "Topic already exists: {}",
                     request.getName()
             );
 
             throw new RuntimeException(
-                    "Question Category already exists"
+                    "Topic already exists"
             );
         }
 
 
-        QuestionCategory category =
-                new QuestionCategory();
+        Topic topic =
+                new Topic();
 
-        category.setCourse(course);
-        category.setChapter(chapter);
-        category.setName(request.getName());
-        category.setActiveRow(request.getActiveRow());
+        topic.setCourse(course);
+        topic.setSubject(subject);
+        topic.setChapter(chapter);
+        topic.setName(request.getName());
+        topic.setActiveRow(request.getActiveRow());
 
 
-        repository.save(category);
+        repository.save(topic);
 
 
         logger.info(
-                "Question Category created successfully with name: {}",
+                "Topic created successfully with name: {}",
                 request.getName()
         );
 
-        return "Question Category created successfully";
+        return "Topic created successfully";
     }
 
 
@@ -124,72 +134,74 @@ public class QuestionCategoryService {
     // GET ALL
     // =========================================================
 
-    public List<QuestionCategoryResponseDTO> getAll() {
+    public List<TopicResponseDTO> getAll() {
 
-        List<QuestionCategory> categories =
+        List<Topic> categories =
                 repository.findAll();
 
-        List<QuestionCategoryResponseDTO> response =
+        List<TopicResponseDTO> response =
                 new ArrayList<>();
 
 
-        for (QuestionCategory category : categories) {
+        for (Topic topic : categories) {
 
-            QuestionCategoryResponseDTO dto =
-                    new QuestionCategoryResponseDTO();
+            TopicResponseDTO dto =
+                    new TopicResponseDTO();
 
 
-            dto.setCategoryId(
-                    category.getCategoryId()
+            dto.setTopicId(
+                    topic.getTopicId()
             );
 
 
-            if (category.getCourse() != null) {
+            if (topic.getCourse() != null) {
 
                 dto.setCourseId(
-                        category.getCourse().getCourseId()
+                        topic.getCourse().getCourseId()
                 );
 
                 dto.setCourseName(
-                        category.getCourse().getName()
+                        topic.getCourse().getName()
                 );
             }
 
+            setSubject(dto, topic);
 
-            if (category.getChapter() != null) {
+
+            if (topic.getChapter() != null) {
 
                 dto.setChapterId(
-                        category.getChapter().getChapterId()
+                        topic.getChapter().getChapterId()
                 );
 
                 dto.setChapterName(
-                        category.getChapter().getName()
+                        topic.getChapter().getName()
                 );
             }
 
 
             dto.setName(
-                    category.getName()
+                    topic.getName()
             );
 
             dto.setActiveRow(
-                    category.getActiveRow()
+                    topic.getActiveRow()
             );
 
             dto.setRowStatus(
-                    category.getRowStatus()
+                    topic.getRowStatus()
             );
 
             dto.setOrderOf(
-                    category.getOrderOf()
+                    topic.getOrderOf()
             );
 
             dto.setCreatedAt(
-                    category.getCreatedAt()
+                    topic.getCreatedAt()
             );
 
             dto.setUpdatedAt(
-                    category.getUpdatedAt()
+                    topic.getUpdatedAt()
             );
 
 
@@ -204,72 +216,74 @@ public class QuestionCategoryService {
     // GET BY ID
     // =========================================================
 
-    public QuestionCategoryResponseDTO getById(Long id) {
+    public TopicResponseDTO getById(Long id) {
 
-        QuestionCategory category =
+        Topic topic =
                 repository.findById(id)
                         .orElseThrow(() ->
                                 new RuntimeException(
-                                        "Question Category not found"
+                                        "Topic not found"
                                 )
                         );
 
 
-        QuestionCategoryResponseDTO dto =
-                new QuestionCategoryResponseDTO();
+        TopicResponseDTO dto =
+                new TopicResponseDTO();
 
 
-        dto.setCategoryId(
-                category.getCategoryId()
+        dto.setTopicId(
+                topic.getTopicId()
         );
 
 
-        if (category.getCourse() != null) {
+        if (topic.getCourse() != null) {
 
             dto.setCourseId(
-                    category.getCourse().getCourseId()
+                    topic.getCourse().getCourseId()
             );
 
             dto.setCourseName(
-                    category.getCourse().getName()
+                    topic.getCourse().getName()
             );
         }
 
+        setSubject(dto, topic);
 
-        if (category.getChapter() != null) {
+
+        if (topic.getChapter() != null) {
 
             dto.setChapterId(
-                    category.getChapter().getChapterId()
+                    topic.getChapter().getChapterId()
             );
 
             dto.setChapterName(
-                    category.getChapter().getName()
+                    topic.getChapter().getName()
             );
         }
 
 
         dto.setName(
-                category.getName()
+                topic.getName()
         );
 
         dto.setActiveRow(
-                category.getActiveRow()
+                topic.getActiveRow()
         );
 
         dto.setRowStatus(
-                category.getRowStatus()
+                topic.getRowStatus()
         );
 
         dto.setOrderOf(
-                category.getOrderOf()
+                topic.getOrderOf()
         );
 
         dto.setCreatedAt(
-                category.getCreatedAt()
+                topic.getCreatedAt()
         );
 
         dto.setUpdatedAt(
-                category.getUpdatedAt()
+                topic.getUpdatedAt()
         );
 
 
@@ -283,25 +297,25 @@ public class QuestionCategoryService {
 
     public String update(
             Long id,
-            QuestionCategoryRequestDTO request) {
+            TopicRequestDTO request) {
 
         logger.info(
-                "Updating Question Category with ID: {}",
+                "Updating Topic with ID: {}",
                 id
         );
 
 
-        QuestionCategory category =
+        Topic topic =
                 repository.findById(id)
                         .orElseThrow(() -> {
 
                             logger.warn(
-                                    "Question Category not found with ID: {}",
+                                    "Topic not found with ID: {}",
                                     id
                             );
 
                             return new RuntimeException(
-                                    "Question Category not found"
+                                    "Topic not found"
                             );
                         });
 
@@ -337,42 +351,48 @@ public class QuestionCategoryService {
                     );
                 });
 
+        Subject subject = subjectRepository.findById(request.getSubjectId())
+                .orElseThrow(() -> new RuntimeException("Subject not found"));
+        validateHierarchy(course, subject, chapter);
 
-        // Check duplicate only when another category
+
+        // Check duplicate only when another topic
         // with the same Course + Chapter + Name exists
 
-        QuestionCategory existing =
-                repository.findByCourseAndChapterAndName(
+        Topic existing =
+                repository.findByCourseAndSubjectAndChapterAndName(
                         course,
+                        subject,
                         chapter,
                         request.getName()
                 ).orElse(null);
 
 
         if (existing != null &&
-                !existing.getCategoryId().equals(id)) {
+                !existing.getTopicId().equals(id)) {
 
             throw new RuntimeException(
-                    "Question Category already exists"
+                    "Topic already exists"
             );
         }
 
 
-        category.setCourse(course);
-        category.setChapter(chapter);
-        category.setName(request.getName());
-        category.setActiveRow(request.getActiveRow());
+        topic.setCourse(course);
+        topic.setSubject(subject);
+        topic.setChapter(chapter);
+        topic.setName(request.getName());
+        topic.setActiveRow(request.getActiveRow());
 
 
-        repository.save(category);
+        repository.save(topic);
 
 
         logger.info(
-                "Question Category updated successfully with ID: {}",
+                "Topic updated successfully with ID: {}",
                 id
         );
 
-        return "Question Category updated successfully";
+        return "Topic updated successfully";
     }
 
 
@@ -382,19 +402,19 @@ public class QuestionCategoryService {
 
     public String delete(Long id) {
 
-        QuestionCategory category =
+        Topic topic =
                 repository.findById(id)
                         .orElseThrow(() ->
                                 new RuntimeException(
-                                        "Question Category not found"
+                                        "Topic not found"
                                 )
                         );
 
 
-        repository.delete(category);
+        repository.delete(topic);
 
 
-        return "Question Category deleted successfully";
+        return "Topic deleted successfully";
     }
 
 
@@ -402,11 +422,11 @@ public class QuestionCategoryService {
     // EXCEL UPLOAD
     // =========================================================
 
-    public String uploadQuestionCategory(
+    public String uploadTopic(
             MultipartFile file) {
 
         logger.info(
-                "Starting Question Category Excel upload process."
+                "Starting Topic Excel upload process."
         );
 
 
@@ -428,7 +448,7 @@ public class QuestionCategoryService {
             // should call the processor.
 
             logger.info(
-                    "Question Category Excel file received: {}",
+                    "Topic Excel file received: {}",
                     file.getOriginalFilename()
             );
 
@@ -443,19 +463,19 @@ public class QuestionCategoryService {
              *   ↓
              * List<Map<String,String>>
              *   ↓
-             * QuestionCategoryExcelProcessor
+             * TopicExcelProcessor
              *
              * Therefore the old XSSFWorkbook code should
              * NOT be kept here.
              */
 
 
-            return "Question Category Excel upload request received successfully";
+            return "Topic Excel upload request received successfully";
 
         } catch (Exception e) {
 
             logger.error(
-                    "Failed while uploading Question Category Excel",
+                    "Failed while uploading Topic Excel",
                     e
             );
 
@@ -464,5 +484,18 @@ public class QuestionCategoryService {
                             + e.getMessage()
             );
         }
+    }
+
+    private void validateHierarchy(Course course, Subject subject, Chapter chapter) {
+        if (!subject.getCourse().getCourseId().equals(course.getCourseId())
+                || !chapter.getCourse().getCourseId().equals(course.getCourseId())
+                || !chapter.getSubject().getSubjectId().equals(subject.getSubjectId())) {
+            throw new RuntimeException("Course, subject, and chapter must belong to the same hierarchy");
+        }
+    }
+
+    private void setSubject(TopicResponseDTO dto, Topic topic) {
+        dto.setSubjectId(topic.getSubject().getSubjectId());
+        dto.setSubjectName(topic.getSubject().getSubjectName());
     }
 }
