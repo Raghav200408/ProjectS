@@ -7,32 +7,28 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "chapters")
+@Table(name = "subject")
 @Getter
 @Setter
-public class Chapter {
+public class Subject {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "chapter_id")
-    private Long chapterId;
+    @Column(name = "subject_id")
+    private Long subjectId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subject_id", nullable = false)
-    private Subject subject;
-
-    @Column(name = "name", nullable = false)
-    private String name;
+    @Column(name = "subject_name", nullable = false)
+    private String subjectName;
 
     @Column(name = "active_row")
-    private Boolean activeRow;
+    private Boolean activeRow = true;
 
     @Column(name = "row_status")
-    private Integer rowStatus;
+    private Integer rowStatus = 1;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -58,5 +54,4 @@ public class Chapter {
     public void preUpdate() {
         updatedAt = LocalDateTime.now();
     }
-
 }

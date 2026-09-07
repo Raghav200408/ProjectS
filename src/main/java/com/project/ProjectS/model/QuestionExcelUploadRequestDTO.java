@@ -7,7 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Getter
 @Setter
 public class QuestionExcelUploadRequestDTO {
-    private Integer categoryId;
+    private Integer topicId;
     private Integer courseId;
     private Integer chapterId;
 }

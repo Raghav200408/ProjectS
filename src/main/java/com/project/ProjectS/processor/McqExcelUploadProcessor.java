@@ -6,14 +6,16 @@ import com.project.ProjectS.entity.Course;
 import com.project.ProjectS.entity.McqOption;
 import com.project.ProjectS.entity.McqQuestion;
 import com.project.ProjectS.entity.Question;
-import com.project.ProjectS.entity.QuestionCategory;
+import com.project.ProjectS.entity.QuestionType;
+import com.project.ProjectS.entity.Topic;
 
 import com.project.ProjectS.repository.ChapterRepository;
 import com.project.ProjectS.repository.CourseRepository;
 import com.project.ProjectS.repository.McqOptionRepository;
 import com.project.ProjectS.repository.McqQuestionRepository;
-import com.project.ProjectS.repository.QuestionCategoryRepository;
+import com.project.ProjectS.repository.TopicRepository;
 import com.project.ProjectS.repository.QuestionRepository;
+import com.project.ProjectS.repository.QuestionTypeRepository;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -48,8 +50,9 @@ public class McqExcelUploadProcessor {
 
     private final ChapterRepository chapterRepository;
 
-    private final QuestionCategoryRepository questionCategoryRepository;
+    private final TopicRepository topicRepository;
 
+    private final QuestionTypeRepository questionTypeRepository;
 
     // =========================================================
     // CONSTRUCTOR
@@ -61,7 +64,8 @@ public class McqExcelUploadProcessor {
             McqOptionRepository mcqOptionRepository,
             CourseRepository courseRepository,
             ChapterRepository chapterRepository,
-            QuestionCategoryRepository questionCategoryRepository) {
+            TopicRepository topicRepository,
+            QuestionTypeRepository questionTypeRepository) {
 
         this.questionRepository = questionRepository;
 
@@ -73,8 +77,11 @@ public class McqExcelUploadProcessor {
 
         this.chapterRepository = chapterRepository;
 
-        this.questionCategoryRepository =
-                questionCategoryRepository;
+        this.topicRepository =
+                topicRepository;
+
+        this.questionTypeRepository =
+                questionTypeRepository;
     }
 
 
@@ -87,7 +94,7 @@ public class McqExcelUploadProcessor {
             MultipartFile file,
             Long courseId,
             Long chapterId,
-            Long categoryId
+            Long topicId
     ) throws Exception {
 
         int uploadedCount = 0;
@@ -133,10 +140,10 @@ public class McqExcelUploadProcessor {
             );
         }
 
-        if (categoryId == null) {
+        if (topicId == null) {
 
             throw new RuntimeException(
-                    "Category ID is required"
+                    "Topic ID is required"
             );
         }
 
@@ -185,22 +192,22 @@ public class McqExcelUploadProcessor {
         // FIND CATEGORY
         // =====================================================
 
-        Optional<QuestionCategory> categoryOptional =
-                questionCategoryRepository.findById(
-                        categoryId
+        Optional<Topic> topicOptional =
+                topicRepository.findById(
+                        topicId
                 );
 
-        if (categoryOptional.isEmpty()) {
+        if (topicOptional.isEmpty()) {
 
             throw new RuntimeException(
-                    "Category ID "
-                            + categoryId
+                    "Topic ID "
+                            + topicId
                             + " not found"
             );
         }
 
-        QuestionCategory category =
-                categoryOptional.get();
+        Topic topic =
+                topicOptional.get();
 
 
         // =====================================================
@@ -267,8 +274,8 @@ public class McqExcelUploadProcessor {
             );
 
             System.out.println(
-                    "Category ID = "
-                            + categoryId
+                    "Topic ID = "
+                            + topicId
             );
 
             System.out.println(
@@ -414,24 +421,36 @@ public class McqExcelUploadProcessor {
                     questionType =
                             questionType
                                     .trim()
-                                    .toUpperCase();
+                                    .toUpperCase()
+                                    .replaceAll("\\s+", "_");
 
 
                     // =================================================
-                    // 3. ONLY SINGLE CHOICE
+                    // 3. VALIDATE AND RESOLVE MCQ QUESTION TYPE
                     // =================================================
 
                     if (
-                            !"SINGLE_CHOICE"
-                                    .equals(questionType)
+                            !"SINGLE_CHOICE".equals(questionType)
+                                    && !"MULTIPLE_CHOICE".equals(questionType)
                     ) {
 
                         throw new RuntimeException(
-                                "Only SINGLE_CHOICE questions "
+                                "Only SINGLE_CHOICE and MULTIPLE_CHOICE questions "
                                         + "are supported. Found: "
                                         + questionType
                         );
                     }
+
+                    final String resolvedQuestionTypeName = questionType;
+                    QuestionType resolvedQuestionType =
+                            questionTypeRepository
+                                    .findByQuestionType(resolvedQuestionTypeName)
+                                    .orElseThrow(() ->
+                                            new RuntimeException(
+                                                    "Question type not found in question_type table: "
+                                                            + resolvedQuestionTypeName
+                                            )
+                                    );
 
 
                     // =================================================
@@ -592,10 +611,10 @@ public class McqExcelUploadProcessor {
 
                     List<Question> existingQuestions =
                             questionRepository
-                                    .findByCourse_CourseIdAndChapter_ChapterIdAndQuestionCategory_CategoryIdAndActiveRowTrue(
+                                    .findByCourse_CourseIdAndChapter_ChapterIdAndTopic_TopicIdAndActiveRowTrue(
                                             courseId,
                                             chapterId,
-                                            categoryId
+                                            topicId
                                     );
 
 
@@ -641,13 +660,22 @@ public class McqExcelUploadProcessor {
                         // Check whether MCQ already exists
                         // ---------------------------------------------
 
-                        if (
-                                mcqQuestionRepository
-                                        .findById(
-                                                existingQuestionId
-                                        )
-                                        .isPresent()
-                        ) {
+                        Optional<McqQuestion> existingMcq =
+                                mcqQuestionRepository.findById(existingQuestionId);
+
+                        if (existingMcq.isPresent()) {
+
+                            // Keep the base question aligned with its MCQ configuration.
+                            QuestionType existingMcqType =
+                                    existingMcq.get().getQuestionType();
+
+                            if (existingQuestion.getQuestionType() == null
+                                    || !existingQuestion.getQuestionType()
+                                    .getQuestionTypeId()
+                                    .equals(existingMcqType.getQuestionTypeId())) {
+                                existingQuestion.setQuestionType(existingMcqType);
+                                questionRepository.save(existingQuestion);
+                            }
 
                             skippedCount++;
 
@@ -685,9 +713,12 @@ public class McqExcelUploadProcessor {
                         McqQuestion mcqQuestion =
                                 createMcqQuestion(
                                         existingQuestionId,
-                                        questionType,
+                                        resolvedQuestionType,
                                         marks
                                 );
+
+                        existingQuestion.setQuestionType(resolvedQuestionType);
+                        questionRepository.save(existingQuestion);
 
 
                         mcqQuestionRepository.save(
@@ -735,9 +766,12 @@ public class McqExcelUploadProcessor {
                     );
 
 
-                    question.setQuestionCategory(
-                            category
+                    question.setTopic(
+                            topic
                     );
+                    question.setSubject(topic.getSubject());
+
+                    question.setQuestionType(resolvedQuestionType);
 
 
                     question.setQuestionText(
@@ -789,7 +823,7 @@ public class McqExcelUploadProcessor {
                     McqQuestion mcqQuestion =
                             createMcqQuestion(
                                     generatedQuestionId,
-                                    questionType,
+                                    resolvedQuestionType,
                                     marks
                             );
 
@@ -1041,7 +1075,7 @@ public class McqExcelUploadProcessor {
 
     private McqQuestion createMcqQuestion(
             Long questionId,
-            String questionType,
+            QuestionType questionType,
             Double marks) {
 
         McqQuestion mcqQuestion =

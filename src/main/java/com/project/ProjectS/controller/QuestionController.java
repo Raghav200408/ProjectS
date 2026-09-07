@@ -102,7 +102,7 @@ public class QuestionController {
             @RequestPart("request") QuestionExcelUploadRequestDTO request) {
 
         System.out.println("course id " + request.getCourseId());
-        System.out.println("category id " + request.getCategoryId());
+        System.out.println("topic id " + request.getTopicId());
         System.out.println("chapter id " + request.getChapterId());
 
         QuestionExcelUploadResponseDTO response =
@@ -110,7 +110,7 @@ public class QuestionController {
                         file,
                         request.getCourseId(),
                         request.getChapterId(),
-                        request.getCategoryId()
+                        request.getTopicId()
                 );
 
         return ResponseEntity.ok(response);
@@ -121,7 +121,7 @@ public class QuestionController {
     public ResponseEntity<List<QuestionResponseDTO>> getQuestionsByMapping(
             @RequestParam Long courseId,
             @RequestParam Long chapterId,
-            @RequestParam Long categoryId,
+            @RequestParam Long topicId,
             Authentication authentication) {
 
         if (authentication != null) {
@@ -132,7 +132,7 @@ public class QuestionController {
                 questionService.getQuestionsByMapping(
                         courseId,
                         chapterId,
-                        categoryId
+                        topicId
                 );
 
         return ResponseEntity.ok(questions);

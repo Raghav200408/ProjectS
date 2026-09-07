@@ -5,7 +5,8 @@ import com.project.ProjectS.entity.Course;
 import com.project.ProjectS.entity.McqOption;
 import com.project.ProjectS.entity.McqQuestion;
 import com.project.ProjectS.entity.Question;
-import com.project.ProjectS.entity.QuestionCategory;
+import com.project.ProjectS.entity.QuestionType;
+import com.project.ProjectS.entity.Topic;
 import com.project.ProjectS.model.McqOptionDTO;
 import com.project.ProjectS.model.McqQuestionRequestDTO;
 import com.project.ProjectS.model.McqQuestionResponseDTO;
@@ -13,8 +14,9 @@ import com.project.ProjectS.repository.ChapterRepository;
 import com.project.ProjectS.repository.CourseRepository;
 import com.project.ProjectS.repository.McqOptionRepository;
 import com.project.ProjectS.repository.McqQuestionRepository;
-import com.project.ProjectS.repository.QuestionCategoryRepository;
+import com.project.ProjectS.repository.TopicRepository;
 import com.project.ProjectS.repository.QuestionRepository;
+import com.project.ProjectS.repository.QuestionTypeRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,10 +48,11 @@ public class McqQuestionService {
     private final QuestionRepository questionRepository;
     private final CourseRepository courseRepository;
     private final ChapterRepository chapterRepository;
-    private final QuestionCategoryRepository questionCategoryRepository;
+    private final TopicRepository topicRepository;
     private final McqQuestionRepository mcqQuestionRepository;
     private final McqOptionRepository mcqOptionRepository;
     private final SubscriptionEntitlementService entitlementService;
+    private final QuestionTypeRepository questionTypeRepository;
 
     private final AnswerEventRepository answerEventRepository;
     private final QuestionAnswerRepository questionAnswerRepository;
@@ -60,9 +63,10 @@ public class McqQuestionService {
             QuestionRepository questionRepository,
             CourseRepository courseRepository,
             ChapterRepository chapterRepository,
-            QuestionCategoryRepository questionCategoryRepository,
+            TopicRepository topicRepository,
             McqQuestionRepository mcqQuestionRepository,
             McqOptionRepository mcqOptionRepository,
+            QuestionTypeRepository questionTypeRepository,
             AnswerEventRepository answerEventRepository,
             QuestionAnswerRepository questionAnswerRepository,
             UserRepository userRepository,
@@ -71,9 +75,10 @@ public class McqQuestionService {
         this.questionRepository = questionRepository;
         this.courseRepository = courseRepository;
         this.chapterRepository = chapterRepository;
-        this.questionCategoryRepository = questionCategoryRepository;
+        this.topicRepository = topicRepository;
         this.mcqQuestionRepository = mcqQuestionRepository;
         this.mcqOptionRepository = mcqOptionRepository;
+        this.questionTypeRepository = questionTypeRepository;
         this.entitlementService = entitlementService;
         this.answerEventRepository = answerEventRepository;
         this.questionAnswerRepository = questionAnswerRepository;
@@ -92,8 +97,9 @@ public class McqQuestionService {
 
         Course course = getCourse(request.getCourseId());
         Chapter chapter = getChapter(request.getChapterId());
-        QuestionCategory category =
-                getCategory(request.getCategoryId());
+        Topic topic =
+                getTopic(request.getTopicId());
+        QuestionType questionType = getMcqQuestionType(request);
 
 
         // Create main question
@@ -101,7 +107,9 @@ public class McqQuestionService {
 
         question.setCourse(course);
         question.setChapter(chapter);
-        question.setQuestionCategory(category);
+        question.setTopic(topic);
+        question.setSubject(topic.getSubject());
+        question.setQuestionType(questionType);
         question.setQuestionText(request.getQuestionText());
 
         Question savedQuestion =
@@ -116,7 +124,7 @@ public class McqQuestionService {
         );
 
         mcqQuestion.setQuestionType(
-                request.getQuestionType()
+                questionType
         );
 
         mcqQuestion.setMarks(
@@ -263,15 +271,15 @@ public class McqQuestionService {
     getMcqQuestionsByFilter(
             Long courseId,
             Long chapterId,
-            Long categoryId
+            Long topicId
     ) {
 
         List<Question> questions =
                 questionRepository
-                        .findByCourse_CourseIdAndChapter_ChapterIdAndQuestionCategory_CategoryIdAndActiveRowTrue(
+                        .findByCourse_CourseIdAndChapter_ChapterIdAndTopic_TopicIdAndActiveRowTrue(
                                 courseId,
                                 chapterId,
-                                categoryId
+                                topicId
                         );
 
 
@@ -344,14 +352,17 @@ public class McqQuestionService {
 
         Course course = getCourse(request.getCourseId());
         Chapter chapter = getChapter(request.getChapterId());
-        QuestionCategory category =
-                getCategory(request.getCategoryId());
+        Topic topic =
+                getTopic(request.getTopicId());
+        QuestionType questionType = getMcqQuestionType(request);
 
 
         // Update main question
         question.setCourse(course);
         question.setChapter(chapter);
-        question.setQuestionCategory(category);
+        question.setTopic(topic);
+        question.setSubject(topic.getSubject());
+        question.setQuestionType(questionType);
         question.setQuestionText(request.getQuestionText());
 
         Question updatedQuestion =
@@ -360,7 +371,7 @@ public class McqQuestionService {
 
         // Update MCQ configuration
         mcqQuestion.setQuestionType(
-                request.getQuestionType()
+                questionType
         );
 
         mcqQuestion.setMarks(
@@ -991,13 +1002,13 @@ public class McqQuestionService {
     }
 
 
-    private QuestionCategory getCategory(Long categoryId) {
+    private Topic getTopic(Long topicId) {
 
-        return questionCategoryRepository
-                .findById(categoryId)
+        return topicRepository
+                .findById(topicId)
                 .orElseThrow(() ->
                         new RuntimeException(
-                                "Question category not found"
+                                "Question topic not found"
                         )
                 );
     }
@@ -1097,19 +1108,25 @@ public class McqQuestionService {
         );
 
 
-        // Category
-        response.setCategoryId(
-                question.getQuestionCategory().getCategoryId()
+        // Topic
+        response.setTopicId(
+                question.getTopic().getTopicId()
         );
 
-        response.setCategoryName(
-                question.getQuestionCategory().getName()
+        response.setTopicName(
+                question.getTopic().getName()
         );
 
 
         // MCQ configuration
+        QuestionType questionType = mcqQuestion.getQuestionType();
+
+        response.setQuestionTypeId(
+                questionType.getQuestionTypeId()
+        );
+
         response.setQuestionType(
-                mcqQuestion.getQuestionType()
+                questionType.getQuestionType()
         );
 
         response.setMarks(
@@ -1126,5 +1143,45 @@ public class McqQuestionService {
         response.setOptions(optionDTOs);
 
         return response;
+    }
+
+    private QuestionType getMcqQuestionType(McqQuestionRequestDTO request) {
+        QuestionType questionType;
+
+        if (request.getQuestionTypeId() != null) {
+            questionType = questionTypeRepository
+                    .findById(request.getQuestionTypeId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Question Type not found with id: "
+                                    + request.getQuestionTypeId()
+                    ));
+        } else if (request.getQuestionType() != null
+                && !request.getQuestionType().isBlank()) {
+            questionType = questionTypeRepository
+                    .findByQuestionType(
+                            request.getQuestionType()
+                                    .trim()
+                                    .toUpperCase()
+                                    .replaceAll("\\s+", "_")
+                    )
+                    .orElseThrow(() -> new RuntimeException(
+                            "Question Type not found: " + request.getQuestionType()
+                    ));
+        } else {
+            throw new RuntimeException("Question Type is required");
+        }
+
+        String normalizedType = questionType.getQuestionType()
+                .trim()
+                .toUpperCase();
+
+        if (!"SINGLE_CHOICE".equals(normalizedType)
+                && !"MULTIPLE_CHOICE".equals(normalizedType)) {
+            throw new RuntimeException(
+                    "MCQ Question Type must be SINGLE_CHOICE or MULTIPLE_CHOICE"
+            );
+        }
+
+        return questionType;
     }
 }

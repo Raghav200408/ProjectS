@@ -27,9 +27,11 @@ public class QuestionService {
 
     private final ChapterRepository chapterRepository;
 
+    private final SubjectRepository subjectRepository;
+
     private final QuestionTypeRepository questionTypeRepository;
 
-    private final QuestionCategoryRepository questionCategoryRepository;
+    private final TopicRepository topicRepository;
 
     private final TableHeaderRepository tableHeaderRepository;
 
@@ -47,7 +49,8 @@ public class QuestionService {
             QuestionAttributeRepository questionAttributeRepository,
             CourseRepository courseRepository,
             ChapterRepository chapterRepository,
-            QuestionCategoryRepository questionCategoryRepository,
+            SubjectRepository subjectRepository,
+            TopicRepository topicRepository,
             QuestionTypeRepository questionTypeRepository,
             TableHeaderRepository tableHeaderRepository,
             TableAttributeRepository tableAttributeRepository,
@@ -67,8 +70,10 @@ public class QuestionService {
         this.chapterRepository =
                 chapterRepository;
 
-        this.questionCategoryRepository =
-                questionCategoryRepository;
+        this.subjectRepository = subjectRepository;
+
+        this.topicRepository =
+                topicRepository;
 
         this.questionTypeRepository =
                 questionTypeRepository;
@@ -125,18 +130,23 @@ public class QuestionService {
                                 )
                         );
 
+        Subject subject = subjectRepository.findById(request.getSubjectId())
+                .orElseThrow(() -> new RuntimeException("Subject not found with id: " + request.getSubjectId()));
 
-        QuestionCategory category =
-                questionCategoryRepository
+
+        Topic topic =
+                topicRepository
                         .findById(
-                                request.getCategoryId()
+                                request.getTopicId()
                         )
                         .orElseThrow(() ->
                                 new RuntimeException(
-                                        "Question category not found with id: "
-                                                + request.getCategoryId()
+                                        "Question topic not found with id: "
+                                                + request.getTopicId()
                                 )
                         );
+
+        validateHierarchy(course, subject, chapter, topic);
 
 
         QuestionType questionType =
@@ -151,9 +161,11 @@ public class QuestionService {
 
         question.setCourse(course);
 
+        question.setSubject(subject);
+
         question.setChapter(chapter);
 
-        question.setQuestionCategory(category);
+        question.setTopic(topic);
 
         question.setQuestionType(questionType);
 
@@ -263,7 +275,7 @@ public class QuestionService {
             MultipartFile file,
             Integer courseId,
             Integer chapterId,
-            Integer categoryId) {
+            Integer topicId) {
 
 
         // =====================================================
@@ -299,10 +311,10 @@ public class QuestionService {
         }
 
 
-        if (categoryId == null) {
+        if (topicId == null) {
 
             throw new RuntimeException(
-                    "Category ID is required"
+                    "Topic ID is required"
             );
         }
 
@@ -335,7 +347,7 @@ public class QuestionService {
 
             return questionExcelProcessor.process(
                     excelData,
-                    categoryId,
+                    topicId,
                     chapterId,
                     courseId
             );
@@ -392,6 +404,9 @@ public class QuestionService {
                     question.getCourse().getName()
             );
 
+            dto.setSubjectId(question.getSubject().getSubjectId());
+            dto.setSubjectName(question.getSubject().getSubjectName());
+
 
             dto.setChapterId(
                     question.getChapter().getChapterId()
@@ -403,16 +418,16 @@ public class QuestionService {
             );
 
 
-            dto.setCategoryId(
+            dto.setTopicId(
                     question
-                            .getQuestionCategory()
-                            .getCategoryId()
+                            .getTopic()
+                            .getTopicId()
             );
 
 
-            dto.setCategoryName(
+            dto.setTopicName(
                     question
-                            .getQuestionCategory()
+                            .getTopic()
                             .getName()
             );
 
@@ -605,18 +620,23 @@ public class QuestionService {
                                 )
                         );
 
+        Subject subject = subjectRepository.findById(request.getSubjectId())
+                .orElseThrow(() -> new RuntimeException("Subject not found with id: " + request.getSubjectId()));
 
-        QuestionCategory category =
-                questionCategoryRepository
+
+        Topic topic =
+                topicRepository
                         .findById(
-                                request.getCategoryId()
+                                request.getTopicId()
                         )
                         .orElseThrow(() ->
                                 new RuntimeException(
-                                        "Question category not found with id: "
-                                                + request.getCategoryId()
+                                        "Question topic not found with id: "
+                                                + request.getTopicId()
                                 )
                         );
+
+        validateHierarchy(course, subject, chapter, topic);
 
 
         QuestionType questionType =
@@ -627,9 +647,11 @@ public class QuestionService {
 
         question.setCourse(course);
 
+        question.setSubject(subject);
+
         question.setChapter(chapter);
 
-        question.setQuestionCategory(category);
+        question.setTopic(topic);
 
         question.setQuestionType(questionType);
 
@@ -778,15 +800,15 @@ public class QuestionService {
     public List<QuestionResponseDTO> getQuestionsByMapping(
             Long courseId,
             Long chapterId,
-            Long categoryId) {
+            Long topicId) {
 
 
         List<Question> questions =
                 questionRepository
-                        .findByCourse_CourseIdAndChapter_ChapterIdAndQuestionCategory_CategoryIdAndActiveRowTrue(
+                        .findByCourse_CourseIdAndChapter_ChapterIdAndTopic_TopicIdAndActiveRowTrue(
                                 courseId,
                                 chapterId,
-                                categoryId
+                                topicId
                         );
 
 
@@ -828,6 +850,9 @@ public class QuestionService {
 
         QuestionResponseDTO response =
                 new QuestionResponseDTO();
+
+        response.setSubjectId(question.getSubject().getSubjectId());
+        response.setSubjectName(question.getSubject().getSubjectName());
 
 
         response.setQuestionId(
@@ -880,16 +905,16 @@ public class QuestionService {
         // CATEGORY
         // =====================================================
 
-        response.setCategoryId(
+        response.setTopicId(
                 question
-                        .getQuestionCategory()
-                        .getCategoryId()
+                        .getTopic()
+                        .getTopicId()
         );
 
 
-        response.setCategoryName(
+        response.setTopicName(
                 question
-                        .getQuestionCategory()
+                        .getTopic()
                         .getName()
         );
 
@@ -1033,6 +1058,17 @@ public class QuestionService {
 
 
         return response;
+    }
+
+    private void validateHierarchy(Course course, Subject subject, Chapter chapter, Topic topic) {
+        if (!subject.getCourse().getCourseId().equals(course.getCourseId())
+                || !chapter.getCourse().getCourseId().equals(course.getCourseId())
+                || !chapter.getSubject().getSubjectId().equals(subject.getSubjectId())
+                || !topic.getCourse().getCourseId().equals(course.getCourseId())
+                || !topic.getSubject().getSubjectId().equals(subject.getSubjectId())
+                || !topic.getChapter().getChapterId().equals(chapter.getChapterId())) {
+            throw new RuntimeException("Course, subject, chapter, and topic must belong to the same hierarchy");
+        }
     }
 
     private QuestionType getQuestionType(
