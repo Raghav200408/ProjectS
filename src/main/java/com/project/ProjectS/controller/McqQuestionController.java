@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
@@ -77,7 +78,12 @@ public class McqQuestionController {
             Long chapterId,
 
             @RequestParam("categoryId")
-            Long categoryId) {
+            Long categoryId,
+            Authentication authentication) {
+
+        if (authentication != null) {
+            mcqQuestionService.requireCourseAccess(courseId, authentication.getName());
+        }
 
         List<McqQuestionResponseDTO> response =
                 mcqQuestionService.getMcqQuestionsByFilter(
@@ -122,12 +128,12 @@ public class McqQuestionController {
     @PostMapping("/submit")
     public ResponseEntity<McqSubmissionResponseDTO>
     submitMcqAnswers(
-            @RequestBody McqSubmissionRequestDTO request) {
+            @RequestBody McqSubmissionRequestDTO request,
+            Authentication authentication) {
 
         McqSubmissionResponseDTO response =
-                mcqQuestionService.submitMcqAnswers(
-                        request
-                );
+                mcqQuestionService.submitMcqAnswersAsAuthenticated(
+                        request, authentication.getName());
 
         return ResponseEntity.ok(response);
     }
@@ -254,4 +260,3 @@ public class McqQuestionController {
     }
 
 }
-

@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
@@ -120,7 +121,12 @@ public class QuestionController {
     public ResponseEntity<List<QuestionResponseDTO>> getQuestionsByMapping(
             @RequestParam Long courseId,
             @RequestParam Long chapterId,
-            @RequestParam Long categoryId) {
+            @RequestParam Long categoryId,
+            Authentication authentication) {
+
+        if (authentication != null) {
+            questionService.requireCourseAccess(courseId, authentication.getName());
+        }
 
         List<QuestionResponseDTO> questions =
                 questionService.getQuestionsByMapping(
