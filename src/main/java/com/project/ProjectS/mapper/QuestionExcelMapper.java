@@ -3,12 +3,12 @@ package com.project.ProjectS.mapper;
 import com.project.ProjectS.entity.Chapter;
 import com.project.ProjectS.entity.Course;
 import com.project.ProjectS.entity.Question;
-import com.project.ProjectS.entity.QuestionCategory;
+import com.project.ProjectS.entity.Topic;
 import com.project.ProjectS.entity.QuestionType;
 
 import com.project.ProjectS.repository.ChapterRepository;
 import com.project.ProjectS.repository.CourseRepository;
-import com.project.ProjectS.repository.QuestionCategoryRepository;
+import com.project.ProjectS.repository.TopicRepository;
 import com.project.ProjectS.repository.QuestionTypeRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +23,7 @@ public class QuestionExcelMapper {
 
     private final ChapterRepository chapterRepository;
 
-    private final QuestionCategoryRepository questionCategoryRepository;
+    private final TopicRepository topicRepository;
 
     private final QuestionTypeRepository questionTypeRepository;
 
@@ -31,7 +31,7 @@ public class QuestionExcelMapper {
     public QuestionExcelMapper(
             CourseRepository courseRepository,
             ChapterRepository chapterRepository,
-            QuestionCategoryRepository questionCategoryRepository,
+            TopicRepository topicRepository,
             QuestionTypeRepository questionTypeRepository) {
 
         this.courseRepository =
@@ -40,8 +40,8 @@ public class QuestionExcelMapper {
         this.chapterRepository =
                 chapterRepository;
 
-        this.questionCategoryRepository =
-                questionCategoryRepository;
+        this.topicRepository =
+                topicRepository;
 
         this.questionTypeRepository =
                 questionTypeRepository;
@@ -55,7 +55,7 @@ public class QuestionExcelMapper {
             Map<String, String> row,
             Integer courseId,
             Integer chapterId,
-            Integer categoryId) {
+            Integer topicId) {
 
         // =====================================================
         // QUESTION TEXT
@@ -103,10 +103,10 @@ public class QuestionExcelMapper {
             );
         }
 
-        if (categoryId == null) {
+        if (topicId == null) {
 
             throw new RuntimeException(
-                    "Category ID is required"
+                    "Topic ID is required"
             );
         }
 
@@ -162,15 +162,15 @@ public class QuestionExcelMapper {
         // FIND CATEGORY
         // =====================================================
 
-        QuestionCategory category =
-                questionCategoryRepository
+        Topic topic =
+                topicRepository
                         .findById(
-                                categoryId.longValue()
+                                topicId.longValue()
                         )
                         .orElseThrow(() ->
                                 new RuntimeException(
-                                        "Question category not found with id: "
-                                                + categoryId
+                                        "Question topic not found with id: "
+                                                + topicId
                                 )
                         );
 
@@ -178,13 +178,13 @@ public class QuestionExcelMapper {
         // VALIDATE CATEGORY -> COURSE
         // =====================================================
 
-        if (category.getCourse() == null ||
-                !category.getCourse()
+        if (topic.getCourse() == null ||
+                !topic.getCourse()
                         .getCourseId()
                         .equals(course.getCourseId())) {
 
             throw new RuntimeException(
-                    "Question category " + categoryId +
+                    "Question topic " + topicId +
                             " does not belong to course " +
                             courseId
             );
@@ -194,13 +194,13 @@ public class QuestionExcelMapper {
         // VALIDATE CATEGORY -> CHAPTER
         // =====================================================
 
-        if (category.getChapter() == null ||
-                !category.getChapter()
+        if (topic.getChapter() == null ||
+                !topic.getChapter()
                         .getChapterId()
                         .equals(chapter.getChapterId())) {
 
             throw new RuntimeException(
-                    "Question category " + categoryId +
+                    "Question topic " + topicId +
                             " does not belong to chapter " +
                             chapterId
             );
@@ -233,7 +233,9 @@ public class QuestionExcelMapper {
 
         question.setChapter(chapter);
 
-        question.setQuestionCategory(category);
+        question.setTopic(topic);
+
+        question.setSubject(topic.getSubject());
 
         question.setQuestionType(questionType);
 

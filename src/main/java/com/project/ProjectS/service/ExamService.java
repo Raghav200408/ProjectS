@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.security.core.Authentication;
 
 @Transactional
 @Service
@@ -31,6 +32,7 @@ public class ExamService {
     private final UserRepository userRepository;
     private final TableNameRepository tableNameRepository;
     private final TableHeaderRepository tableHeaderRepository;
+    private final SubscriptionEntitlementService entitlementService;
 
     public ExamService(
             ExamRepository examRepository,
@@ -49,7 +51,8 @@ public class ExamService {
             RuleEngineService ruleEngineService,
             UserRepository userRepository,
             TableNameRepository tableNameRepository,
-            TableHeaderRepository tableHeaderRepository) {
+            TableHeaderRepository tableHeaderRepository,
+            SubscriptionEntitlementService entitlementService) {
 
         this.examRepository = examRepository;
         this.examQuestionRepository = examQuestionRepository;
@@ -68,6 +71,7 @@ public class ExamService {
         this.userRepository = userRepository;
         this.tableNameRepository = tableNameRepository;
         this.tableHeaderRepository = tableHeaderRepository;
+        this.entitlementService = entitlementService;
 
     }
 
@@ -280,6 +284,9 @@ public class ExamService {
                         new RuntimeException("User not found with id: " + request.getUserId())
                 );
 
+        entitlementService.consumeExamAttempt(
+                user.getUserId(), exam.getCourse().getCourseId());
+
         List<ExamQuestion> examQuestions =
                 examQuestionRepository.findByExam_ExamId(examId);
 
@@ -393,11 +400,21 @@ public class ExamService {
                 new ExamSubmitResponseDTO();
 
         response.setExamId(examId);
-        response.setUserId(request.getUserId());
+        response.setUserId(user.getUserId());
         response.setTotalMarks(totalMarks);
         response.setPercentage(percentage);
 
         return response;
+    }
+
+    public ExamSubmitResponseDTO submitExam(Long examId, ExamSubmitRequestDTO request,
+                                            Authentication authentication) {
+        if (authentication != null) {
+            request.setUserId(userRepository.findByEmail(authentication.getName())
+                    .orElseThrow(() -> new RuntimeException("Authenticated user not found"))
+                    .getUserId());
+        }
+        return submitExam(examId, request);
     }
 
     private boolean checkMcqAnswer(
@@ -901,6 +918,22 @@ public class ExamService {
                         .toList();
 
         return questionService.getQuestionsByIds(questionIds);
+    }
+
+    public List<QuestionResponseDTO> getExamQuestions(Long examId, Authentication authentication) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new RuntimeException("Exam not found with id: " + examId));
+        if (authentication != null && isStudent(authentication)) {
+            entitlementService.requireCourseAccess(authentication.getName(),
+                    exam.getCourse().getCourseId());
+        }
+        return getExamQuestions(examId);
+    }
+
+    private boolean isStudent(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_STUDENT".equals(a.getAuthority())
+                        || "ROLE_GUEST".equals(a.getAuthority()));
     }
 
 

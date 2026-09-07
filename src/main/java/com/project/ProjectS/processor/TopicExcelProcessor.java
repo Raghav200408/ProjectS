@@ -4,13 +4,15 @@ import com.project.ProjectS.entity.Branch;
 import com.project.ProjectS.entity.Chapter;
 import com.project.ProjectS.entity.College;
 import com.project.ProjectS.entity.Course;
-import com.project.ProjectS.entity.QuestionCategory;
-import com.project.ProjectS.mapper.QuestionCategoryExcelMapper;
+import com.project.ProjectS.entity.Topic;
+import com.project.ProjectS.entity.Subject;
+import com.project.ProjectS.mapper.TopicExcelMapper;
 import com.project.ProjectS.repository.BranchRepository;
 import com.project.ProjectS.repository.ChapterRepository;
 import com.project.ProjectS.repository.CollegeRepository;
 import com.project.ProjectS.repository.CourseRepository;
-import com.project.ProjectS.repository.QuestionCategoryRepository;
+import com.project.ProjectS.repository.TopicRepository;
+import com.project.ProjectS.repository.SubjectRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -23,25 +25,27 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
 @Component
-public class QuestionCategoryExcelProcessor {
+public class TopicExcelProcessor {
     @Autowired
-    public QuestionCategoryExcelProcessor(QuestionCategoryExcelMapper questionCategoryExcelMapper, QuestionCategoryRepository questionCategoryRepository, CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository, ChapterRepository chapterRepository) {
-        this.questionCategoryExcelMapper = questionCategoryExcelMapper;
-        this.questionCategoryRepository = questionCategoryRepository;
+    public TopicExcelProcessor(TopicExcelMapper topicExcelMapper, TopicRepository topicRepository, CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository, ChapterRepository chapterRepository, SubjectRepository subjectRepository) {
+        this.topicExcelMapper = topicExcelMapper;
+        this.topicRepository = topicRepository;
         this.collegeRepository = collegeRepository;
         this.branchRepository = branchRepository;
         this.courseRepository = courseRepository;
         this.chapterRepository = chapterRepository;
+        this.subjectRepository = subjectRepository;
     }
 
 
-    private static final Logger logger = LogManager.getLogger(QuestionCategoryExcelProcessor.class);
-    private final QuestionCategoryExcelMapper questionCategoryExcelMapper;
-    private final QuestionCategoryRepository questionCategoryRepository;
+    private static final Logger logger = LogManager.getLogger(TopicExcelProcessor.class);
+    private final TopicExcelMapper topicExcelMapper;
+    private final TopicRepository topicRepository;
     private final CollegeRepository collegeRepository;
     private final BranchRepository branchRepository;
     private final CourseRepository courseRepository;
     private final ChapterRepository chapterRepository;
+    private final SubjectRepository subjectRepository;
 
 
     @Transactional
@@ -79,7 +83,9 @@ public class QuestionCategoryExcelProcessor {
                 String chapterName =
                         row.get("chapter");
 
-                String categoryName =
+                String subjectName = row.get("subject");
+
+                String topicName =
                         row.get("name");
 
 
@@ -95,8 +101,11 @@ public class QuestionCategoryExcelProcessor {
                         chapterName == null ||
                         chapterName.isBlank() ||
 
-                        categoryName == null ||
-                        categoryName.isBlank()) {
+                        subjectName == null ||
+                        subjectName.isBlank() ||
+
+                        topicName == null ||
+                        topicName.isBlank()) {
 
                     skippedCount++;
                     continue;
@@ -209,22 +218,31 @@ public class QuestionCategoryExcelProcessor {
                     continue;
                 }
 
+                Subject subject = subjectRepository.findBySubjectNameAndCourse(subjectName.trim(), course)
+                        .orElse(null);
+                if (subject == null || !chapter.getSubject().getSubjectId().equals(subject.getSubjectId())) {
+                    logger.warn("Subject not found or does not match chapter: {}", subjectName);
+                    skippedCount++;
+                    continue;
+                }
+
 
                 // -----------------------------------------
                 // Duplicate Check
                 // -----------------------------------------
 
                 boolean exists =
-                        questionCategoryRepository
-                                .existsByCourseAndChapterAndName(
+                        topicRepository
+                                .existsByCourseAndSubjectAndChapterAndName(
                                         course,
+                                        subject,
                                         chapter,
-                                        categoryName.trim()
+                                        topicName.trim()
                                 );
 
                 if (exists) {
 
-                    logger.info("Question Category already exists: {}", categoryName);
+                    logger.info("Topic already exists: {}", topicName);
 
                     skippedCount++;
                     continue;
@@ -235,12 +253,12 @@ public class QuestionCategoryExcelProcessor {
                 // Map basic fields
                 // -----------------------------------------
 
-                QuestionCategory category =
-                        questionCategoryExcelMapper
+                Topic topic =
+                        topicExcelMapper
                                 .map(row);
 
 
-                if (category == null) {
+                if (topic == null) {
 
                     skippedCount++;
                     continue;
@@ -251,16 +269,17 @@ public class QuestionCategoryExcelProcessor {
                 // Set mandatory relationships
                 // -----------------------------------------
 
-                category.setCourse(course);
-                category.setChapter(chapter);
+                topic.setCourse(course);
+                topic.setSubject(subject);
+                topic.setChapter(chapter);
 
 
                 // -----------------------------------------
                 // Save
                 // -----------------------------------------
 
-                questionCategoryRepository
-                        .save(category);
+                topicRepository
+                        .save(topic);
 
                 savedCount++;
 
@@ -268,10 +287,10 @@ public class QuestionCategoryExcelProcessor {
 
                 skippedCount++;
 
-                logger.error("Failed to process Question Category row: {}", e.getMessage(), e);
+                logger.error("Failed to process Topic row: {}", e.getMessage(), e);
             }
         }
 
-        logger.info("Question Category upload completed. Saved: {}, Skipped: {}", savedCount, skippedCount);
+        logger.info("Topic upload completed. Saved: {}, Skipped: {}", savedCount, skippedCount);
     }
 }

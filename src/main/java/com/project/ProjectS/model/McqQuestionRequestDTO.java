@@ -13,11 +13,13 @@ public class McqQuestionRequestDTO {
 
     private Long chapterId;
 
-    private Long categoryId;
+    private Long topicId;
 
     private String questionText;
 
-    // SINGLE_CHOICE or MULTIPLE_CHOICE
+    private Long questionTypeId;
+
+    // Backward compatibility for existing imports/clients. New clients use the ID.
     private String questionType;
 
     private Double marks;
