@@ -5,6 +5,7 @@ import com.project.ProjectS.entity.Course;
 import com.project.ProjectS.entity.McqOption;
 import com.project.ProjectS.entity.McqQuestion;
 import com.project.ProjectS.entity.Question;
+import com.project.ProjectS.entity.QuestionType;
 import com.project.ProjectS.entity.Topic;
 import com.project.ProjectS.model.McqOptionDTO;
 import com.project.ProjectS.model.McqQuestionRequestDTO;
@@ -15,6 +16,7 @@ import com.project.ProjectS.repository.McqOptionRepository;
 import com.project.ProjectS.repository.McqQuestionRepository;
 import com.project.ProjectS.repository.TopicRepository;
 import com.project.ProjectS.repository.QuestionRepository;
+import com.project.ProjectS.repository.QuestionTypeRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +51,7 @@ public class McqQuestionService {
     private final TopicRepository topicRepository;
     private final McqQuestionRepository mcqQuestionRepository;
     private final McqOptionRepository mcqOptionRepository;
+    private final QuestionTypeRepository questionTypeRepository;
 
     private final AnswerEventRepository answerEventRepository;
     private final QuestionAnswerRepository questionAnswerRepository;
@@ -62,6 +65,7 @@ public class McqQuestionService {
             TopicRepository topicRepository,
             McqQuestionRepository mcqQuestionRepository,
             McqOptionRepository mcqOptionRepository,
+            QuestionTypeRepository questionTypeRepository,
             AnswerEventRepository answerEventRepository,
             QuestionAnswerRepository questionAnswerRepository,
             UserRepository userRepository
@@ -72,6 +76,7 @@ public class McqQuestionService {
         this.topicRepository = topicRepository;
         this.mcqQuestionRepository = mcqQuestionRepository;
         this.mcqOptionRepository = mcqOptionRepository;
+        this.questionTypeRepository = questionTypeRepository;
         this.answerEventRepository = answerEventRepository;
         this.questionAnswerRepository = questionAnswerRepository;
         this.userRepository = userRepository;
@@ -91,6 +96,7 @@ public class McqQuestionService {
         Chapter chapter = getChapter(request.getChapterId());
         Topic topic =
                 getTopic(request.getTopicId());
+        QuestionType questionType = getMcqQuestionType(request);
 
 
         // Create main question
@@ -100,6 +106,7 @@ public class McqQuestionService {
         question.setChapter(chapter);
         question.setTopic(topic);
         question.setSubject(topic.getSubject());
+        question.setQuestionType(questionType);
         question.setQuestionText(request.getQuestionText());
 
         Question savedQuestion =
@@ -114,7 +121,7 @@ public class McqQuestionService {
         );
 
         mcqQuestion.setQuestionType(
-                request.getQuestionType()
+                questionType
         );
 
         mcqQuestion.setMarks(
@@ -340,6 +347,7 @@ public class McqQuestionService {
         Chapter chapter = getChapter(request.getChapterId());
         Topic topic =
                 getTopic(request.getTopicId());
+        QuestionType questionType = getMcqQuestionType(request);
 
 
         // Update main question
@@ -347,6 +355,7 @@ public class McqQuestionService {
         question.setChapter(chapter);
         question.setTopic(topic);
         question.setSubject(topic.getSubject());
+        question.setQuestionType(questionType);
         question.setQuestionText(request.getQuestionText());
 
         Question updatedQuestion =
@@ -355,7 +364,7 @@ public class McqQuestionService {
 
         // Update MCQ configuration
         mcqQuestion.setQuestionType(
-                request.getQuestionType()
+                questionType
         );
 
         mcqQuestion.setMarks(
@@ -1075,8 +1084,14 @@ public class McqQuestionService {
 
 
         // MCQ configuration
+        QuestionType questionType = mcqQuestion.getQuestionType();
+
+        response.setQuestionTypeId(
+                questionType.getQuestionTypeId()
+        );
+
         response.setQuestionType(
-                mcqQuestion.getQuestionType()
+                questionType.getQuestionType()
         );
 
         response.setMarks(
@@ -1093,5 +1108,45 @@ public class McqQuestionService {
         response.setOptions(optionDTOs);
 
         return response;
+    }
+
+    private QuestionType getMcqQuestionType(McqQuestionRequestDTO request) {
+        QuestionType questionType;
+
+        if (request.getQuestionTypeId() != null) {
+            questionType = questionTypeRepository
+                    .findById(request.getQuestionTypeId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Question Type not found with id: "
+                                    + request.getQuestionTypeId()
+                    ));
+        } else if (request.getQuestionType() != null
+                && !request.getQuestionType().isBlank()) {
+            questionType = questionTypeRepository
+                    .findByQuestionType(
+                            request.getQuestionType()
+                                    .trim()
+                                    .toUpperCase()
+                                    .replaceAll("\\s+", "_")
+                    )
+                    .orElseThrow(() -> new RuntimeException(
+                            "Question Type not found: " + request.getQuestionType()
+                    ));
+        } else {
+            throw new RuntimeException("Question Type is required");
+        }
+
+        String normalizedType = questionType.getQuestionType()
+                .trim()
+                .toUpperCase();
+
+        if (!"SINGLE_CHOICE".equals(normalizedType)
+                && !"MULTIPLE_CHOICE".equals(normalizedType)) {
+            throw new RuntimeException(
+                    "MCQ Question Type must be SINGLE_CHOICE or MULTIPLE_CHOICE"
+            );
+        }
+
+        return questionType;
     }
 }

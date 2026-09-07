@@ -24,6 +24,7 @@ public class McqQuestionResponseDTO {
     private String topicName;
 
     // MCQ configuration
+    private Long questionTypeId;
     private String questionType;
 
     private Double marks;
