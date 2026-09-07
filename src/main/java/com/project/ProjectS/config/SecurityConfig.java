@@ -40,6 +40,14 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                        "/api/questions/filter",
+                        "/api/mcq-questions/filter",
+                        "/api/mcq-questions/submit",
+                        "/api/mock-tests/**",
+                        "/api/exams/*/questions",
+                        "/api/exams/*/submit")
+                .hasAnyRole("STUDENT", "GUEST", "SUPER_ADMIN", "BRANCH_ADMIN")
 
 
                                 .requestMatchers(
@@ -85,8 +93,31 @@ public class SecurityConfig {
                                         "/api/mcq-questions/**",
                                         "api/users/collegeAdmin/**"
 
-
                                 ).permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/subscriptions/courses/*/plans",
+                                        "/api/subscriptions/plans/course/*").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/subscriptions/plans").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/subscriptions/plans")
+                                .hasRole("SUPER_ADMIN")
+                                .requestMatchers(HttpMethod.PUT, "/api/subscriptions/plans/**")
+                                .hasRole("SUPER_ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/subscriptions/plans/*/courses/**")
+                                .hasRole("SUPER_ADMIN")
+                                .requestMatchers(HttpMethod.DELETE, "/api/subscriptions/plans/*/courses/**")
+                                .hasRole("SUPER_ADMIN")
+                                .requestMatchers(HttpMethod.DELETE, "/api/subscriptions/plans/**")
+                                .hasRole("SUPER_ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/subscriptions/bulk-assign",
+                                        "/api/subscriptions/bulk")
+                                .hasAnyRole("SUPER_ADMIN", "BRANCH_ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/subscriptions/activate")
+                                .hasAnyRole("STUDENT", "GUEST")
+                                .requestMatchers(HttpMethod.GET, "/api/subscriptions/mine",
+                                        "/api/subscriptions/users/**",
+                                        "/api/subscriptions/history")
+                                .hasAnyRole("STUDENT", "GUEST", "SUPER_ADMIN", "BRANCH_ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/subscriptions/*/deactivate")
+                                .hasAnyRole("SUPER_ADMIN", "BRANCH_ADMIN")
                                 // =========================
 // POST APIs
 // =========================
