@@ -59,6 +59,7 @@ public class SecurityConfig {
                                         "/api/college/**",
                                         "/api/branch/**",
                                         "/api/course/**",
+                                        "/api/subjects/**",
                                         "/api/section/**",
                                         "/api/chapter/**",
                                         "/api/exam/**",
