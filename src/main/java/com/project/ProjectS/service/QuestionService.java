@@ -40,6 +40,7 @@ public class QuestionService {
     private final ExcelUploadService excelUploadService;
 
     private final QuestionExcelProcessor questionExcelProcessor;
+    private final SubscriptionEntitlementService entitlementService;
 
 
     @Autowired
@@ -54,7 +55,8 @@ public class QuestionService {
             TableHeaderRepository tableHeaderRepository,
             TableAttributeRepository tableAttributeRepository,
             ExcelUploadService excelUploadService,
-            QuestionExcelProcessor questionExcelProcessor) {
+            QuestionExcelProcessor questionExcelProcessor,
+            SubscriptionEntitlementService entitlementService) {
 
         this.questionRepository =
                 questionRepository;
@@ -87,6 +89,11 @@ public class QuestionService {
 
         this.questionExcelProcessor =
                 questionExcelProcessor;
+        this.entitlementService = entitlementService;
+    }
+
+    public void requireCourseAccess(Long courseId, String email) {
+        entitlementService.requireCourseAccess(email, courseId);
     }
 
 

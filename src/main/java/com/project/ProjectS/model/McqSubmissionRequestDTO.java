@@ -12,4 +12,6 @@ public class McqSubmissionRequestDTO {
     private Long userId;
 
     private List<McqAnswerSubmissionDTO> answers;
+
+    private boolean mockTest;
 }

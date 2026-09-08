@@ -51,6 +51,7 @@ public class McqQuestionService {
     private final TopicRepository topicRepository;
     private final McqQuestionRepository mcqQuestionRepository;
     private final McqOptionRepository mcqOptionRepository;
+    private final SubscriptionEntitlementService entitlementService;
     private final QuestionTypeRepository questionTypeRepository;
 
     private final AnswerEventRepository answerEventRepository;
@@ -68,7 +69,8 @@ public class McqQuestionService {
             QuestionTypeRepository questionTypeRepository,
             AnswerEventRepository answerEventRepository,
             QuestionAnswerRepository questionAnswerRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            SubscriptionEntitlementService entitlementService
     ) {
         this.questionRepository = questionRepository;
         this.courseRepository = courseRepository;
@@ -77,6 +79,7 @@ public class McqQuestionService {
         this.mcqQuestionRepository = mcqQuestionRepository;
         this.mcqOptionRepository = mcqOptionRepository;
         this.questionTypeRepository = questionTypeRepository;
+        this.entitlementService = entitlementService;
         this.answerEventRepository = answerEventRepository;
         this.questionAnswerRepository = questionAnswerRepository;
         this.userRepository = userRepository;
@@ -312,6 +315,10 @@ public class McqQuestionService {
                 })
                 .filter(response -> response != null)
                 .collect(Collectors.toList());
+    }
+
+    public void requireCourseAccess(Long courseId, String email) {
+        entitlementService.requireCourseAccess(email, courseId);
     }
 
 
@@ -556,6 +563,20 @@ public class McqQuestionService {
 
     @Transactional
     public McqSubmissionResponseDTO submitMcqAnswers(
+            McqSubmissionRequestDTO request
+    ) {
+        return submitMcqAnswersInternal(request);
+    }
+
+    public McqSubmissionResponseDTO submitMcqAnswersAsAuthenticated(
+            McqSubmissionRequestDTO request, String email) {
+        request.setUserId(userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found"))
+                .getUserId());
+        return submitMcqAnswersInternal(request);
+    }
+
+    private McqSubmissionResponseDTO submitMcqAnswersInternal(
             McqSubmissionRequestDTO request
     ) {
 
@@ -933,6 +954,20 @@ public class McqQuestionService {
 
         McqSubmissionResponseDTO response =
                 new McqSubmissionResponseDTO();
+
+        Set<Long> courseIds = new HashSet<>();
+        for (McqAnswerSubmissionDTO submission : request.getAnswers()) {
+            Question question = questionRepository.findById(submission.getQuestionId())
+                    .orElseThrow(() -> new RuntimeException("Question not found: " + submission.getQuestionId()));
+            courseIds.add(question.getCourse().getCourseId());
+        }
+        if (courseIds.size() != 1) {
+            throw new IllegalArgumentException("All practice questions must belong to the same course");
+        }
+        if (!request.isMockTest()) {
+            entitlementService.consumePracticeQuestions(
+                    user.getUserId(), courseIds.iterator().next(), request.getAnswers().size());
+        }
 
         response.setScore(totalScore);
         response.setResults(results);

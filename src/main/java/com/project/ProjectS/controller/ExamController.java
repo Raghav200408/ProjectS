@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/exams")
@@ -96,10 +97,11 @@ public class ExamController {
 
     @GetMapping("/{examId}/questions")
     public ResponseEntity<List<QuestionResponseDTO>> getExamQuestions(
-            @PathVariable Long examId) {
+            @PathVariable Long examId,
+            Authentication authentication) {
 
         return ResponseEntity.ok(
-                examService.getExamQuestions(examId)
+                examService.getExamQuestions(examId, authentication)
         );
     }
 
@@ -131,10 +133,11 @@ public class ExamController {
     @PostMapping("/{examId}/submit")
     public ResponseEntity<ExamSubmitResponseDTO> submitExam(
             @PathVariable Long examId,
-            @RequestBody ExamSubmitRequestDTO request) {
+            @RequestBody ExamSubmitRequestDTO request,
+            Authentication authentication) {
 
         ExamSubmitResponseDTO response =
-                examService.submitExam(examId, request);
+                examService.submitExam(examId, request, authentication);
 
         return ResponseEntity.ok(response);
     }
