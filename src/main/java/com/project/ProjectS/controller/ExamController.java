@@ -1,13 +1,16 @@
 package com.project.ProjectS.controller;
 
 import com.project.ProjectS.model.*;
+import com.project.ProjectS.security.service.CustomUserDetails;
 import com.project.ProjectS.service.ExamService;
 import jakarta.validation.Valid;
+//import org.apache.tomcat.util.http.parser.Authorization;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
 import org.springframework.security.core.Authentication;
 
 @RestController
@@ -35,10 +38,9 @@ public class ExamController {
 
 
     @GetMapping
-    public ResponseEntity<List<ExamResponseDTO>> getAllExams() {
-
+    public ResponseEntity<List<ExamResponseDTO>> getAllExams(Authentication auth) {
         return ResponseEntity.ok(
-                examService.getAllExams()
+                examService.getAllExams(auth)
         );
     }
 

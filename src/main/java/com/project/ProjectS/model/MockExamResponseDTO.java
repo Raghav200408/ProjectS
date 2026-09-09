@@ -8,31 +8,19 @@ import java.util.List;
 
 @Getter
 @Setter
-public class ExamResponseDTO {
+public class MockExamResponseDTO {
 
-    private Long examId;
+    private Long mockExamId;
 
-    private String examName;
-
-    private Long collegeId;
-
-    private Long branchId;
+    private String mockExamName;
 
     private Long courseId;
 
     private String courseName;
 
-    private Long sectionId;
-
-    private Long subjectId;
-
-    private String subjectName;
-
     private List<Long> chapterIds;
 
-    private LocalDateTime startDate;
-
-    private LocalDateTime endDate;
+    private List<String> chapterNames;
 
     private Integer passPercentage;
 
