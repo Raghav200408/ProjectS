@@ -41,4 +41,7 @@ public class QuestionResponseDTO {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    private List<MatchingPairResponseDTO> pairs;
+
 }
