@@ -1175,10 +1175,10 @@ public class McqQuestionService {
                 .trim()
                 .toUpperCase();
 
-        if (!"SINGLE_CHOICE".equals(normalizedType)
-                && !"MULTIPLE_CHOICE".equals(normalizedType)) {
+        if (!"MCQ SINGLE CHOICE".equals(normalizedType)
+                && !"MCQ MULTIPLE CHOICE".equals(normalizedType)) {
             throw new RuntimeException(
-                    "MCQ Question Type must be SINGLE_CHOICE or MULTIPLE_CHOICE"
+                    "MCQ Question Type must be MCQ SINGLE CHOICE or MCQ MULTIPLE CHOICE"
             );
         }
 

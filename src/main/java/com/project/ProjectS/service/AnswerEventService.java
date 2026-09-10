@@ -21,8 +21,14 @@ import java.util.Objects;
 @Service
 @Transactional
 public class AnswerEventService {
+
     @Autowired
-    public AnswerEventService(AnswerEventRepository answerEventRepository, UserRepository userRepository, QuestionRepository questionRepository, TableAttributeRepository tableAttributeRepository) {
+    public AnswerEventService(
+            AnswerEventRepository answerEventRepository,
+            UserRepository userRepository,
+            QuestionRepository questionRepository,
+            TableAttributeRepository tableAttributeRepository) {
+
         this.answerEventRepository = answerEventRepository;
         this.userRepository = userRepository;
         this.questionRepository = questionRepository;
@@ -44,27 +50,56 @@ public class AnswerEventService {
 
         User user = userRepository
                 .findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException(
-                        "User not found: " + request.getUserId()));
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "User not found: "
+                                        + request.getUserId()
+                        )
+                );
 
 
         Question question = questionRepository
                 .findById(request.getQuestionId())
                 .orElseThrow(() ->
                         new RuntimeException(
-                                "Question not found: " + request.getQuestionId()));
+                                "Question not found: "
+                                        + request.getQuestionId()
+                        )
+                );
 
 
-        TableAttribute attribute =
-                tableAttributeRepository
-                        .findById(request.getAttributeId())
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Attribute not found: " + request.getAttributeId()));
+        /*
+         * Attribute is optional for Fill in the Blank.
+         * Existing question types can still provide attributeId.
+         */
+        TableAttribute attribute = null;
+
+        if (request.getAttributeId() != null) {
+
+            attribute = tableAttributeRepository
+                    .findById(request.getAttributeId())
+                    .orElseThrow(() ->
+                            new RuntimeException(
+                                    "Attribute not found: "
+                                            + request.getAttributeId()
+                            )
+                    );
+        }
 
 
         int attemptNumber = 0;
+
         BigDecimal marks = BigDecimal.ZERO;
+
+
+        /*
+         * Check whether this is a Fill in the Blank question.
+         */
+        boolean isFillInTheBlank =
+                question.getQuestionType() != null
+                        && "FILL_IN_THE_BLANK".equalsIgnoreCase(
+                        question.getQuestionType().getQuestionType()
+                );
 
 
         switch (eventType) {
@@ -72,71 +107,164 @@ public class AnswerEventService {
 
             case "ANSWER": {
 
-                boolean autoFillUsed =
-                        answerEventRepository
-                                .existsByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
-                                        request.getUserId(),
-                                        request.getQuestionId(),
-                                        request.getAttributeId(),
-                                        request.getAnswerPosition(),
-                                        "AUTOFILL"
-                                );
+                boolean autoFillUsed;
+
+
+                /*
+                 * Fill in the Blank:
+                 *
+                 * userId + questionId + answerPosition
+                 *
+                 * Attribute is not required.
+                 */
+                if (isFillInTheBlank) {
+
+                    autoFillUsed =
+                            answerEventRepository
+                                    .existsByUser_UserIdAndQuestion_QuestionIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+                                            request.getUserId(),
+                                            request.getQuestionId(),
+                                            request.getAnswerPosition(),
+                                            "AUTOFILL"
+                                    );
+
+                } else {
+
+                    /*
+                     * Existing question types:
+                     *
+                     * userId + questionId + attributeId + answerPosition
+                     *
+                     * Existing behavior is preserved.
+                     */
+                    autoFillUsed =
+                            answerEventRepository
+                                    .existsByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+                                            request.getUserId(),
+                                            request.getQuestionId(),
+                                            request.getAttributeId(),
+                                            request.getAnswerPosition(),
+                                            "AUTOFILL"
+                                    );
+                }
+
 
                 if (autoFillUsed) {
+
                     throw new IllegalStateException(
                             "Answer already autofilled for answer position "
                                     + request.getAnswerPosition()
                     );
                 }
 
-                long previousAttempts =
-                        answerEventRepository
-                                .countByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
-                                        request.getUserId(),
-                                        request.getQuestionId(),
-                                        request.getAttributeId(),
-                                        request.getAnswerPosition(),
-                                        "ANSWER"
-                                );
+
+                long previousAttempts;
+
+
+                /*
+                 * Fill in the Blank attempt count.
+                 */
+                if (isFillInTheBlank) {
+
+                    previousAttempts =
+                            answerEventRepository
+                                    .countByUser_UserIdAndQuestion_QuestionIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+                                            request.getUserId(),
+                                            request.getQuestionId(),
+                                            request.getAnswerPosition(),
+                                            "ANSWER"
+                                    );
+
+                } else {
+
+                    /*
+                     * Existing attempt count logic.
+                     */
+                    previousAttempts =
+                            answerEventRepository
+                                    .countByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+                                            request.getUserId(),
+                                            request.getQuestionId(),
+                                            request.getAttributeId(),
+                                            request.getAnswerPosition(),
+                                            "ANSWER"
+                                    );
+                }
+
 
                 attemptNumber = (int) previousAttempts + 1;
 
+
                 if (Boolean.TRUE.equals(request.getIsCorrect())) {
+
                     marks = calculateAnswerMarks(attemptNumber);
+
                 } else {
+
                     marks = BigDecimal.ZERO;
                 }
+
 
                 break;
             }
 
+
             case "HINT": {
 
-                long previousAttempts =
-                        answerEventRepository
-                                .countByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
-                                        request.getUserId(),
-                                        request.getQuestionId(),
-                                        request.getAttributeId(),
-                                        request.getAnswerPosition(),
-                                        "ANSWER"
-                                );
+                long previousAttempts;
+
+
+                /*
+                 * Fill in the Blank hint attempt count.
+                 */
+                if (isFillInTheBlank) {
+
+                    previousAttempts =
+                            answerEventRepository
+                                    .countByUser_UserIdAndQuestion_QuestionIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+                                            request.getUserId(),
+                                            request.getQuestionId(),
+                                            request.getAnswerPosition(),
+                                            "ANSWER"
+                                    );
+
+                } else {
+
+                    /*
+                     * Existing question types.
+                     */
+                    previousAttempts =
+                            answerEventRepository
+                                    .countByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+                                            request.getUserId(),
+                                            request.getQuestionId(),
+                                            request.getAttributeId(),
+                                            request.getAnswerPosition(),
+                                            "ANSWER"
+                                    );
+                }
+
 
                 attemptNumber = (int) previousAttempts + 1;
+
 
                 // Correct or wrong after hint = 0 marks
                 marks = BigDecimal.ZERO;
 
+
                 break;
             }
+
 
             case "AUTOFILL": {
 
                 attemptNumber = 0;
+
                 marks = BigDecimal.ZERO;
 
                 break;
             }
+
 
             default:
 
@@ -148,6 +276,7 @@ public class AnswerEventService {
 
 
         AnswerEvent event = new AnswerEvent();
+
 
         event.setUser(user);
 
@@ -384,41 +513,51 @@ public class AnswerEventService {
                 event.getArithmetic()
         );
 
+
         response.setEventType(
                 event.getEventType()
         );
+
 
         response.setIsCorrect(
                 event.getIsCorrect()
         );
 
+
         response.setAttemptNumber(
                 event.getAttemptNumber()
         );
+
 
         response.setMarks(
                 event.getMarks()
         );
 
+
         response.setHint(
                 event.getHint()
         );
+
 
         response.setDescription(
                 event.getDescription()
         );
 
+
         response.setUserAnswer(
                 event.getUserAnswer()
         );
+
 
         response.setActiveRow(
                 event.getActiveRow()
         );
 
+
         response.setCreatedAt(
                 event.getCreatedAt()
         );
+
 
         response.setUpdatedAt(
                 event.getUpdatedAt()

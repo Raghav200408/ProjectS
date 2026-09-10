@@ -20,6 +20,7 @@ public interface AnswerEventRepository
             String eventType
     );
 
+    // Existing attribute-based attempt count
     long countByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
             Long userId,
             Long questionId,
@@ -28,6 +29,23 @@ public interface AnswerEventRepository
             String eventType
     );
 
+    // Fill in the Blank attempt count
+    long countByUser_UserIdAndQuestion_QuestionIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+            Long userId,
+            Long questionId,
+            Integer answerPosition,
+            String eventType
+    );
+
+    // Fill in the Blank autofill check
+    boolean existsByUser_UserIdAndQuestion_QuestionIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+            Long userId,
+            Long questionId,
+            Integer answerPosition,
+            String eventType
+    );
+
+    // Existing attribute-based autofill check
     boolean existsByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
             Long userId,
             Long questionId,
