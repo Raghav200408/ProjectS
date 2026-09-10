@@ -124,9 +124,9 @@ public class QuestionController {
             @RequestParam Long topicId,
             Authentication authentication) {
 
-        if (authentication != null) {
-            questionService.requireCourseAccess(courseId, authentication.getName());
-        }
+//        if (authentication != null) {
+//            questionService.requireCourseAccess(courseId, authentication.getName());
+//        }
 
         List<QuestionResponseDTO> questions =
                 questionService.getQuestionsByMapping(

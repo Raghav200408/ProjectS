@@ -18,7 +18,6 @@ import java.util.Map;
 @Transactional
 public class QuestionService {
 
-
     private final QuestionRepository questionRepository;
 
     private final QuestionAttributeRepository questionAttributeRepository;
@@ -40,7 +39,11 @@ public class QuestionService {
     private final ExcelUploadService excelUploadService;
 
     private final QuestionExcelProcessor questionExcelProcessor;
+
     private final SubscriptionEntitlementService entitlementService;
+
+    // MATCH THE FOLLOWING
+    private final QuestionMatchingPairRepository questionMatchingPairRepository;
 
 
     @Autowired
@@ -56,41 +59,38 @@ public class QuestionService {
             TableAttributeRepository tableAttributeRepository,
             ExcelUploadService excelUploadService,
             QuestionExcelProcessor questionExcelProcessor,
-            SubscriptionEntitlementService entitlementService) {
+            SubscriptionEntitlementService entitlementService,
+            QuestionMatchingPairRepository questionMatchingPairRepository) {
 
-        this.questionRepository =
-                questionRepository;
+        this.questionRepository = questionRepository;
 
-        this.questionAttributeRepository =
-                questionAttributeRepository;
+        this.questionAttributeRepository = questionAttributeRepository;
 
-        this.courseRepository =
-                courseRepository;
+        this.courseRepository = courseRepository;
 
-        this.chapterRepository =
-                chapterRepository;
+        this.chapterRepository = chapterRepository;
 
         this.subjectRepository = subjectRepository;
 
-        this.topicRepository =
-                topicRepository;
+        this.topicRepository = topicRepository;
 
-        this.questionTypeRepository =
-                questionTypeRepository;
+        this.questionTypeRepository = questionTypeRepository;
 
-        this.tableHeaderRepository =
-                tableHeaderRepository;
+        this.tableHeaderRepository = tableHeaderRepository;
 
-        this.tableAttributeRepository =
-                tableAttributeRepository;
+        this.tableAttributeRepository = tableAttributeRepository;
 
-        this.excelUploadService =
-                excelUploadService;
+        this.excelUploadService = excelUploadService;
 
-        this.questionExcelProcessor =
-                questionExcelProcessor;
+        this.questionExcelProcessor = questionExcelProcessor;
+
         this.entitlementService = entitlementService;
+
+        // MATCH THE FOLLOWING
+        this.questionMatchingPairRepository =
+                questionMatchingPairRepository;
     }
+
 
     public void requireCourseAccess(Long courseId, String email) {
         entitlementService.requireCourseAccess(email, courseId);
@@ -103,7 +103,6 @@ public class QuestionService {
 
     public QuestionResponseDTO createQuestion(
             QuestionRequestDTO request) {
-
 
         Course course =
                 courseRepository
@@ -130,8 +129,18 @@ public class QuestionService {
                                 )
                         );
 
-        Subject subject = subjectRepository.findById(request.getSubjectId())
-                .orElseThrow(() -> new RuntimeException("Subject not found with id: " + request.getSubjectId()));
+
+        Subject subject =
+                subjectRepository
+                        .findById(
+                                request.getSubjectId()
+                        )
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Subject not found with id: "
+                                                + request.getSubjectId()
+                                )
+                        );
 
 
         Topic topic =
@@ -146,7 +155,13 @@ public class QuestionService {
                                 )
                         );
 
-        validateHierarchy(course, subject, chapter, topic);
+
+        validateHierarchy(
+                course,
+                subject,
+                chapter,
+                topic
+        );
 
 
         QuestionType questionType =
@@ -180,12 +195,65 @@ public class QuestionService {
                 );
 
 
+        // =========================================================
+        // MATCHING PAIRS - MATCH THE FOLLOWING
+        // =========================================================
+
+        List<QuestionMatchingPair> savedPairs =
+                new ArrayList<>();
+
+
+        if (request.getPairs() != null) {
+
+            for (MatchingPairRequestDTO pairRequest
+                    : request.getPairs()) {
+
+                QuestionMatchingPair matchingPair =
+                        new QuestionMatchingPair();
+
+
+                matchingPair.setQuestion(
+                        savedQuestion
+                );
+
+
+                matchingPair.setColumnA(
+                        pairRequest.getColumnA()
+                );
+
+
+                matchingPair.setColumnB(
+                        pairRequest.getColumnB()
+                );
+
+
+                matchingPair.setDisplayOrder(
+                        pairRequest.getDisplayOrder()
+                );
+
+
+                QuestionMatchingPair savedPair =
+                        questionMatchingPairRepository.save(
+                                matchingPair
+                        );
+
+
+                savedPairs.add(
+                        savedPair
+                );
+            }
+        }
+
+
+        // =========================================================
+        // QUESTION ATTRIBUTES
+        // =========================================================
+
         List<QuestionAttribute> savedAttributes =
                 new ArrayList<>();
 
 
         if (request.getQuestionAttributes() != null) {
-
 
             for (QuestionAttributeRequestDTO attributeRequest
                     : request.getQuestionAttributes()) {
@@ -230,17 +298,21 @@ public class QuestionService {
 
                 questionAttribute.setAttribute(attribute);
 
+
                 questionAttribute.setTransactionDate(
                         attributeRequest.getTransactionDate()
                 );
+
 
                 questionAttribute.setAmount(
                         attributeRequest.getAmount()
                 );
 
+
                 questionAttribute.setAmount2(
                         attributeRequest.getAmount2()
                 );
+
 
                 questionAttribute.setNote(
                         attributeRequest.getNote()
@@ -262,7 +334,8 @@ public class QuestionService {
 
         return convertToResponse(
                 savedQuestion,
-                savedAttributes
+                savedAttributes,
+                savedPairs
         );
     }
 
@@ -320,7 +393,6 @@ public class QuestionService {
 
 
         try {
-
 
             // =================================================
             // READ EXCEL
@@ -380,7 +452,6 @@ public class QuestionService {
 
         for (Question question : questions) {
 
-
             QuestionResponseDTO dto =
                     new QuestionResponseDTO();
 
@@ -395,41 +466,81 @@ public class QuestionService {
             );
 
 
-            dto.setCourseId(
-                    question.getCourse().getCourseId()
-            );
+            // COURSE
+
+            if (question.getCourse() != null) {
+
+                dto.setCourseId(
+                        question
+                                .getCourse()
+                                .getCourseId()
+                );
 
 
-            dto.setCourseName(
-                    question.getCourse().getName()
-            );
-
-            dto.setSubjectId(question.getSubject().getSubjectId());
-            dto.setSubjectName(question.getSubject().getSubjectName());
-
-
-            dto.setChapterId(
-                    question.getChapter().getChapterId()
-            );
+                dto.setCourseName(
+                        question
+                                .getCourse()
+                                .getName()
+                );
+            }
 
 
-            dto.setChapterName(
-                    question.getChapter().getName()
-            );
+            // SUBJECT
+
+            if (question.getSubject() != null) {
+
+                dto.setSubjectId(
+                        question
+                                .getSubject()
+                                .getSubjectId()
+                );
 
 
-            dto.setTopicId(
-                    question
-                            .getTopic()
-                            .getTopicId()
-            );
+                dto.setSubjectName(
+                        question
+                                .getSubject()
+                                .getSubjectName()
+                );
+            }
 
 
-            dto.setTopicName(
-                    question
-                            .getTopic()
-                            .getName()
-            );
+            // CHAPTER
+
+            if (question.getChapter() != null) {
+
+                dto.setChapterId(
+                        question
+                                .getChapter()
+                                .getChapterId()
+                );
+
+
+                dto.setChapterName(
+                        question
+                                .getChapter()
+                                .getName()
+                );
+            }
+
+
+            // TOPIC
+
+            if (question.getTopic() != null) {
+
+                dto.setTopicId(
+                        question
+                                .getTopic()
+                                .getTopicId()
+                );
+
+
+                dto.setTopicName(
+                        question
+                                .getTopic()
+                                .getName()
+                );
+            }
+
 
             if (question.getQuestionType() != null) {
 
@@ -439,12 +550,14 @@ public class QuestionService {
                                 .getQuestionTypeId()
                 );
 
+
                 dto.setQuestionType(
                         question
                                 .getQuestionType()
                                 .getQuestionType()
                 );
             }
+
 
             dto.setActiveRow(
                     question.getActiveRow()
@@ -476,7 +589,6 @@ public class QuestionService {
 
         for (Question question : questions) {
 
-
             List<QuestionAttribute> attributes =
                     questionAttributeRepository
                             .findByQuestion_QuestionId(
@@ -484,10 +596,20 @@ public class QuestionService {
                             );
 
 
+            // MATCH THE FOLLOWING
+
+            List<QuestionMatchingPair> pairs =
+                    questionMatchingPairRepository
+                            .findByQuestion_QuestionIdOrderByDisplayOrderAsc(
+                                    question.getQuestionId()
+                            );
+
+
             responseList.add(
                     convertToResponse(
                             question,
-                            attributes
+                            attributes,
+                            pairs
                     )
             );
         }
@@ -503,7 +625,6 @@ public class QuestionService {
 
     public QuestionResponseDTO getQuestionById(
             Long questionId) {
-
 
         Question question =
                 questionRepository
@@ -523,9 +644,19 @@ public class QuestionService {
                         );
 
 
+        // MATCH THE FOLLOWING
+
+        List<QuestionMatchingPair> pairs =
+                questionMatchingPairRepository
+                        .findByQuestion_QuestionIdOrderByDisplayOrderAsc(
+                                questionId
+                        );
+
+
         return convertToResponse(
                 question,
-                attributes
+                attributes,
+                pairs
         );
     }
 
@@ -537,13 +668,11 @@ public class QuestionService {
     public List<QuestionResponseDTO> getQuestionsByIds(
             List<Long> questionIds) {
 
-
         List<QuestionResponseDTO> responseList =
                 new ArrayList<>();
 
 
         for (Long questionId : questionIds) {
-
 
             Question question =
                     questionRepository
@@ -552,7 +681,8 @@ public class QuestionService {
                                     new RuntimeException(
                                             "Question not found with id: "
                                                     + questionId
-                                    ));
+                                    )
+                            );
 
 
             List<QuestionAttribute> attributes =
@@ -562,10 +692,20 @@ public class QuestionService {
                             );
 
 
+            // MATCH THE FOLLOWING
+
+            List<QuestionMatchingPair> pairs =
+                    questionMatchingPairRepository
+                            .findByQuestion_QuestionIdOrderByDisplayOrderAsc(
+                                    questionId
+                            );
+
+
             responseList.add(
                     convertToResponse(
                             question,
-                            attributes
+                            attributes,
+                            pairs
                     )
             );
         }
@@ -620,8 +760,18 @@ public class QuestionService {
                                 )
                         );
 
-        Subject subject = subjectRepository.findById(request.getSubjectId())
-                .orElseThrow(() -> new RuntimeException("Subject not found with id: " + request.getSubjectId()));
+
+        Subject subject =
+                subjectRepository
+                        .findById(
+                                request.getSubjectId()
+                        )
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Subject not found with id: "
+                                                + request.getSubjectId()
+                                )
+                        );
 
 
         Topic topic =
@@ -636,7 +786,13 @@ public class QuestionService {
                                 )
                         );
 
-        validateHierarchy(course, subject, chapter, topic);
+
+        validateHierarchy(
+                course,
+                subject,
+                chapter,
+                topic
+        );
 
 
         QuestionType questionType =
@@ -666,6 +822,10 @@ public class QuestionService {
                 );
 
 
+        // =========================================================
+        // DELETE OLD QUESTION ATTRIBUTES
+        // =========================================================
+
         questionAttributeRepository.flush();
 
 
@@ -675,12 +835,25 @@ public class QuestionService {
                 );
 
 
+        // =========================================================
+        // DELETE OLD MATCHING PAIRS
+        // =========================================================
+
+        questionMatchingPairRepository
+                .deleteByQuestion_QuestionId(
+                        questionId
+                );
+
+
+        // =========================================================
+        // SAVE QUESTION ATTRIBUTES
+        // =========================================================
+
         List<QuestionAttribute> savedAttributes =
                 new ArrayList<>();
 
 
         if (request.getQuestionAttributes() != null) {
-
 
             for (QuestionAttributeRequestDTO attributeRequest
                     : request.getQuestionAttributes()) {
@@ -725,17 +898,21 @@ public class QuestionService {
 
                 questionAttribute.setAttribute(attribute);
 
+
                 questionAttribute.setTransactionDate(
                         attributeRequest.getTransactionDate()
                 );
+
 
                 questionAttribute.setAmount(
                         attributeRequest.getAmount()
                 );
 
+
                 questionAttribute.setAmount2(
                         attributeRequest.getAmount2()
                 );
+
 
                 questionAttribute.setNote(
                         attributeRequest.getNote()
@@ -755,9 +932,60 @@ public class QuestionService {
         }
 
 
+        // =========================================================
+        // SAVE MATCHING PAIRS
+        // =========================================================
+
+        List<QuestionMatchingPair> savedPairs =
+                new ArrayList<>();
+
+
+        if (request.getPairs() != null) {
+
+            for (MatchingPairRequestDTO pairRequest
+                    : request.getPairs()) {
+
+                QuestionMatchingPair matchingPair =
+                        new QuestionMatchingPair();
+
+
+                matchingPair.setQuestion(
+                        savedQuestion
+                );
+
+
+                matchingPair.setColumnA(
+                        pairRequest.getColumnA()
+                );
+
+
+                matchingPair.setColumnB(
+                        pairRequest.getColumnB()
+                );
+
+
+                matchingPair.setDisplayOrder(
+                        pairRequest.getDisplayOrder()
+                );
+
+
+                QuestionMatchingPair savedPair =
+                        questionMatchingPairRepository.save(
+                                matchingPair
+                        );
+
+
+                savedPairs.add(
+                        savedPair
+                );
+            }
+        }
+
+
         return convertToResponse(
                 savedQuestion,
-                savedAttributes
+                savedAttributes,
+                savedPairs
         );
     }
 
@@ -818,7 +1046,6 @@ public class QuestionService {
 
         for (Question question : questions) {
 
-
             List<QuestionAttribute> attributes =
                     questionAttributeRepository
                             .findByQuestion_QuestionId(
@@ -826,10 +1053,20 @@ public class QuestionService {
                             );
 
 
+            // MATCH THE FOLLOWING
+
+            List<QuestionMatchingPair> pairs =
+                    questionMatchingPairRepository
+                            .findByQuestion_QuestionIdOrderByDisplayOrderAsc(
+                                    question.getQuestionId()
+                            );
+
+
             responseList.add(
                     convertToResponse(
                             question,
-                            attributes
+                            attributes,
+                            pairs
                     )
             );
         }
@@ -845,15 +1082,38 @@ public class QuestionService {
 
     private QuestionResponseDTO convertToResponse(
             Question question,
-            List<QuestionAttribute> attributes) {
+            List<QuestionAttribute> attributes,
+            List<QuestionMatchingPair> pairs) {
 
 
         QuestionResponseDTO response =
                 new QuestionResponseDTO();
 
-        response.setSubjectId(question.getSubject().getSubjectId());
-        response.setSubjectName(question.getSubject().getSubjectName());
 
+        // =====================================================
+        // SUBJECT
+        // =====================================================
+
+        if (question.getSubject() != null) {
+
+            response.setSubjectId(
+                    question
+                            .getSubject()
+                            .getSubjectId()
+            );
+
+
+            response.setSubjectName(
+                    question
+                            .getSubject()
+                            .getSubjectName()
+            );
+        }
+
+
+        // =====================================================
+        // QUESTION
+        // =====================================================
 
         response.setQuestionId(
                 question.getQuestionId()
@@ -869,54 +1129,68 @@ public class QuestionService {
         // COURSE
         // =====================================================
 
-        response.setCourseId(
-                question
-                        .getCourse()
-                        .getCourseId()
-        );
+        if (question.getCourse() != null) {
+
+            response.setCourseId(
+                    question
+                            .getCourse()
+                            .getCourseId()
+            );
 
 
-        response.setCourseName(
-                question
-                        .getCourse()
-                        .getName()
-        );
+            response.setCourseName(
+                    question
+                            .getCourse()
+                            .getName()
+            );
+        }
 
 
         // =====================================================
         // CHAPTER
         // =====================================================
 
-        response.setChapterId(
-                question
-                        .getChapter()
-                        .getChapterId()
-        );
+        if (question.getChapter() != null) {
+
+            response.setChapterId(
+                    question
+                            .getChapter()
+                            .getChapterId()
+            );
 
 
-        response.setChapterName(
-                question
-                        .getChapter()
-                        .getName()
-        );
+            response.setChapterName(
+                    question
+                            .getChapter()
+                            .getName()
+            );
+        }
 
 
         // =====================================================
-        // CATEGORY
+        // TOPIC
         // =====================================================
 
-        response.setTopicId(
-                question
-                        .getTopic()
-                        .getTopicId()
-        );
+        if (question.getTopic() != null) {
+
+            response.setTopicId(
+                    question
+                            .getTopic()
+                            .getTopicId()
+            );
 
 
-        response.setTopicName(
-                question
-                        .getTopic()
-                        .getName()
-        );
+            response.setTopicName(
+                    question
+                            .getTopic()
+                            .getName()
+            );
+        }
+
+
+        // =====================================================
+        // QUESTION TYPE
+        // =====================================================
 
         if (question.getQuestionType() != null) {
 
@@ -926,12 +1200,14 @@ public class QuestionService {
                             .getQuestionTypeId()
             );
 
+
             response.setQuestionType(
                     question
                             .getQuestionType()
                             .getQuestionType()
             );
         }
+
 
         response.setActiveRow(
                 question.getActiveRow()
@@ -978,7 +1254,6 @@ public class QuestionService {
 
             if (questionAttribute.getHeader() != null) {
 
-
                 attributeResponse.setHeaderId(
                         questionAttribute
                                 .getHeader()
@@ -999,7 +1274,6 @@ public class QuestionService {
             // =================================================
 
             if (questionAttribute.getAttribute() != null) {
-
 
                 attributeResponse.setAttributeId(
                         questionAttribute
@@ -1057,26 +1331,114 @@ public class QuestionService {
         );
 
 
+        // =====================================================
+        // MATCHING PAIRS - MATCH THE FOLLOWING
+        // =====================================================
+
+        List<MatchingPairResponseDTO>
+                pairResponses =
+                new ArrayList<>();
+
+
+        if (pairs != null) {
+
+            for (QuestionMatchingPair pair : pairs) {
+
+                MatchingPairResponseDTO pairResponse =
+                        new MatchingPairResponseDTO();
+
+
+                pairResponse.setPairId(
+                        pair.getPairId()
+                );
+
+
+                pairResponse.setColumnA(
+                        pair.getColumnA()
+                );
+
+
+                pairResponse.setColumnB(
+                        pair.getColumnB()
+                );
+
+
+                pairResponse.setDisplayOrder(
+                        pair.getDisplayOrder()
+                );
+
+
+                pairResponses.add(
+                        pairResponse
+                );
+            }
+        }
+
+
+        response.setPairs(
+                pairResponses
+        );
+
+
         return response;
     }
 
-    private void validateHierarchy(Course course, Subject subject, Chapter chapter, Topic topic) {
-        if (!subject.getCourse().getCourseId().equals(course.getCourseId())
-                || !chapter.getCourse().getCourseId().equals(course.getCourseId())
-                || !chapter.getSubject().getSubjectId().equals(subject.getSubjectId())
-                || !topic.getCourse().getCourseId().equals(course.getCourseId())
-                || !topic.getSubject().getSubjectId().equals(subject.getSubjectId())
-                || !topic.getChapter().getChapterId().equals(chapter.getChapterId())) {
-            throw new RuntimeException("Course, subject, chapter, and topic must belong to the same hierarchy");
+
+    // =========================================================
+    // VALIDATE HIERARCHY
+    // =========================================================
+
+    private void validateHierarchy(
+            Course course,
+            Subject subject,
+            Chapter chapter,
+            Topic topic) {
+
+
+        if (!subject.getCourse()
+                .getCourseId()
+                .equals(course.getCourseId())
+
+                || !chapter.getCourse()
+                .getCourseId()
+                .equals(course.getCourseId())
+
+                || !chapter.getSubject()
+                .getSubjectId()
+                .equals(subject.getSubjectId())
+
+                || !topic.getCourse()
+                .getCourseId()
+                .equals(course.getCourseId())
+
+                || !topic.getSubject()
+                .getSubjectId()
+                .equals(subject.getSubjectId())
+
+                || !topic.getChapter()
+                .getChapterId()
+                .equals(chapter.getChapterId())) {
+
+
+            throw new RuntimeException(
+                    "Course, subject, chapter, and topic must belong to the same hierarchy"
+            );
         }
     }
+
+
+    // =========================================================
+    // GET QUESTION TYPE
+    // =========================================================
 
     private QuestionType getQuestionType(
             Long questionTypeId) {
 
+
         if (questionTypeId == null) {
             return null;
         }
+
 
         return questionTypeRepository
                 .findById(questionTypeId)
