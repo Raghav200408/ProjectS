@@ -6,10 +6,10 @@ import com.project.ProjectS.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.*;
-import java.util.stream.Collectors;
+
 import org.springframework.security.core.Authentication;
+import com.project.ProjectS.security.service.CustomUserDetails;
 
 @Transactional
 @Service
@@ -21,18 +21,15 @@ public class ExamService {
     private final BranchRepository branchRepository;
     private final CourseRepository courseRepository;
     private final SectionRepository sectionRepository;
+    private final SubjectRepository subjectRepository;
     private final ChapterRepository chapterRepository;
     private final QuestionRepository questionRepository;
     private final ExamQuestionRepository examQuestionRepository;
-    private final QuestionAttributeRepository questionAttributeRepository;
     private final ExamResultRepository examResultRepository;
     private final McqQuestionRepository mcqQuestionRepository;
-    private final McqOptionRepository mcqOptionRepository;
-    private final RuleEngineService ruleEngineService;
     private final UserRepository userRepository;
-    private final TableNameRepository tableNameRepository;
-    private final TableHeaderRepository tableHeaderRepository;
     private final SubscriptionEntitlementService entitlementService;
+    private final ExamScoringService examScoringService;
 
     public ExamService(
             ExamRepository examRepository,
@@ -42,17 +39,14 @@ public class ExamService {
             BranchRepository branchRepository,
             CourseRepository courseRepository,
             SectionRepository sectionRepository,
+            SubjectRepository subjectRepository,
             ChapterRepository chapterRepository,
             QuestionRepository questionRepository,
-            QuestionAttributeRepository questionAttributeRepository,
             QuestionService questionService,
             McqQuestionRepository mcqQuestionRepository,
-            McqOptionRepository mcqOptionRepository,
-            RuleEngineService ruleEngineService,
             UserRepository userRepository,
-            TableNameRepository tableNameRepository,
-            TableHeaderRepository tableHeaderRepository,
-            SubscriptionEntitlementService entitlementService) {
+            SubscriptionEntitlementService entitlementService,
+            ExamScoringService examScoringService) {
 
         this.examRepository = examRepository;
         this.examQuestionRepository = examQuestionRepository;
@@ -60,19 +54,15 @@ public class ExamService {
         this.branchRepository = branchRepository;
         this.courseRepository = courseRepository;
         this.sectionRepository = sectionRepository;
+        this.subjectRepository = subjectRepository;
         this.chapterRepository = chapterRepository;
         this.questionRepository = questionRepository;
-        this.questionAttributeRepository = questionAttributeRepository;
         this.questionService = questionService;
         this.examResultRepository = examResultRepository;
         this.mcqQuestionRepository = mcqQuestionRepository;
-        this.mcqOptionRepository = mcqOptionRepository;
-        this.ruleEngineService = ruleEngineService;
         this.userRepository = userRepository;
-        this.tableNameRepository = tableNameRepository;
-        this.tableHeaderRepository = tableHeaderRepository;
         this.entitlementService = entitlementService;
-
+        this.examScoringService = examScoringService;
     }
 
 
@@ -113,6 +103,11 @@ public class ExamService {
         }
 
 
+        Subject subject = resolveSubjectForExam(
+                request.getSubjectId(), course, chapters
+        );
+
+
         // Create Exam
         Exam exam = new Exam();
 
@@ -125,6 +120,8 @@ public class ExamService {
         exam.setCourse(course);
 
         exam.setSection(section);
+
+        exam.setSubject(subject);
 
         exam.setChapters(chapters);
 
@@ -147,13 +144,68 @@ public class ExamService {
     }
 
 
-    public List<ExamResponseDTO> getAllExams() {
+    /**
+     * Returns exams scoped to the caller's role:
+     * SUPER_ADMIN   -> every exam on the platform
+     * COLLEGE_ADMIN -> exams belonging to the admin's college
+     * BRANCH_ADMIN  -> exams belonging to the admin's branch
+     * STUDENT       -> exams for the student's own section
+     * GUEST / anyone else / unauthenticated -> none
+     * The scope is applied by the repository query, not in memory.
+     */
+    public List<ExamResponseDTO> getAllExams(Authentication authentication) {
 
-        return examRepository
-                .findAll()
-                .stream()
+        User user = getLoggedInUser(authentication);
+
+        if (user == null || user.getRole() == null) {
+            return List.of();
+        }
+
+        String role = user.getRole().getRoleName();
+
+        List<Exam> exams = switch (role == null ? "" : role.toUpperCase()) {
+
+            case "SUPER_ADMIN" -> examRepository.findAll();
+
+            case "COLLEGE_ADMIN" -> user.getCollege() == null
+                    ? List.of()
+                    : examRepository.findByCollege_CollegeId(
+                    user.getCollege().getCollegeId());
+
+            case "BRANCH_ADMIN" -> user.getBranch() == null
+                    ? List.of()
+                    : examRepository.findByBranch_BranchId(
+                    user.getBranch().getBranchId());
+
+            case "STUDENT" -> user.getSection() == null
+                    ? List.of()
+                    : examRepository.findUnattemptedForStudent(
+                    user.getSection().getSectionId(),
+                    user.getUserId());
+
+            default -> List.of();
+        };
+
+        return exams.stream()
                 .map(this::convertToResponse)
                 .toList();
+    }
+
+
+    private User getLoggedInUser(Authentication authentication) {
+
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof CustomUserDetails principal)) {
+            return null;
+        }
+
+        // Re-load a managed entity by primary key: the User held by the
+        // principal was loaded outside a transaction, so its lazy
+        // college/branch/section associations are not usable here.
+        return userRepository
+                .findById(principal.getUser().getUserId())
+                .orElse(null);
     }
 
 
@@ -229,6 +281,11 @@ public class ExamService {
         }
 
 
+        Subject subject = resolveSubjectForExam(
+                request.getSubjectId(), course, chapters
+        );
+
+
         exam.setExamName(request.getExamName());
 
         exam.setCollege(college);
@@ -238,6 +295,8 @@ public class ExamService {
         exam.setCourse(course);
 
         exam.setSection(section);
+
+        exam.setSubject(subject);
 
         exam.setChapters(chapters);
 
@@ -287,112 +346,22 @@ public class ExamService {
         entitlementService.consumeExamAttempt(
                 user.getUserId(), exam.getCourse().getCourseId());
 
-        List<ExamQuestion> examQuestions =
-                examQuestionRepository.findByExam_ExamId(examId);
+        List<Long> questionIds =
+                examQuestionRepository.findByExam_ExamId(examId)
+                        .stream()
+                        .map(examQuestion ->
+                                examQuestion.getQuestion().getQuestionId())
+                        .toList();
 
-        double totalMarks = 0.0;
-        double maximumMarks = 0.0;
-
-        for (ExamQuestion examQuestion : examQuestions) {
-
-            Long questionId =
-                    examQuestion.getQuestion().getQuestionId();
-
-            ExamQuestionAnswerDTO submittedQuestion =
-                    request.getAnswers()
-                            .stream()
-                            .filter(answer ->
-                                    answer.getQuestionId().equals(questionId)
-                            )
-                            .findFirst()
-                            .orElse(null);
-
-            if (submittedQuestion == null) {
-                continue;
-            }
-
-            String questionType =
-                    submittedQuestion.getQuestionType();
-
-            if ("SINGLE_CHOICE".equalsIgnoreCase(questionType)
-                    || "MULTIPLE_CHOICE".equalsIgnoreCase(questionType)) {
-
-                maximumMarks += 1;
-
-                if (checkMcqAnswer(submittedQuestion)) {
-                    totalMarks += 1;
-                }
-
-            } else {
-                List<QuestionAttribute> questionAttributes =
-                        questionAttributeRepository.findByQuestion_QuestionId(questionId);
-
-                long uniqueAttributeCount = questionAttributes.stream()
-                        .filter(qa -> qa.getAttribute() != null)
-                        .map(qa -> qa.getAttribute().getAttributeId())
-                        .distinct()
-                        .count();
-
-                maximumMarks += uniqueAttributeCount;
-
-                if (submittedQuestion.getAnswers() == null) {
-                    continue;
-                }
-
-                Map<Long, List<ExamAnswerDTO>> answersByAttribute = new HashMap<>();
-
-                for (ExamAnswerDTO submittedAnswer : submittedQuestion.getAnswers()) {
-
-                    if (submittedAnswer == null ||
-                            submittedAnswer.getAnsweredData() == null) {
-                        continue;
-                    }
-
-                    Long attributeId =
-                            getLongValue(
-                                    submittedAnswer.getAnsweredData()
-                                            .get("attributeId")
-                            );
-
-                    if (attributeId == null) {
-                        continue;
-                    }
-
-                    answersByAttribute
-                            .computeIfAbsent(attributeId, key -> new ArrayList<>())
-                            .add(submittedAnswer);
-                }
-
-                for (Map.Entry<Long, List<ExamAnswerDTO>> entry
-                        : answersByAttribute.entrySet()) {
-
-                    Long attributeId = entry.getKey();
-
-                    List<ExamAnswerDTO> attributeAnswers = entry.getValue();
-
-                    if (checkAccountingAttribute(
-                            questionId,
-                            attributeId,
-                            attributeAnswers)) {
-
-                        totalMarks += 1.0;
-                    }
-                }
-
-
-            }
-        }
-
-        double percentage = maximumMarks == 0
-                ? 0
-                : (totalMarks / maximumMarks) * 100;
+        ExamScoringService.Score score =
+                examScoringService.score(questionIds, request.getAnswers());
 
         ExamResult result = new ExamResult();
 
         result.setExam(exam);
         result.setUser(user);
-        result.setTotalMarks(totalMarks);
-        result.setPercentage(percentage);
+        result.setTotalMarks(score.totalMarks());
+        result.setPercentage(score.percentage());
 
         examResultRepository.save(result);
 
@@ -401,8 +370,8 @@ public class ExamService {
 
         response.setExamId(examId);
         response.setUserId(user.getUserId());
-        response.setTotalMarks(totalMarks);
-        response.setPercentage(percentage);
+        response.setTotalMarks(score.totalMarks());
+        response.setPercentage(score.percentage());
 
         return response;
     }
@@ -415,372 +384,6 @@ public class ExamService {
                     .getUserId());
         }
         return submitExam(examId, request);
-    }
-
-    private boolean checkMcqAnswer(
-            ExamQuestionAnswerDTO submittedQuestion) {
-
-        if (submittedQuestion.getAnswers() == null
-                || submittedQuestion.getAnswers().isEmpty()) {
-
-            return false;
-        }
-
-        ExamAnswerDTO examAnswer =
-                submittedQuestion.getAnswers().get(0);
-
-        if (examAnswer.getAnsweredData() == null) {
-            return false;
-        }
-
-        Object selectedObject =
-                examAnswer.getAnsweredData().get("selectedAnswerId");
-
-        if (selectedObject == null) {
-            selectedObject =
-                    examAnswer.getAnsweredData().get("selectedAnswerIds");
-        }
-
-        if (!(selectedObject instanceof List<?> selectedList)) {
-            return false;
-        }
-
-        Set<Long> selectedIds = new HashSet<>();
-
-        for (Object value : selectedList) {
-
-            if (value instanceof Number number) {
-                selectedIds.add(number.longValue());
-            } else {
-                selectedIds.add(Long.valueOf(value.toString()));
-            }
-        }
-
-        List<McqOption> options =
-                mcqOptionRepository
-                        .findByQuestionIdAndActiveRowTrueOrderByOptionOrderAsc(
-                                submittedQuestion.getQuestionId()
-                        );
-
-        Set<Long> correctIds =
-                options.stream()
-                        .filter(option -> Boolean.TRUE.equals(option.getIsCorrect()))
-                        .map(McqOption::getOptionId)
-                        .collect(Collectors.toSet());
-
-        return selectedIds.equals(correctIds);
-    }
-
-
-    private boolean checkAccountingAttribute(
-            Long questionId,
-            Long attributeId,
-            List<ExamAnswerDTO> submittedAnswers) {
-
-        if (submittedAnswers == null || submittedAnswers.isEmpty()) {
-            return false;
-        }
-
-        // Get QuestionAttribute
-        QuestionAttribute questionAttribute =
-                questionAttributeRepository
-                        .findByQuestion_QuestionId(questionId)
-                        .stream()
-                        .filter(qa ->
-                                qa.getAttribute() != null
-                                        && attributeId.equals(
-                                        qa.getAttribute().getAttributeId()
-                                )
-                        )
-                        .findFirst()
-                        .orElse(null);
-
-        if (questionAttribute == null) {
-            return false;
-        }
-
-        // Get Rule Engine
-        List<RuleEngineResponse> rules =
-                ruleEngineService.getRuleEngineByAttributeId(attributeId);
-
-        if (rules == null || rules.isEmpty()) {
-            return false;
-        }
-
-        /*
-         * Every submitted answer must match
-         * one of the Rule Engine conditions.
-         */
-        for (ExamAnswerDTO submittedAnswer : submittedAnswers) {
-
-            boolean answerMatched = false;
-
-            for (RuleEngineResponse rule : rules) {
-
-                if (matchesCondition(
-                        submittedAnswer,
-                        rule.getCondition1(),
-                        questionAttribute)) {
-
-                    answerMatched = true;
-                    break;
-                }
-
-                if (matchesCondition(
-                        submittedAnswer,
-                        rule.getCondition2(),
-                        questionAttribute)) {
-
-                    answerMatched = true;
-                    break;
-                }
-
-                if (matchesCondition(
-                        submittedAnswer,
-                        rule.getCondition3(),
-                        questionAttribute)) {
-
-                    answerMatched = true;
-                    break;
-                }
-
-                if (matchesCondition(
-                        submittedAnswer,
-                        rule.getCondition4(),
-                        questionAttribute)) {
-
-                    answerMatched = true;
-                    break;
-                }
-            }
-
-            if (!answerMatched) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private boolean isValidCondition(RuleConditionDTO condition) {
-
-        if (condition == null) {
-            return false;
-        }
-
-        return condition.getArithmetic() != null
-                && condition.getTableId() != null
-                && condition.getHeaderId() != null
-                && condition.getAmountPosition() != null;
-    }
-
-    private boolean matchesCondition(
-            ExamAnswerDTO submittedAnswer,
-            RuleConditionDTO condition,
-            QuestionAttribute questionAttribute) {
-
-        if (submittedAnswer == null ||
-                submittedAnswer.getAnsweredData() == null ||
-                condition == null) {
-
-            return false;
-        }
-
-        if (!isValidCondition(condition)) {
-            return false;
-        }
-
-        Map<String, Object> data =
-                submittedAnswer.getAnsweredData();
-
-        String tableName =
-                data.get("tableName") != null
-                        ? data.get("tableName").toString()
-                        : null;
-
-        String headerName =
-                data.get("headerName") != null
-                        ? data.get("headerName").toString()
-                        : null;
-
-        String submittedArithmetic =
-                data.get("arithmetic") != null
-                        ? data.get("arithmetic").toString()
-                        : null;
-
-        BigDecimal submittedAmount =
-                getBigDecimalValue(data.get("amount"));
-
-        if (tableName == null ||
-                headerName == null ||
-                submittedArithmetic == null ||
-                submittedAmount == null) {
-
-            return false;
-        }
-
-        // Frontend name -> database ID
-        Long submittedTableId =
-                getTableIdByName(tableName);
-
-        Long submittedHeaderId =
-                getHeaderIdByName(headerName);
-
-        if (submittedTableId == null ||
-                submittedHeaderId == null) {
-
-            return false;
-        }
-
-        // Compare table
-        if (!submittedTableId.equals(condition.getTableId())) {
-            return false;
-        }
-
-        // Compare header
-        if (!submittedHeaderId.equals(condition.getHeaderId())) {
-            return false;
-        }
-
-        // Compare arithmetic
-        if (!submittedArithmetic.trim()
-                .equalsIgnoreCase(
-                        condition.getArithmetic().trim())) {
-
-            return false;
-        }
-
-        // Get expected amount from QuestionAttribute
-        BigDecimal expectedAmount =
-                getExpectedAmount(
-                        condition.getAmountPosition(),
-                        questionAttribute
-                );
-
-        if (expectedAmount == null) {
-            return false;
-        }
-
-        return expectedAmount.compareTo(submittedAmount) == 0;
-    }
-
-
-    private Long getTableIdByName(String tableName) {
-
-        if (tableName == null) {
-            return null;
-        }
-
-        String normalizedName =
-                tableName
-                        .trim()
-                        .replaceAll("\\s+", " ");
-
-        return tableNameRepository.findAll()
-                .stream()
-                .filter(table -> table.getName() != null)
-                .filter(table ->
-                        table.getName()
-                                .trim()
-                                .replaceAll("\\s+", " ")
-                                .equalsIgnoreCase(normalizedName)
-                )
-                .map(TableName::getTableNameId)
-                .findFirst()
-                .orElse(null);
-    }
-
-    private Long getHeaderIdByName(String headerName) {
-
-        if (headerName == null) {
-            return null;
-        }
-
-        String normalizedName =
-                headerName
-                        .trim()
-                        .replaceAll("\\s+", " ");
-
-        return tableHeaderRepository.findAll()
-                .stream()
-                .filter(header -> header.getName() != null)
-                .filter(header ->
-                        header.getName()
-                                .trim()
-                                .replaceAll("\\s+", " ")
-                                .equalsIgnoreCase(normalizedName)
-                )
-                .map(TableHeader::getHeaderId)
-                .findFirst()
-                .orElse(null);
-    }
-
-    private BigDecimal getExpectedAmount(
-            String amountPosition,
-            QuestionAttribute questionAttribute) {
-
-        if (amountPosition == null) {
-            return null;
-        }
-
-        if ("amount".equalsIgnoreCase(amountPosition)
-                || "amount1".equalsIgnoreCase(amountPosition)
-                || "1".equalsIgnoreCase(amountPosition)) {
-
-            return questionAttribute.getAmount();
-        }
-
-        if ("amount2".equalsIgnoreCase(amountPosition)
-                || "2".equalsIgnoreCase(amountPosition)) {
-
-            return questionAttribute.getAmount2();
-        }
-
-        return null;
-    }
-
-    private Long getLongValue(Object value) {
-
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Number number) {
-            return number.longValue();
-        }
-
-        try {
-            return Long.valueOf(value.toString().trim());
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    private String getNormalizedString(Object value) {
-
-        if (value == null) {
-            return null;
-        }
-
-        String text =
-                value.toString()
-                        .trim()
-                        .replaceAll("\\s+", " ");
-
-        return text.isEmpty() ? null : text;
-    }
-
-    private BigDecimal getBigDecimalValue(Object value) {
-
-        if (value == null) {
-            return null;
-        }
-
-        try {
-            return new BigDecimal(value.toString().trim());
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 
     @Transactional
@@ -969,6 +572,40 @@ public class ExamService {
     }
 
 
+    // An exam is scoped to a single subject: it must sit under the exam's
+    // course, and every chapter attached to the paper must belong to it.
+    private Subject resolveSubjectForExam(
+            Long subjectId,
+            Course course,
+            List<Chapter> chapters) {
+
+        Subject subject = subjectRepository
+                .findById(subjectId)
+                .orElseThrow(() ->
+                        new RuntimeException("Subject not found"));
+
+        if (!subject.getCourse().getCourseId()
+                .equals(course.getCourseId())) {
+            throw new RuntimeException(
+                    "Subject does not belong to the selected course"
+            );
+        }
+
+        boolean allChaptersInSubject = chapters.stream()
+                .allMatch(chapter ->
+                        chapter.getSubject().getSubjectId()
+                                .equals(subject.getSubjectId()));
+
+        if (!allChaptersInSubject) {
+            throw new RuntimeException(
+                    "One or more chapters do not belong to the selected subject"
+            );
+        }
+
+        return subject;
+    }
+
+
     private ExamResponseDTO convertToResponse(
             Exam exam) {
 
@@ -1010,6 +647,16 @@ public class ExamService {
         response.setSectionId(
                 exam.getSection()
                         .getSectionId()
+        );
+
+        response.setSubjectId(
+                exam.getSubject()
+                        .getSubjectId()
+        );
+
+        response.setSubjectName(
+                exam.getSubject()
+                        .getSubjectName()
         );
 
 

@@ -31,6 +31,9 @@ public class ExamRequestDTO {
     @NotNull(message = "Section Id is required")
     private Long sectionId;
 
+    @NotNull(message = "Subject Id is required")
+    private Long subjectId;
+
     @NotEmpty(message = "Please select at least one chapter")
     private List<Long> chapterIds;
 
