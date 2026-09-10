@@ -81,9 +81,9 @@ public class McqQuestionController {
             Long topicId,
             Authentication authentication) {
 
-        if (authentication != null) {
-            mcqQuestionService.requireCourseAccess(courseId, authentication.getName());
-        }
+//        if (authentication != null) {
+//            mcqQuestionService.requireCourseAccess(courseId, authentication.getName());
+//        }
 
         List<McqQuestionResponseDTO> response =
                 mcqQuestionService.getMcqQuestionsByFilter(
@@ -128,12 +128,11 @@ public class McqQuestionController {
     @PostMapping("/submit")
     public ResponseEntity<McqSubmissionResponseDTO>
     submitMcqAnswers(
-            @RequestBody McqSubmissionRequestDTO request,
-            Authentication authentication) {
+            @RequestBody McqSubmissionRequestDTO request) {
 
         McqSubmissionResponseDTO response =
-                mcqQuestionService.submitMcqAnswersAsAuthenticated(
-                        request, authentication.getName());
+                mcqQuestionService.submitMcqAnswersInternal(
+                        request);
 
         return ResponseEntity.ok(response);
     }

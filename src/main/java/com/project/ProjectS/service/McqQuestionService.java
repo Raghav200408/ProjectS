@@ -568,15 +568,16 @@ public class McqQuestionService {
         return submitMcqAnswersInternal(request);
     }
 
-    public McqSubmissionResponseDTO submitMcqAnswersAsAuthenticated(
-            McqSubmissionRequestDTO request, String email) {
-        request.setUserId(userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Authenticated user not found"))
-                .getUserId());
-        return submitMcqAnswersInternal(request);
-    }
+//    public McqSubmissionResponseDTO submitMcqAnswersAsAuthenticated(
+//            McqSubmissionRequestDTO request, String email) {
+    ////        request.setUserId(userRepository.findByEmail(email)
+    ////                .orElseThrow(() -> new RuntimeException("Authenticated user not found"))
+    ////                .getUserId());
+//        return submitMcqAnswersInternal(request);
+//    }
 
-    private McqSubmissionResponseDTO submitMcqAnswersInternal(
+    @Transactional
+    public McqSubmissionResponseDTO submitMcqAnswersInternal(
             McqSubmissionRequestDTO request
     ) {
 
@@ -588,8 +589,9 @@ public class McqQuestionService {
             throw new RuntimeException("User ID is required");
         }
 
-        if (request.getAnswers() == null) {
-            throw new RuntimeException("Answers are required");
+        if (request.getQuestionId() == null || request.getSelectedOptionIds() == null
+                || request.getSelectedOptionIds().isEmpty()) {
+            throw new IllegalArgumentException("Question ID and selected options are required");
         }
 
         // ------------------------------------------
@@ -607,14 +609,13 @@ public class McqQuestionService {
                 new ArrayList<>();
 
         // ------------------------------------------
-        // Process every submitted question
+        // Process the submitted question
         // ------------------------------------------
 
-        for (McqAnswerSubmissionDTO submission :
-                request.getAnswers()) {
+        {
 
             Long questionId =
-                    submission.getQuestionId();
+                    request.getQuestionId();
 
             if (questionId == null) {
                 throw new RuntimeException(
@@ -671,7 +672,7 @@ public class McqQuestionService {
             // ------------------------------------------
 
             List<Long> selectedOptionIds =
-                    submission.getSelectedOptionIds();
+                    request.getSelectedOptionIds();
 
             if (selectedOptionIds == null) {
                 selectedOptionIds = new ArrayList<>();
@@ -680,36 +681,6 @@ public class McqQuestionService {
             // Remove duplicate option IDs
             Set<Long> selectedIds =
                     new HashSet<>(selectedOptionIds);
-
-            // ------------------------------------------
-            // UNANSWERED
-            // ------------------------------------------
-
-            if (selectedIds.isEmpty()) {
-
-                McqSubmissionResultDTO result =
-                        new McqSubmissionResultDTO();
-
-                result.setQuestionId(questionId);
-                result.setSelectedOptionIds(
-                        new ArrayList<>()
-                );
-                result.setCorrectOptionIds(
-                        new ArrayList<>()
-                );
-                result.setStatus("UNANSWERED");
-                result.setMarksAwarded(
-                        BigDecimal.ZERO
-                );
-
-                results.add(result);
-
-                // IMPORTANT:
-                // Do NOT insert into answer_events
-                // Do NOT insert into question_answers
-
-                continue;
-            }
 
             // ------------------------------------------
             // Get active options
@@ -955,19 +926,6 @@ public class McqQuestionService {
         McqSubmissionResponseDTO response =
                 new McqSubmissionResponseDTO();
 
-        Set<Long> courseIds = new HashSet<>();
-        for (McqAnswerSubmissionDTO submission : request.getAnswers()) {
-            Question question = questionRepository.findById(submission.getQuestionId())
-                    .orElseThrow(() -> new RuntimeException("Question not found: " + submission.getQuestionId()));
-            courseIds.add(question.getCourse().getCourseId());
-        }
-        if (courseIds.size() != 1) {
-            throw new IllegalArgumentException("All practice questions must belong to the same course");
-        }
-        if (!request.isMockTest()) {
-            entitlementService.consumePracticeQuestions(
-                    user.getUserId(), courseIds.iterator().next(), request.getAnswers().size());
-        }
 
         response.setScore(totalScore);
         response.setResults(results);
