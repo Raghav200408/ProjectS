@@ -10,6 +10,7 @@ import com.project.ProjectS.service.GenericExcelUploadService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -80,6 +81,13 @@ public class AttendanceController {
                 );
 
         return ResponseEntity.ok(response);
+    }
+
+    // Student self-service endpoint; never accepts another student's ID.
+    @GetMapping("/mine")
+    public ResponseEntity<List<AttendanceResponseDTO>> getOwnAttendance(
+            Authentication authentication) {
+        return ResponseEntity.ok(attendanceService.getOwnAttendance(authentication));
     }
 
     // Delete Attendance

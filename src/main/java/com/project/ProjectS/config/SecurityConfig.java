@@ -2,7 +2,6 @@ package com.project.ProjectS.config;
 
 import com.project.ProjectS.security.filter.JwtAuthenticationFilter;
 import com.project.ProjectS.security.oauth2.CustomOAuth2SuccessHandler;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -11,214 +10,125 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * Authorization rules from Role_Based_Functionality_Readable.xlsx.
+ */
 @Configuration
 public class SecurityConfig {
-    @Autowired
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, CustomOAuth2SuccessHandler customOAuth2SuccessHandler) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.customOAuth2SuccessHandler = customOAuth2SuccessHandler;
+    private static final String SA = "SUPER_ADMIN";
+    private static final String CA = "COLLEGE_ADMIN";
+    private static final String BA = "BRANCH_ADMIN";
+    private static final String ST = "STUDENT";
+    private static final String GU = "GUEST";
+    private static final String[] ALL = {SA, CA, BA, ST, GU};
+    private static final String[] ADMINS = {SA, CA, BA};
+
+    private final JwtAuthenticationFilter jwtFilter;
+    private final CustomOAuth2SuccessHandler oauthSuccessHandler;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtFilter,
+                          CustomOAuth2SuccessHandler oauthSuccessHandler) {
+        this.jwtFilter = jwtFilter;
+        this.oauthSuccessHandler = oauthSuccessHandler;
     }
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
-
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
-            throws Exception {
-
-        http
-
-                .csrf(csrf -> csrf.disable())
-
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http.csrf(csrf -> csrf.disable())
                 .cors(cors -> {
                 })
-
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(
-                                SessionCreationPolicy.STATELESS
-                        )
-                )
-
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                        "/api/questions/filter",
-                        "/api/mcq-questions/filter",
-                        "/api/mcq-questions/submit",
-                        "/api/mock-tests/**",
-                        "/api/exams/*/questions",
-                        "/api/exams/*/submit")
-                .hasAnyRole("STUDENT", "GUEST", "SUPER_ADMIN", "BRANCH_ADMIN")
+                        // Public entry points only.
+                        .requestMatchers("/api/auth/login", "/api/users/guest/register",
+                                "/oauth2/**", "/login/**", "/error").permitAll()
 
+                        // Dashboard and settings.
+                        .requestMatchers("/api/dashboard/**", "/api/settings/**").hasAnyRole(ALL)
 
-                                .requestMatchers(
-                                        "/api/auth/login",
-                                        "/api/users/guest/register",
-                                        "/oauth2/**",
-                                        "/login/**",
-                                        "/error",
-                                        "/api/college/**",
-                                        "/api/branch/**",
-                                        "/api/course/**",
-                                        "/api/subjects/**",
-                                        "/api/section/**",
-                                        "/api/chapter/**",
-                                        "/api/exam/**",
-                                        "/api/exam-question/**",
-                                        "/api/table-names/**",
-                                        "/api/table-headers/**",
-                                        "/api/table-attributes/**",
-                                        "/api/topics/**",
-                                        "/api/question-types/**",
-                                        "/api/roles/**",
-                                        "/api/chapter/**",
-                                        "/api/rule-engines/**",
-                                        "/api/dashboard/**",
-                                        "/api/questions/**",
-                                        "/api/users/superAdmin",
-                                        "/api/users/superAdmins",
-                                        "/api/users/branchAdmins",
-                                        "/api/users/branchAdmin",
-                                        "/api/users/students",
-                                        "/api/users/superAdmin/**",
-                                        "/api/users/excel/upload",
-                                        "/api/users/students_Guest/**",
-                                        "/api/users/all/**",
-                                        "/api/users/superAdmin/**",
-                                        "/api/questions/QuestionText/**",
-                                        "/api/exams/**",
-                                        "/api/exams/questions/filter",
-                                        "/api/question_answers/**",
-                                        "/api/attendance/**",
-                                        "/api/answer_events/**",
-                                        "/api/mcq-questions/**",
-                                        "api/users/collegeAdmin/**"
+                        // Subscription overview/history is administrative; plans are available to all roles.
+                        .requestMatchers(HttpMethod.GET, "/api/subscriptions/users/**",
+                                "/api/subscriptions/history").hasAnyRole(ADMINS)
+                        .requestMatchers("/api/subscriptions/plans/**",
+                                "/api/subscriptions/courses/*/plans").hasAnyRole(ALL)
+                        .requestMatchers(HttpMethod.POST, "/api/subscriptions/activate").hasAnyRole(ST, GU)
+                        .requestMatchers(HttpMethod.GET, "/api/subscriptions/mine").hasAnyRole(ALL)
+                        .requestMatchers(HttpMethod.POST, "/api/subscriptions/bulk-assign",
+                                "/api/subscriptions/bulk", "/api/subscriptions/*/deactivate").hasAnyRole(ADMINS)
 
-                                ).permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/subscriptions/courses/*/plans",
-                                        "/api/subscriptions/plans/course/*").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/subscriptions/plans").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/api/subscriptions/plans")
-                                .hasRole("SUPER_ADMIN")
-                                .requestMatchers(HttpMethod.PUT, "/api/subscriptions/plans/**")
-                                .hasRole("SUPER_ADMIN")
-                                .requestMatchers(HttpMethod.POST, "/api/subscriptions/plans/*/courses/**")
-                                .hasRole("SUPER_ADMIN")
-                                .requestMatchers(HttpMethod.DELETE, "/api/subscriptions/plans/*/courses/**")
-                                .hasRole("SUPER_ADMIN")
-                                .requestMatchers(HttpMethod.DELETE, "/api/subscriptions/plans/**")
-                                .hasRole("SUPER_ADMIN")
-                                .requestMatchers(HttpMethod.POST, "/api/subscriptions/bulk-assign",
-                                        "/api/subscriptions/bulk")
-                                .hasAnyRole("SUPER_ADMIN", "BRANCH_ADMIN")
-                                .requestMatchers(HttpMethod.POST, "/api/subscriptions/activate")
-                                .hasAnyRole("STUDENT", "GUEST")
-                                .requestMatchers(HttpMethod.GET, "/api/subscriptions/mine",
-                                        "/api/subscriptions/users/**",
-                                        "/api/subscriptions/history")
-                                .hasAnyRole("STUDENT", "GUEST", "SUPER_ADMIN", "BRANCH_ADMIN")
-                                .requestMatchers(HttpMethod.POST, "/api/subscriptions/*/deactivate")
-                                .hasAnyRole("SUPER_ADMIN", "BRANCH_ADMIN")
-                                // =========================
-// POST APIs
-// =========================
+                        // Colleges, branches and sections.
+                        .requestMatchers("/api/college/**", "/api/branch/**").hasAnyRole(SA, CA)
+                        .requestMatchers("/api/section/**").hasAnyRole(ADMINS)
 
-                                .requestMatchers(HttpMethod.POST,
-                                        "/api/users/superAdmin",
-                                        "/api/users/branchAdmin")
-                                .hasRole("SUPER_ADMIN")
+                        // Courses, subjects, chapters and topics: student/guest read-only.
+                        .requestMatchers(HttpMethod.GET, "/api/course/**", "/api/subjects/**",
+                                "/api/chapter/**", "/api/topics/**").hasAnyRole(ALL)
+                        .requestMatchers("/api/course/**", "/api/subjects/**",
+                                "/api/chapter/**", "/api/topics/**").hasAnyRole(ADMINS)
 
-                                .requestMatchers(HttpMethod.POST,
-                                        "/api/users/student")
-                                .hasAnyRole("SUPER_ADMIN", "BRANCH_ADMIN")
+                        // Practice is available to all roles; authoring is Super Admin only.
+                        .requestMatchers(HttpMethod.POST, "/api/mcq-questions/submit",
+                                "/api/question_answers/**").hasAnyRole(ALL)
+                        .requestMatchers(HttpMethod.GET, "/api/questions/**",
+                                "/api/mcq-questions/**").hasAnyRole(ALL)
+                        .requestMatchers(HttpMethod.POST, "/api/questions/**",
+                                "/api/mcq-questions/**").hasRole(SA)
+                        .requestMatchers(HttpMethod.PUT, "/api/questions/**",
+                                "/api/mcq-questions/**").hasRole(SA)
+                        .requestMatchers(HttpMethod.DELETE, "/api/questions/**",
+                                "/api/mcq-questions/**").hasRole(SA)
+                        .requestMatchers("/api/question-types/**").hasRole(SA)
+                        .requestMatchers(HttpMethod.GET, "/api/question_answers/**")
+                        .hasAnyRole(SA, CA, BA, ST)
+                        .requestMatchers(HttpMethod.PUT, "/api/question_answers/**")
+                        .hasAnyRole(SA, CA, BA, ST)
 
-                                .requestMatchers(HttpMethod.POST,
-                                        "/api/users/guest/register")
-                                .permitAll()
+                        // Exam/mock-exam attempts are allowed to all except Guest; management is Super Admin only.
+                        .requestMatchers(HttpMethod.POST, "/api/exams/*/submit",
+                                "/api/mock-exams/*/submit").hasAnyRole(SA, CA, BA, ST)
+                        .requestMatchers(HttpMethod.GET, "/api/exams/*/questions",
+                                "/api/mock-exams/*/questions").hasAnyRole(SA, CA, BA, ST)
+                        .requestMatchers("/api/exams/**", "/api/mock-exams/**").hasRole(SA)
+                        .requestMatchers("/api/mock-tests/**").hasAnyRole(SA, CA, BA, ST)
 
+                        // Performance endpoints already derive organizational scope from the authenticated user.
+                        .requestMatchers("/api/performance/super-admin/**").hasRole(SA)
+                        .requestMatchers("/api/performance/college/**").hasRole(CA)
+                        .requestMatchers("/api/performance/branch/**").hasRole(BA)
+                        .requestMatchers("/api/performance/student/**").hasRole(ST)
 
-// =========================
-// GET APIs
-// =========================
+                        // User administration.
+                        .requestMatchers("/api/users/superAdmin/**", "/api/users/superAdmins").hasRole(SA)
+                        .requestMatchers("/api/users/collegeAdmin/**").hasRole(SA)
+                        .requestMatchers(
+                                "/api/users/branchAdmin",
+                                "/api/users/branchAdmin/**",
+                                "/api/users/branchAdmins",
+                                "/api/users/branchAdmins/**"
+                        ).hasAnyRole(SA, CA)
+                        .requestMatchers("/api/users/student/**", "/api/users/students")
+                        .hasAnyRole(SA, CA, BA)
+                        .requestMatchers("/api/users/guest/**", "/api/users/students_Guest/**",
+                                "/api/users/all/**", "/api/users/excel/upload").hasRole(SA)
 
-                                .requestMatchers(HttpMethod.GET,
-                                        "/api/users/superAdmins",
-                                        "/api/users/superAdmin/**")
-                                .hasRole("SUPER_ADMIN")
+                        // Attendance: students can only use the self-service endpoint.
+                        .requestMatchers(HttpMethod.GET, "/api/attendance/mine").hasRole(ST)
+                        .requestMatchers(HttpMethod.GET, "/api/attendance/**").hasAnyRole(ADMINS)
+                        .requestMatchers("/api/attendance/**").hasAnyRole(ADMINS)
 
-                                .requestMatchers(HttpMethod.GET,
-                                        "/api/users/branchAdmins",
-                                        "/api/users/branchAdmin/**")
-                                .hasRole("SUPER_ADMIN")
-
-                                .requestMatchers(HttpMethod.GET,
-                                        "/api/users/students",
-                                        "/api/users/student/**")
-                                .hasAnyRole("SUPER_ADMIN", "BRANCH_ADMIN")
-
-                                .requestMatchers(HttpMethod.GET,
-                                        "/api/users/guests",
-                                        "/api/users/guest/**")
-                                .hasRole("SUPER_ADMIN")
-
-
-// =========================
-// PUT APIs
-// =========================
-
-                                .requestMatchers(HttpMethod.PUT,
-                                        "/api/users/superAdmin/**")
-                                .hasRole("SUPER_ADMIN")
-
-                                .requestMatchers(HttpMethod.PUT,
-                                        "/api/users/branchAdmin/**")
-                                .hasRole("SUPER_ADMIN")
-
-                                .requestMatchers(HttpMethod.PUT,
-                                        "/api/users/student/**")
-                                .hasAnyRole("SUPER_ADMIN", "BRANCH_ADMIN")
-
-                                .requestMatchers(HttpMethod.PUT,
-                                        "/api/users/guest/**")
-                                .hasRole("SUPER_ADMIN")
-
-
-// =========================
-// DELETE APIs
-// =========================
-
-                                .requestMatchers(HttpMethod.DELETE,
-                                        "/api/users/superAdmin/**")
-                                .hasRole("SUPER_ADMIN")
-
-                                .requestMatchers(HttpMethod.DELETE,
-                                        "/api/users/branchAdmin/**")
-                                .hasRole("SUPER_ADMIN")
-
-                                .requestMatchers(HttpMethod.DELETE,
-                                        "/api/users/student/**")
-                                .hasAnyRole("SUPER_ADMIN", "BRANCH_ADMIN")
-
-                                .requestMatchers(HttpMethod.DELETE,
-                                        "/api/users/guest/**")
-                                .hasRole("SUPER_ADMIN")
-
-
-                                .anyRequest()
-                                .authenticated()
-                )
-
-
-                .oauth2Login(oauth ->
-                        oauth.successHandler(
-                                customOAuth2SuccessHandler
-                        )
-                )
-
-
-                .addFilterBefore(
-                        jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                        // Table metadata and rules.
+                        .requestMatchers("/api/table-names/**", "/api/table-headers/**",
+                                "/api/table-attributes/**", "/api/roles/**").hasRole(SA)
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/rule-engines/**"
+                        ).hasAnyRole(ALL)
+                        // Results and certificates are not available to guests.
+                        .requestMatchers("/api/answer_events/**", "/api/certificates/**")
+                        .hasAnyRole(SA, CA, BA, ST)
+                        .anyRequest().authenticated())
+                .oauth2Login(oauth -> oauth.successHandler(oauthSuccessHandler))
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
