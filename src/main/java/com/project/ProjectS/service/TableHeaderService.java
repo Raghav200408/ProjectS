@@ -25,6 +25,9 @@ public class TableHeaderService {
 
         TableHeader entity = new TableHeader();
         entity.setName(request.getName());
+        if (request.getActiveRow() != null) {
+            entity.setActiveRow(request.getActiveRow());
+        }
 
         repository.save(entity);
 
@@ -48,6 +51,9 @@ public class TableHeaderService {
                 .orElseThrow(() -> new RuntimeException("Table Header not found"));
 
         entity.setName(request.getName());
+        if (request.getActiveRow() != null) {
+            entity.setActiveRow(request.getActiveRow());
+        }
 
         repository.save(entity);
 

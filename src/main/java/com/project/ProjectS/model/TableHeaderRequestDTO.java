@@ -8,4 +8,5 @@ import lombok.Setter;
 public class TableHeaderRequestDTO {
     @NotBlank(message = "Table header is required")
     private String name;
+    private Boolean activeRow;
 }

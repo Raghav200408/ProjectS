@@ -27,6 +27,9 @@ public class TableNameService {
 
         TableName entity = new TableName();
         entity.setName(request.getName());
+        if (request.getActiveRow() != null) {
+            entity.setActiveRow(request.getActiveRow());
+        }
 
         repository.save(entity);
 
@@ -50,6 +53,9 @@ public class TableNameService {
                 .orElseThrow(() -> new RuntimeException("Table Name not found"));
 
         entity.setName(request.getName());
+        if (request.getActiveRow() != null) {
+            entity.setActiveRow(request.getActiveRow());
+        }
 
         repository.save(entity);
 

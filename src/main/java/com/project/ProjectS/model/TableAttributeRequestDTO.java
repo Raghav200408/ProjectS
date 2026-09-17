@@ -12,6 +12,7 @@ public class TableAttributeRequestDTO {
     private String tableHeaderName;
     private Long amount1;
     private Long amount2;
+    private Boolean activeRow;
 
     // NEW FIELD
     private Boolean rowDisable;
