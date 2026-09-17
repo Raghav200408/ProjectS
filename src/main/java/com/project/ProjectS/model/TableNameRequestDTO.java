@@ -11,4 +11,5 @@ public class TableNameRequestDTO {
     @NotBlank(message = "Table name is required")
     private String name;
 
+    private Boolean activeRow;
 }

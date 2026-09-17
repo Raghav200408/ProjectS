@@ -39,6 +39,9 @@ public class TableAttributeService {
         entity.setRowStatus("DRAFT");
         entity.setAmount1(request.getAmount1());
         entity.setAmount2(request.getAmount2());
+        if (request.getActiveRow() != null) {
+            entity.setActiveRow(request.getActiveRow());
+        }
 
         // NEW
         if (request.getRowDisable() != null) {
@@ -123,6 +126,9 @@ public class TableAttributeService {
         entity.setTableHeader(header);
         entity.setAmount1(request.getAmount1());
         entity.setAmount2(request.getAmount2());
+        if (request.getActiveRow() != null) {
+            entity.setActiveRow(request.getActiveRow());
+        }
 
         // NEW
         if (request.getRowDisable() != null) {
