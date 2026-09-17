@@ -56,6 +56,7 @@ public interface RuleEngineRepository extends JpaRepository<RuleEngine, Long> {
         LEFT JOIN FETCH r.table4
         LEFT JOIN FETCH r.header4
         WHERE r.tableAttributeid.attributeId = :attributeId
+        AND r.activeRow = true
         """)
     List<RuleEngine> findByAttributeId(Long attributeId);
     }
