@@ -3,7 +3,11 @@ package com.project.ProjectS.service;
 import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.repository.*;
+import com.project.ProjectS.security.service.CustomUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,6 +67,8 @@ public class UserService {
 
     public UserResponseDTO createBranchAdmin(
             BranchAdminRequestDTO request) {
+
+        assertCanAssignOrganization(request.getCollegeId(), request.getBranchId(), "BRANCH_ADMIN");
 
         validateUser(request.getEmail(), request.getPhoneNumber());
 
@@ -199,6 +205,8 @@ public class UserService {
 
     public UserResponseDTO createStudent(StudentRequestDTO request) {
 
+        assertCanAssignOrganization(request.getCollegeId(), request.getBranchId(), "STUDENT");
+
         validateUser(request.getEmail(), request.getPhoneNumber());
 
         Role role = getRole("STUDENT");
@@ -285,6 +293,7 @@ public class UserService {
     public List<UserResponseDTO> getAllBranchAdmins() {
         List<User> users = userRepository.findByRole_RoleNameAndActiveRowTrue("BRANCH_ADMIN");
         return users.stream()
+                .filter(this::isWithinCurrentAdminScope)
                 .map(this::convertToResponse)
                 .toList();
     }
@@ -292,6 +301,7 @@ public class UserService {
     public List<UserResponseDTO> getAllStudents() {
         List<User> users = userRepository.findByRole_RoleNameAndActiveRowTrue("STUDENT");
         return users.stream()
+                .filter(this::isWithinCurrentAdminScope)
                 .map(this::convertToResponse)
                 .toList();
     }
@@ -313,6 +323,8 @@ public class UserService {
                 .orElseThrow(() ->
                         new RuntimeException("Branch Admin not found with id: " + userId));
 
+        assertCanManageUser(user);
+
         return convertToResponse(user);
     }
 
@@ -322,6 +334,8 @@ public class UserService {
                 .findByUserIdAndRole_RoleName(userId, "STUDENT")
                 .orElseThrow(() ->
                         new RuntimeException("Student not found with id: " + userId));
+
+        assertCanManageUser(user);
 
         return convertToResponse(user);
     }
@@ -374,6 +388,8 @@ public class UserService {
             BranchAdminRequestDTO request) {
 
         User user = getUserByIdAndRole(userId, "BRANCH_ADMIN");
+        assertCanManageUser(user);
+        assertCanAssignOrganization(request.getCollegeId(), request.getBranchId(), "BRANCH_ADMIN");
 
         validateUserForUpdate(
                 userId,
@@ -415,6 +431,8 @@ public class UserService {
             StudentRequestDTO request) {
 
         User user = getUserByIdAndRole(userId, "STUDENT");
+        assertCanManageUser(user);
+        assertCanAssignOrganization(request.getCollegeId(), request.getBranchId(), "STUDENT");
 
         validateUserForUpdate(
                 userId,
@@ -504,6 +522,7 @@ public class UserService {
     public String deleteBranchAdmin(Long userId) {
 
         User user = getUserByIdAndRole(userId, "BRANCH_ADMIN");
+        assertCanManageUser(user);
 
         user.setActiveRow(false);
 
@@ -515,6 +534,7 @@ public class UserService {
     public String deleteStudent(Long userId) {
 
         User user = getUserByIdAndRole(userId, "STUDENT");
+        assertCanManageUser(user);
 
         user.setActiveRow(false);
 
@@ -558,6 +578,52 @@ public class UserService {
     // =========================================================
     // VALIDATE EMAIL AND PHONE
     // =========================================================
+
+    private User currentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails details)) {
+            throw new AccessDeniedException("Authenticated administrator is required");
+        }
+        return details.getUser();
+    }
+
+    private boolean isWithinCurrentAdminScope(User target) {
+        User actor = currentUser();
+        String role = actor.getRole().getRoleName();
+        if ("SUPER_ADMIN".equalsIgnoreCase(role)) return true;
+        if ("COLLEGE_ADMIN".equalsIgnoreCase(role)) {
+            return actor.getCollege() != null && target.getCollege() != null
+                    && actor.getCollege().getCollegeId().equals(target.getCollege().getCollegeId());
+        }
+        if ("BRANCH_ADMIN".equalsIgnoreCase(role)) {
+            return actor.getBranch() != null && target.getBranch() != null
+                    && actor.getBranch().getBranchId().equals(target.getBranch().getBranchId());
+        }
+        return false;
+    }
+
+    private void assertCanManageUser(User target) {
+        if (!isWithinCurrentAdminScope(target)) {
+            throw new AccessDeniedException("User is outside your organization scope");
+        }
+    }
+
+    private void assertCanAssignOrganization(Long collegeId, Long branchId, String targetRole) {
+        User actor = currentUser();
+        String role = actor.getRole().getRoleName();
+        if ("SUPER_ADMIN".equalsIgnoreCase(role)) return;
+        if ("COLLEGE_ADMIN".equalsIgnoreCase(role)
+                && actor.getCollege() != null
+                && actor.getCollege().getCollegeId().equals(collegeId)) {
+            Branch branch = getBranch(branchId);
+            if (branch.getCollege() != null
+                    && actor.getCollege().getCollegeId().equals(branch.getCollege().getCollegeId())) return;
+        }
+        if ("STUDENT".equals(targetRole) && "BRANCH_ADMIN".equalsIgnoreCase(role)
+                && actor.getBranch() != null
+                && actor.getBranch().getBranchId().equals(branchId)) return;
+        throw new AccessDeniedException("Cannot assign a user outside your organization scope");
+    }
 
     private void validateUser(String email, String phoneNumber) {
 
