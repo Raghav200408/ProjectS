@@ -446,9 +446,12 @@ public class AnswerEventService {
     public BigDecimal getOverallMarks(
             Long userId) {
 
+        // Practice-only: exam and mock-exam attempts are scored and recorded
+        // separately (ExamResult / MockExamResult) and must never be blended
+        // into this total.
         List<AnswerEvent> events =
                 answerEventRepository
-                        .findByUser_UserId(userId);
+                        .findByUser_UserIdAndExamIsNullAndMockExamIsNull(userId);
 
         return events.stream()
                 .map(AnswerEvent::getMarks)

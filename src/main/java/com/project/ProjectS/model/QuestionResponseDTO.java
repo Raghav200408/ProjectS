@@ -36,6 +36,8 @@ public class QuestionResponseDTO {
 
     private List<QuestionAttributeResponseDTO> questionAttributes;
 
+    private List<McqOptionDTO> options;
+
     private Boolean activeRow;
 
     private LocalDateTime createdAt;

@@ -343,8 +343,8 @@ public class ExamService {
                         new RuntimeException("User not found with id: " + request.getUserId())
                 );
 
-        entitlementService.consumeExamAttempt(
-                user.getUserId(), exam.getCourse().getCourseId());
+//        entitlementService.consumeExamAttempt(
+//                user.getUserId(), exam.getCourse().getCourseId());
 
         List<Long> questionIds =
                 examQuestionRepository.findByExam_ExamId(examId)
@@ -362,18 +362,100 @@ public class ExamService {
         result.setUser(user);
         result.setTotalMarks(score.totalMarks());
         result.setPercentage(score.percentage());
+        result.setMaximumMarks(score.maximumMarks());
+        result.setTimeTakenSeconds(request.getTimeTakenSeconds());
 
         examResultRepository.save(result);
+
+        examScoringService.persistAnswerInfo(
+                user, exam, null, request.getAnswers(), score.questionScores());
 
         ExamSubmitResponseDTO response =
                 new ExamSubmitResponseDTO();
 
+        response.setExamResultId(result.getExamResultId());
         response.setExamId(examId);
         response.setUserId(user.getUserId());
         response.setTotalMarks(score.totalMarks());
         response.setPercentage(score.percentage());
 
         return response;
+    }
+
+    /**
+     * The "Exam Review" screen's payload for one attempt - Journal, Dropdown,
+     * Drag-and-drop and MCQ answers are all rehydrated from this exam's own
+     * AnswerEvent rows (tagged by exam_id at submit time), so retaking this
+     * exam or another one sharing a question never mixes attempts together.
+     * Any authenticated user may view their own result;
+     * SUPER_ADMIN/COLLEGE_ADMIN/BRANCH_ADMIN may view any.
+     */
+    public ExamReviewResponseDTO getExamResultReview(
+            Long examId, Long resultId, Authentication authentication) {
+
+        ExamResult result = examResultRepository.findById(resultId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Exam result not found with id: " + resultId));
+
+        if (!result.getExam().getExamId().equals(examId)) {
+            throw new RuntimeException(
+                    "Exam result " + resultId + " does not belong to exam " + examId);
+        }
+
+        User caller = getLoggedInUser(authentication);
+        boolean isOwner = caller != null
+                && caller.getUserId().equals(result.getUser().getUserId());
+        boolean isManager = caller != null
+                && caller.getRole() != null
+                && List.of("SUPER_ADMIN", "COLLEGE_ADMIN", "BRANCH_ADMIN")
+                .contains(caller.getRole().getRoleName().toUpperCase());
+
+        if (!isOwner && !isManager) {
+            throw new RuntimeException("Not authorised to view this result");
+        }
+
+        ExamReviewResponseDTO response = new ExamReviewResponseDTO();
+        response.setResultId(result.getExamResultId());
+        response.setExamId(result.getExam().getExamId());
+        response.setExamName(result.getExam().getExamName());
+        response.setCourseName(result.getExam().getCourse().getName());
+        response.setTotalMarks(result.getTotalMarks());
+        response.setPercentage(result.getPercentage());
+        response.setMaximumMarks(result.getMaximumMarks());
+        response.setTimeTakenSeconds(result.getTimeTakenSeconds());
+        response.setCompletedAt(result.getCreatedAt());
+
+        response.setQuestions(
+                examScoringService.buildReviewFromAnswerInfo(
+                        result.getUser().getUserId(), examId, null));
+
+        return response;
+    }
+
+    /**
+     * Every completed attempt for the given user, newest first - feeds the
+     * dashboard's Recent Activity list.
+     */
+    public List<ExamAttemptSummaryDTO> getMyExamAttempts(Authentication authentication) {
+
+        User user = getLoggedInUser(authentication);
+        if (user == null) {
+            return List.of();
+        }
+
+        return examResultRepository.findByUser_UserIdOrderByCreatedAtDesc(user.getUserId())
+                .stream()
+                .map(result -> {
+                    ExamAttemptSummaryDTO dto = new ExamAttemptSummaryDTO();
+                    dto.setResultId(result.getExamResultId());
+                    dto.setExamId(result.getExam().getExamId());
+                    dto.setExamName(result.getExam().getExamName());
+                    dto.setExamType("EXAM");
+                    dto.setPercentage(result.getPercentage());
+                    dto.setCompletedAt(result.getCreatedAt());
+                    return dto;
+                })
+                .toList();
     }
 
     public ExamSubmitResponseDTO submitExam(Long examId, ExamSubmitRequestDTO request,

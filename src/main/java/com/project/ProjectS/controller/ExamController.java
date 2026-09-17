@@ -143,4 +143,24 @@ public class ExamController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{examId}/results/{resultId}")
+    public ResponseEntity<ExamReviewResponseDTO> getExamResultReview(
+            @PathVariable Long examId,
+            @PathVariable Long resultId,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                examService.getExamResultReview(examId, resultId, authentication)
+        );
+    }
+
+    @GetMapping("/results/me")
+    public ResponseEntity<List<ExamAttemptSummaryDTO>> getMyExamAttempts(
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                examService.getMyExamAttempts(authentication)
+        );
+    }
 }
