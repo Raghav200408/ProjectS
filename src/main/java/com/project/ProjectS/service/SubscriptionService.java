@@ -46,10 +46,17 @@ public class SubscriptionService {
     @Transactional
     public SubscriptionPlanResponseDTO update(Long id, SubscriptionPlanRequestDTO request) {
         SubscriptionPlan plan = plans.findById(id).orElseThrow(() -> new NoSuchElementException("Subscription plan not found"));
+        boolean reactivatingPlan = !plan.isActive() && request.isActive();
         copy(plan, request);
         plans.save(plan);
         planCourses.deleteByPlan_PlanId(id);
         replaceCourses(plan, request.getCourseIds());
+        if (reactivatingPlan) {
+            subscriptions.findInactiveValidByPlan(id, LocalDateTime.now()).forEach(subscription -> {
+                subscription.setActive(true);
+                subscriptions.save(subscription);
+            });
+        }
         return toPlan(plan);
     }
 
@@ -88,7 +95,7 @@ public class SubscriptionService {
     public UserSubscriptionResponseDTO activate(SubscriptionActivationRequestDTO request) {
         User user = users.findById(request.getUserId()).orElseThrow(() -> new NoSuchElementException("User not found"));
         Course course = courses.findById(request.getCourseId()).orElseThrow(() -> new NoSuchElementException("Course not found"));
-        SubscriptionPlan plan = resolvePlan(request);
+        SubscriptionPlan plan = resolvePlan(request, course.getCourseId());
         if (!planCourses.findByCourse_CourseIdAndPlan_ActiveTrue(course.getCourseId()).stream()
                 .anyMatch(pc -> pc.getPlan().getPlanId().equals(plan.getPlanId())))
             throw new IllegalArgumentException("Plan is not available for this course");
@@ -169,9 +176,20 @@ public class SubscriptionService {
         subscriptions.save(subscription);
     }
 
-    private SubscriptionPlan resolvePlan(SubscriptionActivationRequestDTO request) {
-        if ("FREE_TRIAL".equalsIgnoreCase(request.getActivationType()))
-            return plans.findFirstByFreeTrialTrueAndActiveTrue().orElseThrow(() -> new NoSuchElementException("Free trial plan not found"));
+    private SubscriptionPlan resolvePlan(SubscriptionActivationRequestDTO request, Long courseId) {
+        if (request == null) {
+            throw new IllegalArgumentException("Subscription activation request is required");
+        }
+        if ("FREE_TRIAL".equalsIgnoreCase(request.getActivationType())) {
+            return planCourses.findByCourse_CourseIdAndPlan_ActiveTrue(courseId).stream()
+                    .map(PlanCourse::getPlan)
+                    .filter(SubscriptionPlan::isFreeTrial)
+                    .findFirst()
+                    .orElseThrow(() -> new NoSuchElementException("Free trial plan not found for this course"));
+        }
+        if (request.getPlanId() == null) {
+            throw new IllegalArgumentException("Subscription plan ID is required");
+        }
         return plans.findById(request.getPlanId()).orElseThrow(() -> new NoSuchElementException("Subscription plan not found"));
     }
     private void copy(SubscriptionPlan p, SubscriptionPlanRequestDTO r) {
@@ -182,11 +200,23 @@ public class SubscriptionService {
         p.setExamAttemptLimit(r.getExamAttemptLimit());
     }
     private void replaceCourses(SubscriptionPlan plan, List<Long> ids) {
-        if (ids != null) ids.forEach(id -> {
-            PlanCourse pc = new PlanCourse(); pc.setPlan(plan);
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        Set<Long> seenCourseIds = new HashSet<>();
+        for (Long id : ids) {
+            if (id == null || !seenCourseIds.add(id)) {
+                continue;
+            }
+            if (planCourses.findByPlan_PlanId(plan.getPlanId()).stream()
+                    .anyMatch(pc -> pc.getCourse().getCourseId().equals(id))) {
+                continue;
+            }
+            PlanCourse pc = new PlanCourse();
+            pc.setPlan(plan);
             pc.setCourse(courses.findById(id).orElseThrow(() -> new NoSuchElementException("Course not found: " + id)));
             planCourses.save(pc);
-        });
+        }
     }
     private SubscriptionPlanResponseDTO toPlan(SubscriptionPlan p) {
         SubscriptionPlanResponseDTO d = new SubscriptionPlanResponseDTO();
