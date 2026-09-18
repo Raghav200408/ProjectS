@@ -26,6 +26,8 @@ public class QuestionRequestDTO {
     // Match the Following
     private List<MatchingPairRequestDTO> pairs;
 
+    private List<FillInTheBlankAnswerRequestDTO> blanks;
+
 
 
     private List<QuestionAttributeRequestDTO> questionAttributes;

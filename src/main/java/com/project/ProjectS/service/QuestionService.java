@@ -45,6 +45,9 @@ public class QuestionService {
     // MATCH THE FOLLOWING
     private final QuestionMatchingPairRepository questionMatchingPairRepository;
 
+    // FILL IN THE BLANK
+    private final QuestionFillBlankAnswerRepository questionFillBlankAnswerRepository;
+
 
     @Autowired
     public QuestionService(
@@ -60,7 +63,8 @@ public class QuestionService {
             ExcelUploadService excelUploadService,
             QuestionExcelProcessor questionExcelProcessor,
             SubscriptionEntitlementService entitlementService,
-            QuestionMatchingPairRepository questionMatchingPairRepository) {
+            QuestionMatchingPairRepository questionMatchingPairRepository,
+            QuestionFillBlankAnswerRepository questionFillBlankAnswerRepository) {
 
         this.questionRepository = questionRepository;
 
@@ -89,6 +93,10 @@ public class QuestionService {
         // MATCH THE FOLLOWING
         this.questionMatchingPairRepository =
                 questionMatchingPairRepository;
+
+        // FILL IN THE BLANK
+        this.questionFillBlankAnswerRepository =
+                questionFillBlankAnswerRepository;
     }
 
 
@@ -246,6 +254,51 @@ public class QuestionService {
 
 
         // =========================================================
+        // FILL IN THE BLANK ANSWERS
+        // =========================================================
+
+        List<QuestionFillBlankAnswer> savedBlanks =
+                new ArrayList<>();
+
+
+        if (request.getBlanks() != null) {
+
+            for (FillInTheBlankAnswerRequestDTO blankRequest
+                    : request.getBlanks()) {
+
+                QuestionFillBlankAnswer blankAnswer =
+                        new QuestionFillBlankAnswer();
+
+
+                blankAnswer.setQuestion(
+                        savedQuestion
+                );
+
+
+                blankAnswer.setAnswerText(
+                        blankRequest.getAnswerText()
+                );
+
+
+                blankAnswer.setDisplayOrder(
+                        blankRequest.getDisplayOrder()
+                );
+
+
+                QuestionFillBlankAnswer savedBlank =
+                        questionFillBlankAnswerRepository.save(
+                                blankAnswer
+                        );
+
+
+                savedBlanks.add(
+                        savedBlank
+                );
+            }
+        }
+
+
+        // =========================================================
         // QUESTION ATTRIBUTES
         // =========================================================
 
@@ -335,7 +388,8 @@ public class QuestionService {
         return convertToResponse(
                 savedQuestion,
                 savedAttributes,
-                savedPairs
+                savedPairs,
+                savedBlanks
         );
     }
 
@@ -605,11 +659,21 @@ public class QuestionService {
                             );
 
 
+            // FILL IN THE BLANK
+
+            List<QuestionFillBlankAnswer> blanks =
+                    questionFillBlankAnswerRepository
+                            .findByQuestionQuestionIdOrderByDisplayOrderAsc(
+                                    question.getQuestionId()
+                            );
+
+
             responseList.add(
                     convertToResponse(
                             question,
                             attributes,
-                            pairs
+                            pairs,
+                            blanks
                     )
             );
         }
@@ -653,10 +717,20 @@ public class QuestionService {
                         );
 
 
+        // FILL IN THE BLANK
+
+        List<QuestionFillBlankAnswer> blanks =
+                questionFillBlankAnswerRepository
+                        .findByQuestionQuestionIdOrderByDisplayOrderAsc(
+                                questionId
+                        );
+
+
         return convertToResponse(
                 question,
                 attributes,
-                pairs
+                pairs,
+                blanks
         );
     }
 
@@ -701,11 +775,21 @@ public class QuestionService {
                             );
 
 
+            // FILL IN THE BLANK
+
+            List<QuestionFillBlankAnswer> blanks =
+                    questionFillBlankAnswerRepository
+                            .findByQuestionQuestionIdOrderByDisplayOrderAsc(
+                                    questionId
+                            );
+
+
             responseList.add(
                     convertToResponse(
                             question,
                             attributes,
-                            pairs
+                            pairs,
+                            blanks
                     )
             );
         }
@@ -841,6 +925,16 @@ public class QuestionService {
 
         questionMatchingPairRepository
                 .deleteByQuestion_QuestionId(
+                        questionId
+                );
+
+
+        // =========================================================
+        // DELETE OLD FILL IN THE BLANK ANSWERS
+        // =========================================================
+
+        questionFillBlankAnswerRepository
+                .deleteByQuestionQuestionId(
                         questionId
                 );
 
@@ -982,10 +1076,56 @@ public class QuestionService {
         }
 
 
+        // =========================================================
+        // SAVE FILL IN THE BLANK ANSWERS
+        // =========================================================
+
+        List<QuestionFillBlankAnswer> savedBlanks =
+                new ArrayList<>();
+
+
+        if (request.getBlanks() != null) {
+
+            for (FillInTheBlankAnswerRequestDTO blankRequest
+                    : request.getBlanks()) {
+
+                QuestionFillBlankAnswer blankAnswer =
+                        new QuestionFillBlankAnswer();
+
+
+                blankAnswer.setQuestion(
+                        savedQuestion
+                );
+
+
+                blankAnswer.setAnswerText(
+                        blankRequest.getAnswerText()
+                );
+
+
+                blankAnswer.setDisplayOrder(
+                        blankRequest.getDisplayOrder()
+                );
+
+
+                QuestionFillBlankAnswer savedBlank =
+                        questionFillBlankAnswerRepository.save(
+                                blankAnswer
+                        );
+
+
+                savedBlanks.add(
+                        savedBlank
+                );
+            }
+        }
+
+
         return convertToResponse(
                 savedQuestion,
                 savedAttributes,
-                savedPairs
+                savedPairs,
+                savedBlanks
         );
     }
 
@@ -996,7 +1136,6 @@ public class QuestionService {
 
     public String deleteQuestion(
             Long questionId) {
-
 
         Question question =
                 questionRepository
@@ -1062,11 +1201,21 @@ public class QuestionService {
                             );
 
 
+            // FILL IN THE BLANK
+
+            List<QuestionFillBlankAnswer> blanks =
+                    questionFillBlankAnswerRepository
+                            .findByQuestionQuestionIdOrderByDisplayOrderAsc(
+                                    question.getQuestionId()
+                            );
+
+
             responseList.add(
                     convertToResponse(
                             question,
                             attributes,
-                            pairs
+                            pairs,
+                            blanks
                     )
             );
         }
@@ -1083,7 +1232,8 @@ public class QuestionService {
     private QuestionResponseDTO convertToResponse(
             Question question,
             List<QuestionAttribute> attributes,
-            List<QuestionMatchingPair> pairs) {
+            List<QuestionMatchingPair> pairs,
+            List<QuestionFillBlankAnswer> blanks) {
 
 
         QuestionResponseDTO response =
@@ -1377,6 +1527,50 @@ public class QuestionService {
 
         response.setPairs(
                 pairResponses
+        );
+
+
+        // =====================================================
+        // FILL IN THE BLANK ANSWERS
+        // =====================================================
+
+        List<FillInTheBlankAnswerResponseDTO>
+                blankResponses =
+                new ArrayList<>();
+
+
+        if (blanks != null) {
+
+            for (QuestionFillBlankAnswer blank : blanks) {
+
+                FillInTheBlankAnswerResponseDTO blankResponse =
+                        new FillInTheBlankAnswerResponseDTO();
+
+
+                blankResponse.setAnswerId(
+                        blank.getAnswerId()
+                );
+
+
+                blankResponse.setAnswerText(
+                        blank.getAnswerText()
+                );
+
+
+                blankResponse.setDisplayOrder(
+                        blank.getDisplayOrder()
+                );
+
+
+                blankResponses.add(
+                        blankResponse
+                );
+            }
+        }
+
+
+        response.setBlanks(
+                blankResponses
         );
 
 
