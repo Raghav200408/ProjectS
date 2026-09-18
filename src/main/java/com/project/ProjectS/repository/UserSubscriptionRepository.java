@@ -13,6 +13,11 @@ public interface UserSubscriptionRepository extends JpaRepository<UserSubscripti
 
     List<UserSubscription> findByPlan_PlanIdAndActiveTrue(Long planId);
 
+        @Query("select s from UserSubscription s where s.plan.planId = :planId " +
+            "and s.active = false and (s.expiresAt is null or s.expiresAt > :now)")
+        List<UserSubscription> findInactiveValidByPlan(@Param("planId") Long planId,
+                                @Param("now") LocalDateTime now);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from UserSubscription s join fetch s.plan join fetch s.course " +
             "where s.user.userId = :userId and s.course.courseId = :courseId " +
