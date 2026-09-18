@@ -797,10 +797,9 @@ public class QuestionService {
 
 
             responseList.add(
-                    convertToWithOptionsResponse(
+                    convertToResponse(
                             question,
                             attributes,
-                            options,
                             pairs,
                             blanks
                     )
@@ -1517,6 +1516,23 @@ public class QuestionService {
                 attributeResponses
         );
 
+        // =====================================================
+        // MCQ OPTIONS
+        // =====================================================
+
+        List<McqOption> options =
+                mcqOptionRepository
+                        .findByQuestionIdAndActiveRowTrueOrderByOptionOrderAsc(
+                                question.getQuestionId()
+                        );
+
+        List<McqOptionDTO> optionDTOs =
+                options.stream()
+                        .map(this::mapOptionToDTO)
+                        .collect(Collectors.toList());
+
+        response.setOptions(optionDTOs);
+
 
         // =====================================================
         // MATCHING PAIRS - MATCH THE FOLLOWING
@@ -1608,318 +1624,6 @@ public class QuestionService {
 
         response.setBlanks(
                 blankResponses
-        );
-
-
-        return response;
-    }
-
-    private QuestionResponseDTO convertToWithOptionsResponse(
-            Question question,
-            List<QuestionAttribute> attributes,
-            List<McqOption> options,
-            List<QuestionMatchingPair> pairs) {
-
-
-        QuestionResponseDTO response =
-                new QuestionResponseDTO();
-
-
-        // =====================================================
-        // SUBJECT
-        // =====================================================
-
-        if (question.getSubject() != null) {
-
-            response.setSubjectId(
-                    question
-                            .getSubject()
-                            .getSubjectId()
-            );
-
-
-            response.setSubjectName(
-                    question
-                            .getSubject()
-                            .getSubjectName()
-            );
-        }
-
-
-        // =====================================================
-        // QUESTION
-        // =====================================================
-
-        response.setQuestionId(
-                question.getQuestionId()
-        );
-
-
-        response.setQuestionText(
-                question.getQuestionText()
-        );
-
-
-        // =====================================================
-        // COURSE
-        // =====================================================
-
-        if (question.getCourse() != null) {
-
-            response.setCourseId(
-                    question
-                            .getCourse()
-                            .getCourseId()
-            );
-
-
-            response.setCourseName(
-                    question
-                            .getCourse()
-                            .getName()
-            );
-        }
-
-
-        // =====================================================
-        // CHAPTER
-        // =====================================================
-
-        if (question.getChapter() != null) {
-
-            response.setChapterId(
-                    question
-                            .getChapter()
-                            .getChapterId()
-            );
-
-
-            response.setChapterName(
-                    question
-                            .getChapter()
-                            .getName()
-            );
-        }
-
-
-        // =====================================================
-        // TOPIC
-        // =====================================================
-
-        if (question.getTopic() != null) {
-
-            response.setTopicId(
-                    question
-                            .getTopic()
-                            .getTopicId()
-            );
-
-
-            response.setTopicName(
-                    question
-                            .getTopic()
-                            .getName()
-            );
-        }
-
-
-        // =====================================================
-        // QUESTION TYPE
-        // =====================================================
-
-        if (question.getQuestionType() != null) {
-
-            response.setQuestionTypeId(
-                    question
-                            .getQuestionType()
-                            .getQuestionTypeId()
-            );
-
-
-            response.setQuestionType(
-                    question
-                            .getQuestionType()
-                            .getQuestionType()
-            );
-        }
-
-
-        response.setActiveRow(
-                question.getActiveRow()
-        );
-
-
-        response.setCreatedAt(
-                question.getCreatedAt()
-        );
-
-
-        response.setUpdatedAt(
-                question.getUpdatedAt()
-        );
-
-
-        // =====================================================
-        // QUESTION ATTRIBUTES
-        // =====================================================
-
-        List<QuestionAttributeResponseDTO>
-                attributeResponses =
-                new ArrayList<>();
-
-
-        for (QuestionAttribute questionAttribute
-                : attributes) {
-
-
-            QuestionAttributeResponseDTO
-                    attributeResponse =
-                    new QuestionAttributeResponseDTO();
-
-
-            attributeResponse.setQuestionAttributeId(
-                    questionAttribute
-                            .getQuestionAttributeId()
-            );
-
-
-            // =================================================
-            // HEADER
-            // =================================================
-
-            if (questionAttribute.getHeader() != null) {
-
-                attributeResponse.setHeaderId(
-                        questionAttribute
-                                .getHeader()
-                                .getHeaderId()
-                );
-
-
-                attributeResponse.setHeaderName(
-                        questionAttribute
-                                .getHeader()
-                                .getName()
-                );
-            }
-
-
-            // =================================================
-            // ATTRIBUTE
-            // =================================================
-
-            if (questionAttribute.getAttribute() != null) {
-
-                attributeResponse.setAttributeId(
-                        questionAttribute
-                                .getAttribute()
-                                .getAttributeId()
-                );
-
-
-                attributeResponse.setAttributeName(
-                        questionAttribute
-                                .getAttribute()
-                                .getName()
-                );
-            }
-
-
-            attributeResponse.setTransactionDate(
-                    questionAttribute
-                            .getTransactionDate()
-            );
-
-
-            attributeResponse.setAmount(
-                    questionAttribute
-                            .getAmount()
-            );
-
-
-            attributeResponse.setAmount2(
-                    questionAttribute
-                            .getAmount2()
-            );
-
-
-            attributeResponse.setNote(
-                    questionAttribute
-                            .getNote()
-            );
-
-
-            attributeResponse.setActiveRow(
-                    questionAttribute
-                            .getActiveRow()
-            );
-
-
-            attributeResponses.add(
-                    attributeResponse
-            );
-        }
-
-
-        response.setQuestionAttributes(
-                attributeResponses
-        );
-
-        //MCQ
-        List<McqOptionDTO> optionDTOs =
-                options.stream()
-                        .map(this::mapOptionToDTO)
-                        .collect(Collectors.toList());
-
-        response.setOptions(optionDTOs);
-
-
-        // =====================================================
-        // MATCHING PAIRS - MATCH THE FOLLOWING
-        // =====================================================
-
-        List<MatchingPairResponseDTO>
-                pairResponses =
-                new ArrayList<>();
-
-
-        if (pairs != null) {
-
-            for (QuestionMatchingPair pair : pairs) {
-
-                MatchingPairResponseDTO pairResponse =
-                        new MatchingPairResponseDTO();
-
-
-                pairResponse.setPairId(
-                        pair.getPairId()
-                );
-
-
-                pairResponse.setColumnA(
-                        pair.getColumnA()
-                );
-
-
-                pairResponse.setColumnB(
-                        pair.getColumnB()
-                );
-
-
-                pairResponse.setDisplayOrder(
-                        pair.getDisplayOrder()
-                );
-
-
-                pairResponses.add(
-                        pairResponse
-                );
-            }
-        }
-
-
-        response.setPairs(
-                pairResponses
         );
 
 
