@@ -433,6 +433,40 @@ public class ExamService {
     }
 
     /**
+     * The "What went wrong?" panel for one attribute on one exam attempt -
+     * its Rule Engine hint(s) plus the wrong lines this student submitted for
+     * it. Same ownership rule as {@link #getExamResultReview}.
+     */
+    public AttributeReviewDetailDTO getAttributeReviewDetail(
+            Long examId, Long resultId, Long questionId, Long attributeId,
+            Authentication authentication) {
+
+        ExamResult result = examResultRepository.findById(resultId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Exam result not found with id: " + resultId));
+
+        if (!result.getExam().getExamId().equals(examId)) {
+            throw new RuntimeException(
+                    "Exam result " + resultId + " does not belong to exam " + examId);
+        }
+
+        User caller = getLoggedInUser(authentication);
+        boolean isOwner = caller != null
+                && caller.getUserId().equals(result.getUser().getUserId());
+        boolean isManager = caller != null
+                && caller.getRole() != null
+                && List.of("SUPER_ADMIN", "COLLEGE_ADMIN", "BRANCH_ADMIN")
+                .contains(caller.getRole().getRoleName().toUpperCase());
+
+        if (!isOwner && !isManager) {
+            throw new RuntimeException("Not authorised to view this result");
+        }
+
+        return examScoringService.buildAttributeReviewDetail(
+                result.getUser().getUserId(), examId, null, questionId, attributeId);
+    }
+
+    /**
      * Every completed attempt for the given user, newest first - feeds the
      * dashboard's Recent Activity list.
      */

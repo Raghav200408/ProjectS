@@ -421,6 +421,42 @@ public class MockExamService {
     }
 
     /**
+     * The "What went wrong?" panel for one attribute on one mock exam
+     * attempt - its Rule Engine hint(s) plus the wrong lines this student
+     * submitted for it. Same ownership rule as
+     * {@link #getMockExamResultReview}.
+     */
+    public AttributeReviewDetailDTO getAttributeReviewDetail(
+            Long mockExamId, Long resultId, Long questionId, Long attributeId,
+            Authentication authentication) {
+
+        MockExamResult result = mockExamResultRepository.findById(resultId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Mock exam result not found with id: " + resultId));
+
+        if (!result.getMockExam().getMockExamId().equals(mockExamId)) {
+            throw new RuntimeException(
+                    "Mock exam result " + resultId
+                            + " does not belong to mock exam " + mockExamId);
+        }
+
+        User caller = getLoggedInUser(authentication);
+        boolean isOwner = caller != null
+                && caller.getUserId().equals(result.getUser().getUserId());
+        boolean isManager = caller != null
+                && caller.getRole() != null
+                && List.of("SUPER_ADMIN", "COLLEGE_ADMIN", "BRANCH_ADMIN")
+                        .contains(caller.getRole().getRoleName().toUpperCase());
+
+        if (!isOwner && !isManager) {
+            throw new RuntimeException("Not authorised to view this result");
+        }
+
+        return examScoringService.buildAttributeReviewDetail(
+                result.getUser().getUserId(), null, mockExamId, questionId, attributeId);
+    }
+
+    /**
      * Every completed mock-exam attempt for the given user, newest first -
      * feeds the dashboard's Recent Activity list.
      */

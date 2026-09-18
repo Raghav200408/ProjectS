@@ -163,4 +163,18 @@ public class ExamController {
                 examService.getMyExamAttempts(authentication)
         );
     }
+
+    @GetMapping("/{examId}/results/{resultId}/attributes/{attributeId}/review-detail")
+    public ResponseEntity<AttributeReviewDetailDTO> getAttributeReviewDetail(
+            @PathVariable Long examId,
+            @PathVariable Long resultId,
+            @PathVariable Long attributeId,
+            @RequestParam Long questionId,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                examService.getAttributeReviewDetail(
+                        examId, resultId, questionId, attributeId, authentication)
+        );
+    }
 }

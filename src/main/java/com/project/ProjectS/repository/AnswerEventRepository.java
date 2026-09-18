@@ -128,4 +128,24 @@ public interface AnswerEventRepository
             Long mockExamId,
             String eventType
     );
+
+    // The wrong lines this student submitted for one attribute on one exam
+    // attempt - what the "What went wrong?" panel on the review screen shows
+    // when a trial-balance / transaction row is clicked.
+    List<AnswerEvent> findByUser_UserIdAndExam_ExamIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventTypeAndIsCorrectFalse(
+            Long userId,
+            Long examId,
+            Long questionId,
+            Long attributeId,
+            String eventType
+    );
+
+    // Same, for one mock-exam attempt.
+    List<AnswerEvent> findByUser_UserIdAndMockExam_MockExamIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventTypeAndIsCorrectFalse(
+            Long userId,
+            Long mockExamId,
+            Long questionId,
+            Long attributeId,
+            String eventType
+    );
 }

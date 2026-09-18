@@ -10,6 +10,7 @@ import com.project.ProjectS.entity.TableAttribute;
 import com.project.ProjectS.entity.TableHeader;
 import com.project.ProjectS.entity.TableName;
 import com.project.ProjectS.entity.User;
+import com.project.ProjectS.model.AttributeReviewDetailDTO;
 import com.project.ProjectS.model.ExamAnswerDTO;
 import com.project.ProjectS.model.ExamQuestionAnswerDTO;
 import com.project.ProjectS.model.ExamReviewQuestionDTO;
@@ -351,61 +352,6 @@ public class ExamScoringService {
         return false;
     }
 
-    /**
-     * Whether one attribute's own submitted lines fully and exactly satisfy
-     * the Rule Engine - not just "every submitted line matched something"
-     * (that's {@link #checkAccountingAttribute}, used for the actual exam
-     * score and left untouched), but "the number of lines that matched a
-     * condition equals the number of valid conditions the Rule Engine
-     * defines for this attribute". Display-only: drives the review screen's
-     * per-attribute correct/wrong highlight, never the grade itself.
-     */
-    private boolean isAttributeFullyCorrect(
-            Long questionId,
-            Long attributeId,
-            List<ExamAnswerDTO> attributeAnswers) {
-
-        if (attributeAnswers == null || attributeAnswers.isEmpty()) {
-            return false;
-        }
-
-        QuestionAttribute questionAttribute =
-                questionAttributeRepository
-                        .findByQuestion_QuestionId(questionId)
-                        .stream()
-                        .filter(qa -> qa.getAttribute() != null
-                                && attributeId.equals(qa.getAttribute().getAttributeId()))
-                        .findFirst()
-                        .orElse(null);
-
-        if (questionAttribute == null) {
-            return false;
-        }
-
-        List<RuleEngineResponse> rules = ruleEngineService.getRuleEngineByAttributeId(attributeId);
-
-        if (rules == null || rules.isEmpty()) {
-            return false;
-        }
-
-        long expectedCount = rules.stream()
-                .flatMap(rule -> Stream.of(
-                        rule.getCondition1(), rule.getCondition2(),
-                        rule.getCondition3(), rule.getCondition4()))
-                .filter(this::isValidCondition)
-                .count();
-
-        if (expectedCount == 0) {
-            return false;
-        }
-
-        long correctCount = attributeAnswers.stream()
-                .filter(answer -> matchesAnyRuleCondition(answer, rules, questionAttribute))
-                .count();
-
-        return correctCount == expectedCount;
-    }
-
     private boolean isValidCondition(RuleConditionDTO condition) {
 
         if (condition == null) {
@@ -623,17 +569,23 @@ public class ExamScoringService {
      * selected option gets its own row with AnswerEvent.optionId set (no
      * parsing needed, unlike the other types, since there's a column for it).
      * Every row also gets AnswerEvent.isCorrect stamped: for Journal/
-     * Dropdown/Drag-and-drop lines, per-attribute via
-     * {@link #isAttributeFullyCorrect} (so two attributes in the same
-     * question can disagree - one right, one wrong); for MCQ, per-question
+     * Dropdown/Drag-and-drop lines, each line is judged independently against
+     * the Rule Engine (via {@link #matchesAnyRuleCondition}) - two lines of
+     * the same attribute can disagree, one right, one wrong. This is
+     * deliberately more granular than the actual exam score: {@link #score}/
+     * {@link #checkAccountingAttribute} still requires every line of an
+     * attribute to match before marks are awarded for it, unchanged. The
+     * review screen re-aggregates these per-line flags back into a
+     * per-attribute verdict at read time (see {@link #buildReviewFromAnswerInfo})
+     * rather than trusting a pre-aggregated flag here. For MCQ, there's no
+     * attribute to split by, so every option gets the per-question verdict
      * from {@code questionScores} (the same {@link #score} call the caller
-     * already made to grade the submission), since MCQ has no attributes to
-     * split by. marks is left unset, so none of this can affect the practice
-     * "Total Score" widget. Pass exactly one of {@code exam} / {@code
-     * mockExam}. Retaking the same paper deletes every EXAM_SUBMIT row this
-     * user has for that exam (or mock exam) up front - one delete for the
-     * whole attempt, not per question - so answer_events only ever holds the
-     * current attempt's data, never a past one.
+     * already made to grade the submission). marks is left unset, so none of
+     * this can affect the practice "Total Score" widget. Pass exactly one of
+     * {@code exam} / {@code mockExam}. Retaking the same paper deletes every
+     * EXAM_SUBMIT row this user has for that exam (or mock exam) up front -
+     * one delete for the whole attempt, not per question - so answer_events
+     * only ever holds the current attempt's data, never a past one.
      */
     public void persistAnswerInfo(
             User user,
@@ -677,42 +629,9 @@ public class ExamScoringService {
                     questionAttributeRepository.findByQuestion_QuestionId(
                             submittedQuestion.getQuestionId());
 
-            // Group this question's accounting-style ("info"-bearing) lines by
-            // attribute, so each attribute's own correctness (not the whole
-            // question's) can be worked out once and stamped onto every line
-            // that belongs to it.
-            Map<Long, List<ExamAnswerDTO>> linesByAttributeId = new HashMap<>();
-
-            for (ExamAnswerDTO answerLine : submittedQuestion.getAnswers()) {
-
-                if (answerLine == null || answerLine.getAnsweredData() == null) {
-                    continue;
-                }
-
-                Map<String, Object> data = answerLine.getAnsweredData();
-
-                if (data.get("info") == null) {
-                    continue;
-                }
-
-                Long attributeId = getLongValue(data.get("attributeId"));
-
-                linesByAttributeId
-                        .computeIfAbsent(attributeId, key -> new ArrayList<>())
-                        .add(answerLine);
-            }
-
-            Map<Long, Boolean> correctByAttributeId = new HashMap<>();
-
-            for (Map.Entry<Long, List<ExamAnswerDTO>> attributeEntry : linesByAttributeId.entrySet()) {
-
-                correctByAttributeId.put(
-                        attributeEntry.getKey(),
-                        isAttributeFullyCorrect(
-                                submittedQuestion.getQuestionId(),
-                                attributeEntry.getKey(),
-                                attributeEntry.getValue()));
-            }
+            // Caches the Rule Engine lookup per attribute for this question,
+            // since several submitted lines can share the same attribute.
+            Map<Long, List<RuleEngineResponse>> rulesByAttributeId = new HashMap<>();
 
             for (ExamAnswerDTO answerLine : submittedQuestion.getAnswers()) {
 
@@ -735,13 +654,37 @@ public class ExamScoringService {
                                     .findFirst()
                                     .orElse(null);
 
+                    QuestionAttribute questionAttribute = attributeId == null
+                            ? null
+                            : questionAttributes.stream()
+                                    .filter(qa -> qa.getAttribute() != null
+                                            && attributeId.equals(qa.getAttribute().getAttributeId()))
+                                    .findFirst()
+                                    .orElse(null);
+
+                    // Each line is judged on its own here - not aggregated
+                    // with its attribute's other lines, unlike the actual
+                    // exam score (checkAccountingAttribute, unchanged) which
+                    // still requires every line of an attribute to match
+                    // before any marks are awarded for it.
+                    Boolean lineCorrect = null;
+
+                    if (attributeId != null && questionAttribute != null) {
+
+                        List<RuleEngineResponse> rules = rulesByAttributeId.computeIfAbsent(
+                                attributeId, ruleEngineService::getRuleEngineByAttributeId);
+
+                        lineCorrect = rules != null && !rules.isEmpty()
+                                && matchesAnyRuleCondition(answerLine, rules, questionAttribute);
+                    }
+
                     AnswerEvent event = new AnswerEvent();
                     event.setUser(user);
                     event.setQuestion(question);
                     event.setAttribute(attribute);
                     event.setEventType("EXAM_SUBMIT");
                     event.setDescription(info.toString());
-                    event.setIsCorrect(correctByAttributeId.get(attributeId));
+                    event.setIsCorrect(lineCorrect);
                     event.setExam(exam);
                     event.setMockExam(mockExam);
 
@@ -900,6 +843,24 @@ public class ExamScoringService {
                 List<QuestionAttribute> questionAttributes =
                         questionAttributeRepository.findByQuestion_QuestionId(questionId);
 
+                // The status shown per line is the whole attribute's verdict,
+                // not just this one line's: how many answer_events rows does
+                // this attribute have for this attempt, and are all of them
+                // individually marked is_correct? Recomputed here from the
+                // stored per-line flags rather than trusting a pre-aggregated
+                // one, so it always reflects exactly what's in the table.
+                Map<Long, List<AnswerEvent>> eventsByAttributeId = questionEvents.stream()
+                        .filter(event -> event.getAttribute() != null)
+                        .collect(Collectors.groupingBy(
+                                event -> event.getAttribute().getAttributeId()));
+
+                Map<Long, Boolean> attributeAllCorrect = new HashMap<>();
+                for (Map.Entry<Long, List<AnswerEvent>> attributeEntry : eventsByAttributeId.entrySet()) {
+                    boolean allCorrect = attributeEntry.getValue().stream()
+                            .allMatch(event -> Boolean.TRUE.equals(event.getIsCorrect()));
+                    attributeAllCorrect.put(attributeEntry.getKey(), allCorrect);
+                }
+
                 List<ExamAnswerDTO> parsedAnswers = new ArrayList<>();
 
                 for (AnswerEvent event : questionEvents) {
@@ -929,7 +890,9 @@ public class ExamScoringService {
                     answeredData.put("amount", amount);
                     answeredData.put(
                             "status",
-                            Boolean.TRUE.equals(event.getIsCorrect()) ? "correct" : "wrong");
+                            Boolean.TRUE.equals(attributeAllCorrect.get(attributeId))
+                                    ? "correct"
+                                    : "wrong");
 
                     ExamAnswerDTO answer = new ExamAnswerDTO();
                     answer.setAnsweredData(answeredData);
@@ -962,5 +925,49 @@ public class ExamScoringService {
         }
 
         return reviewQuestions;
+    }
+
+    /**
+     * What the review screen shows when a trial-balance / transaction row is
+     * clicked: the attribute's Rule Engine hint text(s), plus each wrong line
+     * this student submitted for it on this attempt - the individually
+     * mis-matched answer_events rows, read straight off their stored
+     * description, not a synthesised explanation of what was missed. Pass
+     * exactly one of {@code examId} / {@code mockExamId}.
+     */
+    public AttributeReviewDetailDTO buildAttributeReviewDetail(
+            Long userId, Long examId, Long mockExamId, Long questionId, Long attributeId) {
+
+        List<AnswerEvent> wrongEvents = examId != null
+                ? answerEventRepository
+                        .findByUser_UserIdAndExam_ExamIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventTypeAndIsCorrectFalse(
+                                userId, examId, questionId, attributeId, "EXAM_SUBMIT")
+                : answerEventRepository
+                        .findByUser_UserIdAndMockExam_MockExamIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventTypeAndIsCorrectFalse(
+                                userId, mockExamId, questionId, attributeId, "EXAM_SUBMIT");
+
+        List<String> mistakes = wrongEvents.stream()
+                .map(AnswerEvent::getDescription)
+                .filter(description -> description != null && !description.isBlank())
+                .toList();
+
+        List<RuleEngineResponse> rules = ruleEngineService.getRuleEngineByAttributeId(attributeId);
+
+        List<String> hints = rules == null
+                ? List.of()
+                : rules.stream()
+                        .flatMap(rule -> Stream.of(
+                                rule.getCondition1(), rule.getCondition2(),
+                                rule.getCondition3(), rule.getCondition4()))
+                        .filter(Objects::nonNull)
+                        .map(RuleConditionDTO::getInformation)
+                        .filter(information -> information != null && !information.isBlank())
+                        .distinct()
+                        .toList();
+
+        AttributeReviewDetailDTO detail = new AttributeReviewDetailDTO();
+        detail.setHints(hints);
+        detail.setMistakes(mistakes);
+        return detail;
     }
 }

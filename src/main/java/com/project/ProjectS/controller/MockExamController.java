@@ -163,4 +163,18 @@ public class MockExamController {
                 mockExamService.getMyMockExamAttempts(authentication)
         );
     }
+
+    @GetMapping("/{mockExamId}/results/{resultId}/attributes/{attributeId}/review-detail")
+    public ResponseEntity<AttributeReviewDetailDTO> getAttributeReviewDetail(
+            @PathVariable Long mockExamId,
+            @PathVariable Long resultId,
+            @PathVariable Long attributeId,
+            @RequestParam Long questionId,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                mockExamService.getAttributeReviewDetail(
+                        mockExamId, resultId, questionId, attributeId, authentication)
+        );
+    }
 }
