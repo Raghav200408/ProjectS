@@ -10,6 +10,7 @@ public class StudentRequestDTO {
     private Long  studentCode;
     private Long    collegeId;
     private Long   branchId;
+    private Long courseId;
     private Long  sectionId;
     private String  guardianName;
     private String guardianPhoneNumber;
