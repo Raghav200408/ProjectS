@@ -4,6 +4,7 @@ import com.project.ProjectS.entity.MockExamResult;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -12,6 +13,10 @@ public interface MockExamResultRepository
 
     Optional<MockExamResult> findByMockExam_MockExamIdAndUser_UserId(
             Long mockExamId,
+            Long userId
+    );
+
+    List<MockExamResult> findByUser_UserIdOrderByCreatedAtDesc(
             Long userId
     );
 }

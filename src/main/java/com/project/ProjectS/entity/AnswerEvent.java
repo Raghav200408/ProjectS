@@ -28,6 +28,17 @@ public class AnswerEvent {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "attribute_id")
     private TableAttribute attribute;
+
+    // Null for practice-flow events. Set to identify which exam (or mock
+    // exam) attempt this event came from - never both at once.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "exam_id")
+    private Exam exam;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mock_exam_id")
+    private MockExam mockExam;
+
     @Column(name = "answer_position")
     private Integer answerPosition;
     @Column(name = "arithmetic", length = 50)

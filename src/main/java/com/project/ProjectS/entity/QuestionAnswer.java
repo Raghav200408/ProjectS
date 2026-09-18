@@ -42,7 +42,6 @@ public class QuestionAnswer {
     @JoinColumn(name = "header_id")
     private TableHeader header;
 
-
     // Table Attribute
     @ManyToOne
     @JoinColumn(name = "attribute_id")

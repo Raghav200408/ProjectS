@@ -7,6 +7,8 @@ import lombok.Setter;
 @Setter
 public class ExamSubmitResponseDTO {
 
+    private Long examResultId;
+
     private Long examId;
 
     private Long userId;

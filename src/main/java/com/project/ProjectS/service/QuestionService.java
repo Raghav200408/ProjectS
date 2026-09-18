@@ -13,12 +13,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class QuestionService {
 
     private final QuestionRepository questionRepository;
+
+    private final McqOptionRepository mcqOptionRepository;
 
     private final QuestionAttributeRepository questionAttributeRepository;
 
@@ -62,6 +65,7 @@ public class QuestionService {
             TableAttributeRepository tableAttributeRepository,
             ExcelUploadService excelUploadService,
             QuestionExcelProcessor questionExcelProcessor,
+            McqOptionRepository mcqOptionRepository,
             SubscriptionEntitlementService entitlementService,
             QuestionMatchingPairRepository questionMatchingPairRepository,
             QuestionFillBlankAnswerRepository questionFillBlankAnswerRepository) {
@@ -75,6 +79,8 @@ public class QuestionService {
         this.chapterRepository = chapterRepository;
 
         this.subjectRepository = subjectRepository;
+
+        this.mcqOptionRepository = mcqOptionRepository;
 
         this.topicRepository = topicRepository;
 
@@ -758,6 +764,12 @@ public class QuestionService {
                                     )
                             );
 
+            // if it's mcq
+            List<McqOption> options =
+                    mcqOptionRepository
+                            .findByQuestionIdAndActiveRowTrueOrderByOptionOrderAsc(
+                                    questionId
+                            );
 
             List<QuestionAttribute> attributes =
                     questionAttributeRepository
@@ -785,9 +797,10 @@ public class QuestionService {
 
 
             responseList.add(
-                    convertToResponse(
+                    convertToWithOptionsResponse(
                             question,
                             attributes,
+                            options,
                             pairs,
                             blanks
                     )
@@ -1225,10 +1238,34 @@ public class QuestionService {
     }
 
 
+    private McqOptionDTO mapOptionToDTO(
+            McqOption option
+    ) {
+
+        McqOptionDTO dto =
+                new McqOptionDTO();
+
+        dto.setOptionId(
+                option.getOptionId()
+        );
+
+        dto.setOptionOrder(
+                option.getOptionOrder()
+        );
+
+        dto.setOptionText(
+                option.getOptionText()
+        );
+
+        // This path (getQuestionsByIds) only ever backs an exam or mock-exam
+        // paper - never send isCorrect here, or the correct option is sitting
+        // in the network tab before the student answers.
+        return dto;
+    }
+
     // =========================================================
     // CONVERT TO RESPONSE
     // =========================================================
-
     private QuestionResponseDTO convertToResponse(
             Question question,
             List<QuestionAttribute> attributes,
@@ -1571,6 +1608,318 @@ public class QuestionService {
 
         response.setBlanks(
                 blankResponses
+        );
+
+
+        return response;
+    }
+
+    private QuestionResponseDTO convertToWithOptionsResponse(
+            Question question,
+            List<QuestionAttribute> attributes,
+            List<McqOption> options,
+            List<QuestionMatchingPair> pairs) {
+
+
+        QuestionResponseDTO response =
+                new QuestionResponseDTO();
+
+
+        // =====================================================
+        // SUBJECT
+        // =====================================================
+
+        if (question.getSubject() != null) {
+
+            response.setSubjectId(
+                    question
+                            .getSubject()
+                            .getSubjectId()
+            );
+
+
+            response.setSubjectName(
+                    question
+                            .getSubject()
+                            .getSubjectName()
+            );
+        }
+
+
+        // =====================================================
+        // QUESTION
+        // =====================================================
+
+        response.setQuestionId(
+                question.getQuestionId()
+        );
+
+
+        response.setQuestionText(
+                question.getQuestionText()
+        );
+
+
+        // =====================================================
+        // COURSE
+        // =====================================================
+
+        if (question.getCourse() != null) {
+
+            response.setCourseId(
+                    question
+                            .getCourse()
+                            .getCourseId()
+            );
+
+
+            response.setCourseName(
+                    question
+                            .getCourse()
+                            .getName()
+            );
+        }
+
+
+        // =====================================================
+        // CHAPTER
+        // =====================================================
+
+        if (question.getChapter() != null) {
+
+            response.setChapterId(
+                    question
+                            .getChapter()
+                            .getChapterId()
+            );
+
+
+            response.setChapterName(
+                    question
+                            .getChapter()
+                            .getName()
+            );
+        }
+
+
+        // =====================================================
+        // TOPIC
+        // =====================================================
+
+        if (question.getTopic() != null) {
+
+            response.setTopicId(
+                    question
+                            .getTopic()
+                            .getTopicId()
+            );
+
+
+            response.setTopicName(
+                    question
+                            .getTopic()
+                            .getName()
+            );
+        }
+
+
+        // =====================================================
+        // QUESTION TYPE
+        // =====================================================
+
+        if (question.getQuestionType() != null) {
+
+            response.setQuestionTypeId(
+                    question
+                            .getQuestionType()
+                            .getQuestionTypeId()
+            );
+
+
+            response.setQuestionType(
+                    question
+                            .getQuestionType()
+                            .getQuestionType()
+            );
+        }
+
+
+        response.setActiveRow(
+                question.getActiveRow()
+        );
+
+
+        response.setCreatedAt(
+                question.getCreatedAt()
+        );
+
+
+        response.setUpdatedAt(
+                question.getUpdatedAt()
+        );
+
+
+        // =====================================================
+        // QUESTION ATTRIBUTES
+        // =====================================================
+
+        List<QuestionAttributeResponseDTO>
+                attributeResponses =
+                new ArrayList<>();
+
+
+        for (QuestionAttribute questionAttribute
+                : attributes) {
+
+
+            QuestionAttributeResponseDTO
+                    attributeResponse =
+                    new QuestionAttributeResponseDTO();
+
+
+            attributeResponse.setQuestionAttributeId(
+                    questionAttribute
+                            .getQuestionAttributeId()
+            );
+
+
+            // =================================================
+            // HEADER
+            // =================================================
+
+            if (questionAttribute.getHeader() != null) {
+
+                attributeResponse.setHeaderId(
+                        questionAttribute
+                                .getHeader()
+                                .getHeaderId()
+                );
+
+
+                attributeResponse.setHeaderName(
+                        questionAttribute
+                                .getHeader()
+                                .getName()
+                );
+            }
+
+
+            // =================================================
+            // ATTRIBUTE
+            // =================================================
+
+            if (questionAttribute.getAttribute() != null) {
+
+                attributeResponse.setAttributeId(
+                        questionAttribute
+                                .getAttribute()
+                                .getAttributeId()
+                );
+
+
+                attributeResponse.setAttributeName(
+                        questionAttribute
+                                .getAttribute()
+                                .getName()
+                );
+            }
+
+
+            attributeResponse.setTransactionDate(
+                    questionAttribute
+                            .getTransactionDate()
+            );
+
+
+            attributeResponse.setAmount(
+                    questionAttribute
+                            .getAmount()
+            );
+
+
+            attributeResponse.setAmount2(
+                    questionAttribute
+                            .getAmount2()
+            );
+
+
+            attributeResponse.setNote(
+                    questionAttribute
+                            .getNote()
+            );
+
+
+            attributeResponse.setActiveRow(
+                    questionAttribute
+                            .getActiveRow()
+            );
+
+
+            attributeResponses.add(
+                    attributeResponse
+            );
+        }
+
+
+        response.setQuestionAttributes(
+                attributeResponses
+        );
+
+        //MCQ
+        List<McqOptionDTO> optionDTOs =
+                options.stream()
+                        .map(this::mapOptionToDTO)
+                        .collect(Collectors.toList());
+
+        response.setOptions(optionDTOs);
+
+
+        // =====================================================
+        // MATCHING PAIRS - MATCH THE FOLLOWING
+        // =====================================================
+
+        List<MatchingPairResponseDTO>
+                pairResponses =
+                new ArrayList<>();
+
+
+        if (pairs != null) {
+
+            for (QuestionMatchingPair pair : pairs) {
+
+                MatchingPairResponseDTO pairResponse =
+                        new MatchingPairResponseDTO();
+
+
+                pairResponse.setPairId(
+                        pair.getPairId()
+                );
+
+
+                pairResponse.setColumnA(
+                        pair.getColumnA()
+                );
+
+
+                pairResponse.setColumnB(
+                        pair.getColumnB()
+                );
+
+
+                pairResponse.setDisplayOrder(
+                        pair.getDisplayOrder()
+                );
+
+
+                pairResponses.add(
+                        pairResponse
+                );
+            }
+        }
+
+
+        response.setPairs(
+                pairResponses
         );
 
 

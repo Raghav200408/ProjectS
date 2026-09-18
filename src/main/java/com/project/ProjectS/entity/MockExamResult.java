@@ -31,6 +31,12 @@ public class MockExamResult {
     @Column(name = "percentage", nullable = false)
     private Double percentage;
 
+    @Column(name = "maximum_marks")
+    private Double maximumMarks;
+
+    @Column(name = "time_taken_seconds")
+    private Integer timeTakenSeconds;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

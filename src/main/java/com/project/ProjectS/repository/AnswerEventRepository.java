@@ -78,6 +78,10 @@ public interface AnswerEventRepository
 
     List<AnswerEvent> findByUser_UserId(Long userId);
 
+    // Practice-only events, for the practice "Total Score" widget - exam and
+    // mock-exam attempts must never be blended into this.
+    List<AnswerEvent> findByUser_UserIdAndExamIsNullAndMockExamIsNull(Long userId);
+
     @Modifying
     @Query("""
                 UPDATE AnswerEvent ae
@@ -89,5 +93,59 @@ public interface AnswerEventRepository
     int deactivateByUserAndQuestion(
             @Param("userId") Long userId,
             @Param("questionId") Long questionId
+    );
+
+    // Journal/Dropdown/Drag-and-drop/MCQ's own "what did the student do" rows
+    // for one exam attempt (Exam Review screen).
+    List<AnswerEvent> findByUser_UserIdAndExam_ExamIdAndEventType(
+            Long userId,
+            Long examId,
+            String eventType
+    );
+
+    // Same, for one mock-exam attempt.
+    List<AnswerEvent> findByUser_UserIdAndMockExam_MockExamIdAndEventType(
+            Long userId,
+            Long mockExamId,
+            String eventType
+    );
+
+    // Used before persistAnswerInfo writes a fresh exam submission's rows, so
+    // retaking the same exam wipes every row from the previous attempt in one
+    // shot instead of leaving them to pile up alongside the new ones. Scoped
+    // to one event type so it never touches the practice flow's own
+    // ANSWER/HINT events. Derived deleteBy queries - no @Modifying needed,
+    // that's only for @Query methods.
+    long deleteByUser_UserIdAndExam_ExamIdAndEventType(
+            Long userId,
+            Long examId,
+            String eventType
+    );
+
+    // Same, for retaking a mock exam.
+    long deleteByUser_UserIdAndMockExam_MockExamIdAndEventType(
+            Long userId,
+            Long mockExamId,
+            String eventType
+    );
+
+    // The wrong lines this student submitted for one attribute on one exam
+    // attempt - what the "What went wrong?" panel on the review screen shows
+    // when a trial-balance / transaction row is clicked.
+    List<AnswerEvent> findByUser_UserIdAndExam_ExamIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventTypeAndIsCorrectFalse(
+            Long userId,
+            Long examId,
+            Long questionId,
+            Long attributeId,
+            String eventType
+    );
+
+    // Same, for one mock-exam attempt.
+    List<AnswerEvent> findByUser_UserIdAndMockExam_MockExamIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventTypeAndIsCorrectFalse(
+            Long userId,
+            Long mockExamId,
+            Long questionId,
+            Long attributeId,
+            String eventType
     );
 }

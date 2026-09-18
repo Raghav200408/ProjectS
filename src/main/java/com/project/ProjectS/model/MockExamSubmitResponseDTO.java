@@ -7,6 +7,8 @@ import lombok.Setter;
 @Setter
 public class MockExamSubmitResponseDTO {
 
+    private Long mockExamResultId;
+
     private Long mockExamId;
 
     private Long userId;

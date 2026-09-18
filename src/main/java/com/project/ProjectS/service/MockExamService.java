@@ -349,18 +349,147 @@ public class MockExamService {
         result.setUser(user);
         result.setTotalMarks(score.totalMarks());
         result.setPercentage(score.percentage());
+        result.setMaximumMarks(score.maximumMarks());
+        result.setTimeTakenSeconds(request.getTimeTakenSeconds());
 
         mockExamResultRepository.save(result);
+
+        examScoringService.persistAnswerInfo(
+                user, null, mockExam, request.getAnswers(), score.questionScores());
 
         MockExamSubmitResponseDTO response =
                 new MockExamSubmitResponseDTO();
 
+        response.setMockExamResultId(result.getMockExamResultId());
         response.setMockExamId(mockExamId);
         response.setUserId(user.getUserId());
         response.setTotalMarks(score.totalMarks());
         response.setPercentage(score.percentage());
 
         return response;
+    }
+
+    /**
+     * The "Exam Review" screen's payload for one mock exam attempt - Journal,
+     * Dropdown, Drag-and-drop and MCQ answers are all rehydrated from this
+     * mock exam's own AnswerEvent rows (tagged by mock_exam_id at submit
+     * time), so retaking this mock exam or another one sharing a question
+     * never mixes attempts together. Any authenticated user may view their
+     * own result; SUPER_ADMIN/COLLEGE_ADMIN/BRANCH_ADMIN may view any.
+     */
+    public ExamReviewResponseDTO getMockExamResultReview(
+            Long mockExamId, Long resultId, Authentication authentication) {
+
+        MockExamResult result = mockExamResultRepository.findById(resultId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Mock exam result not found with id: " + resultId));
+
+        if (!result.getMockExam().getMockExamId().equals(mockExamId)) {
+            throw new RuntimeException(
+                    "Mock exam result " + resultId
+                            + " does not belong to mock exam " + mockExamId);
+        }
+
+        User caller = getLoggedInUser(authentication);
+        boolean isOwner = caller != null
+                && caller.getUserId().equals(result.getUser().getUserId());
+        boolean isManager = caller != null
+                && caller.getRole() != null
+                && List.of("SUPER_ADMIN", "COLLEGE_ADMIN", "BRANCH_ADMIN")
+                        .contains(caller.getRole().getRoleName().toUpperCase());
+
+        if (!isOwner && !isManager) {
+            throw new RuntimeException("Not authorised to view this result");
+        }
+
+        ExamReviewResponseDTO response = new ExamReviewResponseDTO();
+        response.setResultId(result.getMockExamResultId());
+        response.setExamId(result.getMockExam().getMockExamId());
+        response.setExamName(result.getMockExam().getMockExamName());
+        response.setCourseName(result.getMockExam().getCourse().getName());
+        response.setTotalMarks(result.getTotalMarks());
+        response.setPercentage(result.getPercentage());
+        response.setMaximumMarks(result.getMaximumMarks());
+        response.setTimeTakenSeconds(result.getTimeTakenSeconds());
+        response.setCompletedAt(result.getCreatedAt());
+
+        response.setQuestions(
+                examScoringService.buildReviewFromAnswerInfo(
+                        result.getUser().getUserId(), null, mockExamId));
+
+        return response;
+    }
+
+    /**
+     * The "What went wrong?" panel for one attribute on one mock exam
+     * attempt - its Rule Engine hint(s) plus the wrong lines this student
+     * submitted for it. Same ownership rule as
+     * {@link #getMockExamResultReview}.
+     */
+    public AttributeReviewDetailDTO getAttributeReviewDetail(
+            Long mockExamId, Long resultId, Long questionId, Long attributeId,
+            Authentication authentication) {
+
+        MockExamResult result = mockExamResultRepository.findById(resultId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Mock exam result not found with id: " + resultId));
+
+        if (!result.getMockExam().getMockExamId().equals(mockExamId)) {
+            throw new RuntimeException(
+                    "Mock exam result " + resultId
+                            + " does not belong to mock exam " + mockExamId);
+        }
+
+        User caller = getLoggedInUser(authentication);
+        boolean isOwner = caller != null
+                && caller.getUserId().equals(result.getUser().getUserId());
+        boolean isManager = caller != null
+                && caller.getRole() != null
+                && List.of("SUPER_ADMIN", "COLLEGE_ADMIN", "BRANCH_ADMIN")
+                        .contains(caller.getRole().getRoleName().toUpperCase());
+
+        if (!isOwner && !isManager) {
+            throw new RuntimeException("Not authorised to view this result");
+        }
+
+        return examScoringService.buildAttributeReviewDetail(
+                result.getUser().getUserId(), null, mockExamId, questionId, attributeId);
+    }
+
+    /**
+     * Every completed mock-exam attempt for the given user, newest first -
+     * feeds the dashboard's Recent Activity list.
+     */
+    public List<ExamAttemptSummaryDTO> getMyMockExamAttempts(Authentication authentication) {
+
+        User user = getLoggedInUser(authentication);
+        if (user == null) {
+            return List.of();
+        }
+
+        return mockExamResultRepository.findByUser_UserIdOrderByCreatedAtDesc(user.getUserId())
+                .stream()
+                .map(result -> {
+                    ExamAttemptSummaryDTO dto = new ExamAttemptSummaryDTO();
+                    dto.setResultId(result.getMockExamResultId());
+                    dto.setExamId(result.getMockExam().getMockExamId());
+                    dto.setExamName(result.getMockExam().getMockExamName());
+                    dto.setExamType("MOCK_EXAM");
+                    dto.setPercentage(result.getPercentage());
+                    dto.setCompletedAt(result.getCreatedAt());
+                    return dto;
+                })
+                .toList();
+    }
+
+    private User getLoggedInUser(Authentication authentication) {
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+
+        return userRepository.findByEmail(authentication.getName())
+                .orElse(null);
     }
 
 

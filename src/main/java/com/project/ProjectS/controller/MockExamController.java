@@ -143,4 +143,38 @@ public class MockExamController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{mockExamId}/results/{resultId}")
+    public ResponseEntity<ExamReviewResponseDTO> getMockExamResultReview(
+            @PathVariable Long mockExamId,
+            @PathVariable Long resultId,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                mockExamService.getMockExamResultReview(mockExamId, resultId, authentication)
+        );
+    }
+
+    @GetMapping("/results/me")
+    public ResponseEntity<List<ExamAttemptSummaryDTO>> getMyMockExamAttempts(
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                mockExamService.getMyMockExamAttempts(authentication)
+        );
+    }
+
+    @GetMapping("/{mockExamId}/results/{resultId}/attributes/{attributeId}/review-detail")
+    public ResponseEntity<AttributeReviewDetailDTO> getAttributeReviewDetail(
+            @PathVariable Long mockExamId,
+            @PathVariable Long resultId,
+            @PathVariable Long attributeId,
+            @RequestParam Long questionId,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                mockExamService.getAttributeReviewDetail(
+                        mockExamId, resultId, questionId, attributeId, authentication)
+        );
+    }
 }

@@ -19,6 +19,10 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
             Long userId
     );
 
+    List<ExamResult> findByUser_UserIdOrderByCreatedAtDesc(
+            Long userId
+    );
+
 
     List<ExamResult> findByExam_College_CollegeId(
             Long collegeId
