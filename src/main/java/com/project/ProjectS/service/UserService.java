@@ -18,11 +18,12 @@ import java.util.List;
 @Transactional
 public class UserService {
     @Autowired
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, CollegeRepository collegeRepository, BranchRepository branchRepository, SectionRepository sectionRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository,SectionRepository sectionRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.collegeRepository = collegeRepository;
         this.branchRepository = branchRepository;
+        this.courseRepository = courseRepository;
         this.sectionRepository = sectionRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -31,6 +32,7 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final CollegeRepository collegeRepository;
     private final BranchRepository branchRepository;
+    private final CourseRepository courseRepository;
     private final SectionRepository sectionRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -215,6 +217,8 @@ public class UserService {
 
         Branch branch = getBranch(request.getBranchId());
 
+        Course course = getCourse(request.getCourseId());
+
         Section section = getSection(request.getSectionId());
 
         User user = new User();
@@ -225,6 +229,9 @@ public class UserService {
 
         user.setCollege(college);
         user.setBranch(branch);
+
+        user.setCourse(course);
+
         user.setSection(section);
 
         user.setEmail(request.getEmail());
@@ -450,6 +457,9 @@ public class UserService {
 
         user.setBranch(
                 getBranch(request.getBranchId())
+        );
+        user.setCourse(
+                getCourse(request.getCourseId())
         );
 
         user.setSection(
@@ -682,6 +692,17 @@ public class UserService {
                         )
                 );
     }
+    //get course
+    private Course getCourse(Long courseId) {
+
+        return courseRepository.findById(courseId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Course not found with id: "
+                                        + courseId
+                        )
+                );
+    }
 
     //get section
     private Section getSection(Long sectionId) {
@@ -769,6 +790,19 @@ public class UserService {
 
             dto.setBranchName(
                     user.getBranch().getBranchName()
+            );
+        }
+
+
+        // Course
+        if (user.getCourse() != null) {
+
+            dto.setCourseId(
+                    user.getCourse().getCourseId()
+            );
+
+            dto.setCourseName(
+                    user.getCourse().getName()
             );
         }
 

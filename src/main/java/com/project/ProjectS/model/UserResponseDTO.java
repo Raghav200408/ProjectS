@@ -28,6 +28,9 @@ public class UserResponseDTO {
     private Long branchId;
     private String branchName;
 
+    private Long courseId;
+    private String courseName;
+
 
     private Long sectionId;
     private String sectionName;
