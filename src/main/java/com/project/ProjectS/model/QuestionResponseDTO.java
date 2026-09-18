@@ -44,4 +44,6 @@ public class QuestionResponseDTO {
 
     private List<MatchingPairResponseDTO> pairs;
 
+    private List<FillInTheBlankAnswerResponseDTO> blanks;
+
 }
