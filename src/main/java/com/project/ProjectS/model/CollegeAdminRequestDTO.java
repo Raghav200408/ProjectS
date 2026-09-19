@@ -15,4 +15,5 @@ public class CollegeAdminRequestDTO {
     private String  phoneNumber;
     private String    password;
     private String   address;
+    private Boolean activeRow;
 }

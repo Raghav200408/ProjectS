@@ -60,6 +60,7 @@ public class UserService {
         user.setRole(role);
 
         user.setLoginType("NORMAL");
+        user.setActiveRow(request.getActiveRow() == null || request.getActiveRow());
 
         User savedUser = userRepository.save(user);
 
@@ -100,6 +101,7 @@ public class UserService {
         user.setRole(role);
 
         user.setLoginType("NORMAL");
+        user.setActiveRow(request.getActiveRow() == null || request.getActiveRow());
 
         User savedUser = userRepository.save(user);
 
@@ -137,6 +139,7 @@ public class UserService {
         user.setRole(role);
 
         user.setLoginType("NORMAL");
+        user.setActiveRow(request.getActiveRow() == null || request.getActiveRow());
 
         User savedUser = userRepository.save(user);
 
@@ -144,7 +147,7 @@ public class UserService {
     }
 
     public List<UserResponseDTO> getAllCollegeAdmins() {
-        List<User> users = userRepository.findByRole_RoleNameAndActiveRowTrue("COLLEGE_ADMIN");
+        List<User> users = userRepository.findByRole_RoleName("COLLEGE_ADMIN");
         return users.stream()
                 .map(this::convertToResponse)
                 .toList();
@@ -179,6 +182,7 @@ public class UserService {
 
         user.setEmail(request.getEmail());
         user.setPhoneNumber(request.getPhoneNumber());
+        if (request.getActiveRow() != null) user.setActiveRow(request.getActiveRow());
 
         if (request.getPassword() != null &&
                 !request.getPassword().isBlank()) {
@@ -249,6 +253,7 @@ public class UserService {
         user.setRole(role);
 
         user.setLoginType("NORMAL");
+        user.setActiveRow(request.getActiveRow() == null || request.getActiveRow());
 
         User savedUser = userRepository.save(user);
 
@@ -290,7 +295,7 @@ public class UserService {
 
     public List<UserResponseDTO> getAllSuperAdmins() {
 
-        List<User> users = userRepository.findByRole_RoleNameAndActiveRowTrue("SUPER_ADMIN");
+        List<User> users = userRepository.findByRole_RoleName("SUPER_ADMIN");
 
         return users.stream()
                 .map(this::convertToResponse)
@@ -298,7 +303,7 @@ public class UserService {
     }
 
     public List<UserResponseDTO> getAllBranchAdmins() {
-        List<User> users = userRepository.findByRole_RoleNameAndActiveRowTrue("BRANCH_ADMIN");
+        List<User> users = userRepository.findByRole_RoleName("BRANCH_ADMIN");
         return users.stream()
                 .filter(this::isWithinCurrentAdminScope)
                 .map(this::convertToResponse)
@@ -306,7 +311,7 @@ public class UserService {
     }
 
     public List<UserResponseDTO> getAllStudents() {
-        List<User> users = userRepository.findByRole_RoleNameAndActiveRowTrue("STUDENT");
+        List<User> users = userRepository.findByRole_RoleName("STUDENT");
         return users.stream()
                 .filter(this::isWithinCurrentAdminScope)
                 .map(this::convertToResponse)
@@ -376,6 +381,7 @@ public class UserService {
 
         user.setEmail(request.getEmail());
         user.setPhoneNumber(request.getPhoneNumber());
+        if (request.getActiveRow() != null) user.setActiveRow(request.getActiveRow());
 
         if (request.getPassword() != null &&
                 !request.getPassword().isBlank()) {
@@ -419,6 +425,7 @@ public class UserService {
 
         user.setEmail(request.getEmail());
         user.setPhoneNumber(request.getPhoneNumber());
+        if (request.getActiveRow() != null) user.setActiveRow(request.getActiveRow());
 
         if (request.getPassword() != null &&
                 !request.getPassword().isBlank()) {
@@ -468,6 +475,7 @@ public class UserService {
 
         user.setEmail(request.getEmail());
         user.setPhoneNumber(request.getPhoneNumber());
+        if (request.getActiveRow() != null) user.setActiveRow(request.getActiveRow());
 
         user.setGuardianName(request.getGuardianName());
         user.setGuardianPhoneNumber(
@@ -763,6 +771,7 @@ public class UserService {
 
         dto.setEmail(user.getEmail());
         dto.setPhoneNumber(user.getPhoneNumber());
+        dto.setActiveRow(user.getActiveRow());
 
         dto.setGuardianName(user.getGuardianName());
         dto.setGuardianPhoneNumber(
