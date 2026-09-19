@@ -59,4 +59,5 @@ public class UserResponseDTO {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+    private Boolean activeRow;
 }
