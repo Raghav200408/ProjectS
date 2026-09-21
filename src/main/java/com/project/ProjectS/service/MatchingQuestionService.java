@@ -3,9 +3,11 @@ package com.project.ProjectS.service;
 import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.repository.*;
+import com.project.ProjectS.processor.MatchingQuestionExcelProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +36,13 @@ public class MatchingQuestionService {
 
     @Autowired
     private QuestionTypeRepository questionTypeRepository;
+
+    // ============================================================
+    // ADDED FOR MATCHING QUESTION EXCEL UPLOAD
+    // ============================================================
+
+    @Autowired
+    private MatchingQuestionExcelProcessor matchingQuestionExcelProcessor;
 
 
     // ============================================================
@@ -466,6 +475,25 @@ public class MatchingQuestionService {
 
 
         return "Matching question deleted successfully";
+    }
+
+
+    // ============================================================
+    // MATCHING QUESTION EXCEL UPLOAD
+    // ============================================================
+
+    public QuestionExcelUploadResponseDTO processMatchingExcel(
+            MultipartFile file,
+            Integer courseId,
+            Integer chapterId,
+            Integer topicId) {
+
+        return matchingQuestionExcelProcessor.processExcel(
+                file,
+                courseId,
+                chapterId,
+                topicId
+        );
     }
 
 

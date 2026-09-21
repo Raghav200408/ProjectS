@@ -24,4 +24,10 @@ public class QuestionFillBlankAnswer {
 
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder;
+
+    @Column(name = "is_correct", nullable = false)
+    private Boolean isCorrect = false;
+
+    @Column(name = "blank_number")
+    private Integer blankNumber;
 }
