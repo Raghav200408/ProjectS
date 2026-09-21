@@ -2,10 +2,13 @@ package com.project.ProjectS.controller;
 
 import com.project.ProjectS.model.MatchingQuestionRequestDTO;
 import com.project.ProjectS.model.MatchingQuestionResponseDTO;
+import com.project.ProjectS.model.QuestionExcelUploadRequestDTO;
+import com.project.ProjectS.model.QuestionExcelUploadResponseDTO;
 import com.project.ProjectS.service.MatchingQuestionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -73,4 +76,19 @@ public class MatchingQuestionController {
                 matchingQuestionService.deleteMatchingQuestion(questionId)
         );
     }
+    @PostMapping("/upload")
+    public ResponseEntity<QuestionExcelUploadResponseDTO> uploadMatchingExcel(
+            @RequestParam("file") MultipartFile file,
+            @RequestPart("request") QuestionExcelUploadRequestDTO request) {
+
+        return ResponseEntity.ok(
+                matchingQuestionService.processMatchingExcel(
+                        file,
+                        request.getCourseId(),
+                        request.getChapterId(),
+                        request.getTopicId()
+                )
+        );
+    }
+
 }
