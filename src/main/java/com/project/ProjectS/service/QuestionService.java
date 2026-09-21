@@ -2,6 +2,7 @@ package com.project.ProjectS.service;
 
 import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
+import com.project.ProjectS.processor.FillInTheBlankQuestionExcelProcessor;
 import com.project.ProjectS.processor.QuestionExcelProcessor;
 import com.project.ProjectS.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,8 @@ public class QuestionService {
     // FILL IN THE BLANK
     private final QuestionFillBlankAnswerRepository questionFillBlankAnswerRepository;
 
+    private final FillInTheBlankQuestionExcelProcessor fillInTheBlankQuestionExcelProcessor;
+
 
     @Autowired
     public QuestionService(
@@ -64,7 +67,8 @@ public class QuestionService {
             QuestionExcelProcessor questionExcelProcessor,
             SubscriptionEntitlementService entitlementService,
             QuestionMatchingPairRepository questionMatchingPairRepository,
-            QuestionFillBlankAnswerRepository questionFillBlankAnswerRepository) {
+            QuestionFillBlankAnswerRepository questionFillBlankAnswerRepository,
+            FillInTheBlankQuestionExcelProcessor fillInTheBlankQuestionExcelProcessor) {
 
         this.questionRepository = questionRepository;
 
@@ -97,6 +101,9 @@ public class QuestionService {
         // FILL IN THE BLANK
         this.questionFillBlankAnswerRepository =
                 questionFillBlankAnswerRepository;
+
+        this.fillInTheBlankQuestionExcelProcessor =
+                fillInTheBlankQuestionExcelProcessor;
     }
 
 
@@ -1642,5 +1649,74 @@ public class QuestionService {
                                         + questionTypeId
                         )
                 );
+    }
+
+    // =========================================================
+// FILL-IN-THE-BLANKS EXCEL UPLOAD
+// =========================================================
+
+    public QuestionExcelUploadResponseDTO
+    uploadFillInTheBlankQuestions(
+            MultipartFile file,
+            Integer courseId,
+            Integer chapterId,
+            Integer topicId) {
+
+        if (file == null || file.isEmpty()) {
+
+            throw new RuntimeException(
+                    "Excel file is empty"
+            );
+        }
+
+        if (courseId == null) {
+
+            throw new RuntimeException(
+                    "Course ID is required"
+            );
+        }
+
+        if (chapterId == null) {
+
+            throw new RuntimeException(
+                    "Chapter ID is required"
+            );
+        }
+
+        if (topicId == null) {
+
+            throw new RuntimeException(
+                    "Topic ID is required"
+            );
+        }
+
+        try {
+
+            List<Map<String, String>> excelData =
+                    excelUploadService.readExcel(file);
+
+            if (excelData == null ||
+                    excelData.isEmpty()) {
+
+                throw new RuntimeException(
+                        "Excel file contains no data"
+                );
+            }
+
+            return fillInTheBlankQuestionExcelProcessor.process(
+                    excelData,
+                    topicId,
+                    chapterId,
+                    courseId
+            );
+
+        } catch (IOException e) {
+
+            throw new RuntimeException(
+                    "Failed to read Excel file: "
+                            + e.getMessage(),
+                    e
+            );
+        }
     }
 }

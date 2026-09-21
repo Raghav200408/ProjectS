@@ -12,4 +12,8 @@ public class FillInTheBlankAnswerRequestDTO {
     private String answerText;
 
     private Integer displayOrder;
+
+    private Boolean isCorrect;
+
+    private Integer blankNumber;
 }

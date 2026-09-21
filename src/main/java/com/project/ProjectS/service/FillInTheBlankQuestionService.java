@@ -141,6 +141,17 @@ public class FillInTheBlankQuestionService {
             answer.setAnswerText(answerRequest.getAnswerText());
             answer.setDisplayOrder(answerRequest.getDisplayOrder());
 
+            // Save whether this option is the correct answer.
+            // If the frontend does not send the value, default to false.
+            answer.setIsCorrect(
+                    Boolean.TRUE.equals(answerRequest.getIsCorrect())
+            );
+
+            // Save which blank this answer belongs to.
+            answer.setBlankNumber(
+                    answerRequest.getBlankNumber()
+            );
+
 
             QuestionFillBlankAnswer savedAnswer =
                     fillBlankAnswerRepository.save(answer);
@@ -159,6 +170,14 @@ public class FillInTheBlankQuestionService {
 
             answerResponse.setDisplayOrder(
                     savedAnswer.getDisplayOrder()
+            );
+
+            answerResponse.setIsCorrect(
+                    savedAnswer.getIsCorrect()
+            );
+
+            answerResponse.setBlankNumber(
+                    savedAnswer.getBlankNumber()
             );
 
             answerResponses.add(answerResponse);
@@ -215,6 +234,14 @@ public class FillInTheBlankQuestionService {
                     answer.getDisplayOrder()
             );
 
+            response.setIsCorrect(
+                    answer.getIsCorrect()
+            );
+
+            response.setBlankNumber(
+                    answer.getBlankNumber()
+            );
+
             answerResponses.add(response);
         }
 
@@ -247,8 +274,13 @@ public class FillInTheBlankQuestionService {
             }
 
 
-            if (!"FILL_IN_THE_BLANK".equalsIgnoreCase(
-                    question.getQuestionType().getQuestionType())) {
+            String questionTypeName =
+                    question.getQuestionType().getQuestionType();
+
+
+            // Support both existing names.
+            if (!"FILL_IN_THE_BLANK".equalsIgnoreCase(questionTypeName)
+                    && !"FILL_IN_THE_BLANKS".equalsIgnoreCase(questionTypeName)) {
 
                 continue;
             }
@@ -280,6 +312,14 @@ public class FillInTheBlankQuestionService {
 
                 response.setDisplayOrder(
                         answer.getDisplayOrder()
+                );
+
+                response.setIsCorrect(
+                        answer.getIsCorrect()
+                );
+
+                response.setBlankNumber(
+                        answer.getBlankNumber()
                 );
 
                 answerResponses.add(response);
@@ -419,6 +459,16 @@ public class FillInTheBlankQuestionService {
             answer.setAnswerText(answerRequest.getAnswerText());
             answer.setDisplayOrder(answerRequest.getDisplayOrder());
 
+            // Preserve the correct/wrong selection during update.
+            answer.setIsCorrect(
+                    Boolean.TRUE.equals(answerRequest.getIsCorrect())
+            );
+
+            // Save which blank this answer belongs to.
+            answer.setBlankNumber(
+                    answerRequest.getBlankNumber()
+            );
+
 
             QuestionFillBlankAnswer savedAnswer =
                     fillBlankAnswerRepository.save(answer);
@@ -437,6 +487,14 @@ public class FillInTheBlankQuestionService {
 
             response.setDisplayOrder(
                     savedAnswer.getDisplayOrder()
+            );
+
+            response.setIsCorrect(
+                    savedAnswer.getIsCorrect()
+            );
+
+            response.setBlankNumber(
+                    savedAnswer.getBlankNumber()
             );
 
             answerResponses.add(response);

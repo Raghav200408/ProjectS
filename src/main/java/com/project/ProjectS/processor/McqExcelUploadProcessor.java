@@ -441,7 +441,17 @@ public class McqExcelUploadProcessor {
                         );
                     }
 
-                    final String resolvedQuestionTypeName = questionType;
+                    final String resolvedQuestionTypeName;
+
+                    if ("SINGLE_CHOICE".equals(questionType)) {
+
+                        resolvedQuestionTypeName = "MCQ Single Choice";
+
+                    } else {
+
+                        resolvedQuestionTypeName = "MCQ Multiple Choice";
+                    }
+
                     QuestionType resolvedQuestionType =
                             questionTypeRepository
                                     .findByQuestionType(resolvedQuestionTypeName)
