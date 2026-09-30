@@ -1,18 +1,9 @@
 package com.project.ProjectS.service;
 
-import com.project.ProjectS.entity.AnswerEvent;
-import com.project.ProjectS.entity.Question;
-import com.project.ProjectS.entity.QuestionFillBlankAnswer;
-import com.project.ProjectS.entity.TableAttribute;
-import com.project.ProjectS.entity.User;
+import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.AnswerEventRequestDTO;
 import com.project.ProjectS.model.AnswerEventResponseDTO;
-import com.project.ProjectS.repository.AnswerEventRepository;
-import com.project.ProjectS.repository.QuestionFillBlankAnswerRepository;
-import com.project.ProjectS.repository.PracticeResultRepository;
-import com.project.ProjectS.repository.QuestionRepository;
-import com.project.ProjectS.repository.TableAttributeRepository;
-import com.project.ProjectS.repository.UserRepository;
+import com.project.ProjectS.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +22,7 @@ public class AnswerEventService {
             UserRepository userRepository,
             QuestionRepository questionRepository,
             TableAttributeRepository tableAttributeRepository,
-            QuestionFillBlankAnswerRepository fillBlankAnswerRepository) {
+            QuestionFillBlankAnswerRepository fillBlankAnswerRepository,
             PracticeResultRepository practiceResultRepository) {
 
         this.answerEventRepository = answerEventRepository;
