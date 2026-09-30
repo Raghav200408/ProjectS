@@ -57,6 +57,7 @@ public class McqQuestionService {
     private final AnswerEventRepository answerEventRepository;
     private final QuestionAnswerRepository questionAnswerRepository;
     private final UserRepository userRepository;
+    private final PracticeResultService practiceResultService;
 
 
     public McqQuestionService(
@@ -70,7 +71,8 @@ public class McqQuestionService {
             AnswerEventRepository answerEventRepository,
             QuestionAnswerRepository questionAnswerRepository,
             UserRepository userRepository,
-            SubscriptionEntitlementService entitlementService
+            SubscriptionEntitlementService entitlementService,
+            PracticeResultService practiceResultService
     ) {
         this.questionRepository = questionRepository;
         this.courseRepository = courseRepository;
@@ -83,6 +85,7 @@ public class McqQuestionService {
         this.answerEventRepository = answerEventRepository;
         this.questionAnswerRepository = questionAnswerRepository;
         this.userRepository = userRepository;
+        this.practiceResultService = practiceResultService;
     }
 
 
@@ -852,6 +855,15 @@ public class McqQuestionService {
 
             answerEventRepository.save(
                     answerEvent
+            );
+
+            // The current per-question practice result (one row per
+            // student + question, updated on a retry). The event above stays
+            // as the history of every attempt.
+            practiceResultService.recordMcqResult(
+                    user,
+                    question,
+                    isCorrect
             );
 
             // ------------------------------------------

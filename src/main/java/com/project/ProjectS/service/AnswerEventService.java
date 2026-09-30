@@ -9,6 +9,7 @@ import com.project.ProjectS.model.AnswerEventRequestDTO;
 import com.project.ProjectS.model.AnswerEventResponseDTO;
 import com.project.ProjectS.repository.AnswerEventRepository;
 import com.project.ProjectS.repository.QuestionFillBlankAnswerRepository;
+import com.project.ProjectS.repository.PracticeResultRepository;
 import com.project.ProjectS.repository.QuestionRepository;
 import com.project.ProjectS.repository.TableAttributeRepository;
 import com.project.ProjectS.repository.UserRepository;
@@ -31,12 +32,14 @@ public class AnswerEventService {
             QuestionRepository questionRepository,
             TableAttributeRepository tableAttributeRepository,
             QuestionFillBlankAnswerRepository fillBlankAnswerRepository) {
+            PracticeResultRepository practiceResultRepository) {
 
         this.answerEventRepository = answerEventRepository;
         this.userRepository = userRepository;
         this.questionRepository = questionRepository;
         this.tableAttributeRepository = tableAttributeRepository;
         this.fillBlankAnswerRepository = fillBlankAnswerRepository;
+        this.practiceResultRepository = practiceResultRepository;
     }
 
     private final AnswerEventRepository answerEventRepository;
@@ -44,6 +47,7 @@ public class AnswerEventService {
     private final QuestionRepository questionRepository;
     private final TableAttributeRepository tableAttributeRepository;
     private final QuestionFillBlankAnswerRepository fillBlankAnswerRepository;
+    private final PracticeResultRepository practiceResultRepository;
 
 
     public AnswerEventResponseDTO createEvent(
@@ -549,6 +553,10 @@ public class AnswerEventService {
     public int resetEvents(
             Long userId,
             Long questionId) {
+
+        // Reset starts the question over, so its current practice result
+        // goes with it. The (now inactive) answer_events stay as history.
+        practiceResultRepository.deleteByUserAndQuestion(userId, questionId);
 
         return answerEventRepository
                 .deactivateByUserAndQuestion(
