@@ -2,11 +2,13 @@ package com.project.ProjectS.service;
 
 import com.project.ProjectS.entity.AnswerEvent;
 import com.project.ProjectS.entity.Question;
+import com.project.ProjectS.entity.QuestionFillBlankAnswer;
 import com.project.ProjectS.entity.TableAttribute;
 import com.project.ProjectS.entity.User;
 import com.project.ProjectS.model.AnswerEventRequestDTO;
 import com.project.ProjectS.model.AnswerEventResponseDTO;
 import com.project.ProjectS.repository.AnswerEventRepository;
+import com.project.ProjectS.repository.QuestionFillBlankAnswerRepository;
 import com.project.ProjectS.repository.PracticeResultRepository;
 import com.project.ProjectS.repository.QuestionRepository;
 import com.project.ProjectS.repository.TableAttributeRepository;
@@ -29,12 +31,14 @@ public class AnswerEventService {
             UserRepository userRepository,
             QuestionRepository questionRepository,
             TableAttributeRepository tableAttributeRepository,
+            QuestionFillBlankAnswerRepository fillBlankAnswerRepository) {
             PracticeResultRepository practiceResultRepository) {
 
         this.answerEventRepository = answerEventRepository;
         this.userRepository = userRepository;
         this.questionRepository = questionRepository;
         this.tableAttributeRepository = tableAttributeRepository;
+        this.fillBlankAnswerRepository = fillBlankAnswerRepository;
         this.practiceResultRepository = practiceResultRepository;
     }
 
@@ -42,6 +46,7 @@ public class AnswerEventService {
     private final UserRepository userRepository;
     private final QuestionRepository questionRepository;
     private final TableAttributeRepository tableAttributeRepository;
+    private final QuestionFillBlankAnswerRepository fillBlankAnswerRepository;
     private final PracticeResultRepository practiceResultRepository;
 
 
@@ -98,12 +103,32 @@ public class AnswerEventService {
 
         /*
          * Check whether this is a Fill in the Blank question.
+         *
+         * Supports both:
+         * FILL_IN_THE_BLANK
+         * FILL_IN_THE_BLANKS
          */
         boolean isFillInTheBlank =
                 question.getQuestionType() != null
-                        && "FILL_IN_THE_BLANK".equalsIgnoreCase(
-                        question.getQuestionType().getQuestionType()
+                        && (
+                        "FILL_IN_THE_BLANK".equalsIgnoreCase(
+                                question.getQuestionType().getQuestionType()
+                        )
+                                || "FILL_IN_THE_BLANKS".equalsIgnoreCase(
+                                question.getQuestionType().getQuestionType()
+                        )
                 );
+
+
+        /*
+         * This will contain the final correctness result.
+         *
+         * For Fill in the Blank it will be calculated below.
+         *
+         * For all other question types your existing
+         * request.getIsCorrect() value is preserved.
+         */
+        Boolean finalIsCorrect = request.getIsCorrect();
 
 
         switch (eventType) {
@@ -199,7 +224,37 @@ public class AnswerEventService {
                 attemptNumber = (int) previousAttempts + 1;
 
 
-                if (Boolean.TRUE.equals(request.getIsCorrect())) {
+                /*
+                 * =====================================================
+                 * ONLY NEW FILL-IN-THE-BLANK CODE
+                 * =====================================================
+                 *
+                 * Do not trust the frontend isCorrect value.
+                 *
+                 * Check the student's answer against ALL accepted
+                 * answers stored for this question + blank number.
+                 */
+                if (isFillInTheBlank) {
+
+                    finalIsCorrect =
+                            evaluateFillInTheBlankAnswer(
+                                    request.getQuestionId(),
+                                    request.getAnswerPosition(),
+                                    request.getUserAnswer()
+                            );
+                }
+
+
+                /*
+                 * Existing marks logic.
+                 *
+                 * For normal question types this uses the original
+                 * request.getIsCorrect() value.
+                 *
+                 * For Fill in the Blank it uses the calculated
+                 * finalIsCorrect value.
+                 */
+                if (Boolean.TRUE.equals(finalIsCorrect)) {
 
                     marks = calculateAnswerMarks(attemptNumber);
 
@@ -304,8 +359,17 @@ public class AnswerEventService {
         );
 
 
+        /*
+         * For Fill in the Blank:
+         *     finalIsCorrect = backend calculated result.
+         *
+         * For all other question types:
+         *     finalIsCorrect = request.getIsCorrect()
+         *
+         * Therefore existing behavior is preserved.
+         */
         event.setIsCorrect(
-                request.getIsCorrect()
+                finalIsCorrect
         );
 
 
@@ -342,6 +406,106 @@ public class AnswerEventService {
 
 
         return convertToResponse(saved);
+    }
+
+
+    /*
+     * =========================================================
+     * NEW METHOD
+     * =========================================================
+     *
+     * Checks the student's Fill in the Blank answer against
+     * every accepted answer for the specified blank.
+     */
+    private boolean evaluateFillInTheBlankAnswer(
+            Long questionId,
+            Integer answerPosition,
+            String userAnswer) {
+
+        /*
+         * Empty answer = incorrect.
+         */
+        if (userAnswer == null ||
+                userAnswer.trim().isEmpty()) {
+
+            return false;
+        }
+
+
+        /*
+         * Answer position represents the blank number.
+         *
+         * Example:
+         *
+         * blank 1 -> answerPosition 1
+         * blank 2 -> answerPosition 2
+         */
+        if (answerPosition == null ||
+                answerPosition <= 0) {
+
+            return false;
+        }
+
+
+        /*
+         * Get ALL correct answers for this particular
+         * question and blank.
+         *
+         * Example for question 37:
+         *
+         * CPU
+         * Central Processing Unit
+         * central processing unit
+         */
+        List<QuestionFillBlankAnswer> acceptedAnswers =
+                fillBlankAnswerRepository
+                        .findByQuestionQuestionIdAndBlankNumberAndIsCorrectTrueOrderByDisplayOrderAsc(
+                                questionId,
+                                answerPosition
+                        );
+
+
+        /*
+         * No accepted answers configured.
+         */
+        if (acceptedAnswers == null ||
+                acceptedAnswers.isEmpty()) {
+
+            return false;
+        }
+
+
+        String normalizedUserAnswer =
+                userAnswer.trim();
+
+
+        /*
+         * Check against ALL accepted answers.
+         *
+         * trim()
+         *      removes leading/trailing spaces.
+         *
+         * equalsIgnoreCase()
+         *      allows CPU, cpu, Cpu, etc.
+         *
+         * anyMatch()
+         *      means any one accepted answer is enough.
+         */
+        return acceptedAnswers.stream()
+                .anyMatch(answer -> {
+
+                    if (answer == null ||
+                            answer.getAnswerText() == null) {
+
+                        return false;
+                    }
+
+                    return answer.getAnswerText()
+                            .trim()
+                            .equalsIgnoreCase(
+                                    normalizedUserAnswer
+                            );
+                });
     }
 
 

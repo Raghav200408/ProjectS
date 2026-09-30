@@ -1,4 +1,5 @@
-package com.project.ProjectS.service;
+
+        package com.project.ProjectS.service;
 
 import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
@@ -8,7 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -43,13 +46,10 @@ public class FillInTheBlankQuestionService {
     public FillInTheBlankQuestionResponseDTO createFillInTheBlankQuestion(
             FillInTheBlankQuestionRequestDTO request) {
 
-        if (request.getAnswers() == null ||
-                request.getAnswers().isEmpty()) {
-
-            throw new RuntimeException(
-                    "At least one answer is required"
-            );
-        }
+        // Validate all fill-in-the-blank answers
+        validateFillInTheBlankAnswers(
+                request.getAnswers()
+        );
 
 
         Course course =
@@ -138,16 +138,22 @@ public class FillInTheBlankQuestionService {
                     new QuestionFillBlankAnswer();
 
             answer.setQuestion(savedQuestion);
-            answer.setAnswerText(answerRequest.getAnswerText());
-            answer.setDisplayOrder(answerRequest.getDisplayOrder());
 
-            // Save whether this option is the correct answer.
-            // If the frontend does not send the value, default to false.
-            answer.setIsCorrect(
-                    Boolean.TRUE.equals(answerRequest.getIsCorrect())
+            answer.setAnswerText(
+                    answerRequest.getAnswerText().trim()
             );
 
-            // Save which blank this answer belongs to.
+            answer.setDisplayOrder(
+                    answerRequest.getDisplayOrder()
+            );
+
+            // Multiple correct answers are allowed.
+            answer.setIsCorrect(
+                    Boolean.TRUE.equals(
+                            answerRequest.getIsCorrect()
+                    )
+            );
+
             answer.setBlankNumber(
                     answerRequest.getBlankNumber()
             );
@@ -347,13 +353,10 @@ public class FillInTheBlankQuestionService {
             Long questionId,
             FillInTheBlankQuestionRequestDTO request) {
 
-        if (request.getAnswers() == null ||
-                request.getAnswers().isEmpty()) {
-
-            throw new RuntimeException(
-                    "At least one answer is required"
-            );
-        }
+        // Validate all fill-in-the-blank answers
+        validateFillInTheBlankAnswers(
+                request.getAnswers()
+        );
 
 
         Question question =
@@ -456,15 +459,22 @@ public class FillInTheBlankQuestionService {
                     new QuestionFillBlankAnswer();
 
             answer.setQuestion(updatedQuestion);
-            answer.setAnswerText(answerRequest.getAnswerText());
-            answer.setDisplayOrder(answerRequest.getDisplayOrder());
 
-            // Preserve the correct/wrong selection during update.
-            answer.setIsCorrect(
-                    Boolean.TRUE.equals(answerRequest.getIsCorrect())
+            answer.setAnswerText(
+                    answerRequest.getAnswerText().trim()
             );
 
-            // Save which blank this answer belongs to.
+            answer.setDisplayOrder(
+                    answerRequest.getDisplayOrder()
+            );
+
+            // Multiple correct answers are allowed.
+            answer.setIsCorrect(
+                    Boolean.TRUE.equals(
+                            answerRequest.getIsCorrect()
+                    )
+            );
+
             answer.setBlankNumber(
                     answerRequest.getBlankNumber()
             );
@@ -535,6 +545,128 @@ public class FillInTheBlankQuestionService {
 
 
         return "Fill in the blank question deleted successfully";
+    }
+
+
+    // ============================================================
+    // VALIDATE FILL IN THE BLANK ANSWERS
+    // ============================================================
+
+    private void validateFillInTheBlankAnswers(
+            List<FillInTheBlankAnswerRequestDTO> answers) {
+
+        if (answers == null || answers.isEmpty()) {
+
+            throw new RuntimeException(
+                    "At least one answer is required"
+            );
+        }
+
+
+        // Group answers by blank number.
+        Map<Integer, List<FillInTheBlankAnswerRequestDTO>>
+                answersByBlank = new HashMap<>();
+
+
+        for (FillInTheBlankAnswerRequestDTO answer :
+                answers) {
+
+            // --------------------------------------------------------
+            // Validate blank number
+            // --------------------------------------------------------
+
+            if (answer.getBlankNumber() == null ||
+                    answer.getBlankNumber() <= 0) {
+
+                throw new RuntimeException(
+                        "Blank number must be greater than 0"
+                );
+            }
+
+
+            // --------------------------------------------------------
+            // Validate answer text
+            // --------------------------------------------------------
+
+            if (answer.getAnswerText() == null ||
+                    answer.getAnswerText().trim().isEmpty()) {
+
+                throw new RuntimeException(
+                        "Answer text cannot be empty"
+                );
+            }
+
+
+            // --------------------------------------------------------
+            // Group answer by blank number
+            // --------------------------------------------------------
+
+            answersByBlank
+                    .computeIfAbsent(
+                            answer.getBlankNumber(),
+                            key -> new ArrayList<>()
+                    )
+                    .add(answer);
+        }
+
+
+        // ============================================================
+        // VALIDATE EACH BLANK
+        // ============================================================
+
+        for (Map.Entry<
+                Integer,
+                List<FillInTheBlankAnswerRequestDTO>> entry :
+                answersByBlank.entrySet()) {
+
+            Integer blankNumber = entry.getKey();
+
+            List<FillInTheBlankAnswerRequestDTO> blankAnswers =
+                    entry.getValue();
+
+
+            // --------------------------------------------------------
+            // At least 2 options for each blank
+            // --------------------------------------------------------
+
+            if (blankAnswers.size() < 2) {
+
+                throw new RuntimeException(
+                        "Blank " + blankNumber +
+                                " must have at least 2 answer options"
+                );
+            }
+
+
+            // --------------------------------------------------------
+            // Count correct answers
+            // --------------------------------------------------------
+
+            long correctAnswerCount =
+                    blankAnswers.stream()
+                            .filter(answer ->
+                                    Boolean.TRUE.equals(
+                                            answer.getIsCorrect()
+                                    )
+                            )
+                            .count();
+
+
+            // --------------------------------------------------------
+            // At least 1 correct answer
+            //
+            // IMPORTANT:
+            // Multiple correct answers are allowed.
+            // --------------------------------------------------------
+
+            if (correctAnswerCount == 0) {
+
+                throw new RuntimeException(
+                        "Blank " + blankNumber +
+                                " must have at least 1 correct answer"
+                );
+            }
+        }
     }
 
 

@@ -12,5 +12,11 @@ public interface QuestionFillBlankAnswerRepository
             Long questionId
     );
 
+    List<QuestionFillBlankAnswer>
+    findByQuestionQuestionIdAndBlankNumberAndIsCorrectTrueOrderByDisplayOrderAsc(
+            Long questionId,
+            Integer blankNumber
+    );
+
     void deleteByQuestionQuestionId(Long questionId);
 }
