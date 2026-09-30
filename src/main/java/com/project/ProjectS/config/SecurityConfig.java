@@ -88,8 +88,42 @@ public class SecurityConfig {
                                 "/api/mock-exams/*/submit").hasAnyRole(SA, CA, BA, ST)
                         .requestMatchers(HttpMethod.GET, "/api/exams/*/questions",
                                 "/api/mock-exams/*/questions").hasAnyRole(SA, CA, BA, ST)
-                        .requestMatchers("/api/exams/**", "/api/mock-exams/**").hasRole(SA)
-                        .requestMatchers("/api/mock-tests/**").hasAnyRole(SA, CA, BA, ST)
+                        // Exam and mock-exam attempts
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/exams/results/me",
+                                "/api/mock-exams/results/me",
+                                "/api/exams",
+                                "/api/exams/**",
+                                "/api/mock-exams",
+                                "/api/mock-exams/**"
+                        ).hasAnyRole(SA, CA, BA, ST)
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/exams/*/submit",
+                                "/api/mock-exams/*/submit"
+                        ).hasAnyRole(SA, CA, BA, ST)
+
+// Exam/mock-exam management
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/exams/**",
+                                "/api/mock-exams/**"
+                        ).hasAnyRole(ADMINS)
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/exams/**",
+                                "/api/mock-exams/**"
+                        ).hasAnyRole(ADMINS)
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/exams/**",
+                                "/api/mock-exams/**"
+                        ).hasAnyRole(ADMINS)
+
 
                         // Performance endpoints already derive organizational scope from the authenticated user.
                         .requestMatchers("/api/performance/super-admin/**").hasRole(SA)
