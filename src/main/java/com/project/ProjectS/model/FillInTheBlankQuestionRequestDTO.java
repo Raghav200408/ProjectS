@@ -3,6 +3,7 @@ package com.project.ProjectS.model;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Getter
@@ -20,6 +21,8 @@ public class FillInTheBlankQuestionRequestDTO {
     private Long questionTypeId;
 
     private String questionText;
+
+    private BigDecimal marks;
 
     private List<FillInTheBlankAnswerRequestDTO> answers;
 }
