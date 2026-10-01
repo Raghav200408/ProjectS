@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.time.LocalDateTime;
 
 import org.springframework.security.core.Authentication;
 import com.project.ProjectS.security.service.CustomUserDetails;
@@ -30,6 +31,7 @@ public class ExamService {
     private final UserRepository userRepository;
     private final SubscriptionEntitlementService entitlementService;
     private final ExamScoringService examScoringService;
+    private final NotificationService notificationService;
 
     public ExamService(
             ExamRepository examRepository,
@@ -46,7 +48,8 @@ public class ExamService {
             McqQuestionRepository mcqQuestionRepository,
             UserRepository userRepository,
             SubscriptionEntitlementService entitlementService,
-            ExamScoringService examScoringService) {
+            ExamScoringService examScoringService,
+            NotificationService notificationService) {
 
         this.examRepository = examRepository;
         this.examQuestionRepository = examQuestionRepository;
@@ -63,6 +66,7 @@ public class ExamService {
         this.userRepository = userRepository;
         this.entitlementService = entitlementService;
         this.examScoringService = examScoringService;
+        this.notificationService = notificationService;
     }
 
 
@@ -138,6 +142,8 @@ public class ExamService {
 
         Exam savedExam =
                 examRepository.save(exam);
+
+        publishExamNotification(savedExam, "EXAM_ASSIGNED", "New exam assigned");
 
 
         return convertToResponse(savedExam);
@@ -235,6 +241,9 @@ public class ExamService {
                                         + examId
                         ));
 
+        LocalDateTime previousStart = exam.getStartDate();
+        LocalDateTime previousEnd = exam.getEndDate();
+
 
         College college = collegeRepository
                 .findById(request.getCollegeId())
@@ -310,8 +319,26 @@ public class ExamService {
         Exam updatedExam =
                 examRepository.save(exam);
 
+        if (!Objects.equals(previousStart, updatedExam.getStartDate())
+                || !Objects.equals(previousEnd, updatedExam.getEndDate())) {
+            publishExamNotification(updatedExam, "EXAM_RESCHEDULED", "Exam schedule updated");
+        }
+
 
         return convertToResponse(updatedExam);
+    }
+
+    private void publishExamNotification(Exam exam, String eventType, String title) {
+        Notification notification = new Notification();
+        notification.setEventType(eventType);
+        notification.setTitle(title);
+        notification.setMessage(exam.getExamName() + " is scheduled for " + exam.getStartDate());
+        notification.setSeverity("INFO");
+        notification.setRecipientType("SECTION");
+        notification.setSectionId(exam.getSection().getSectionId());
+        notification.setActionUrl("/exams/" + exam.getExamId());
+        notification.setExpiresAt(exam.getEndDate());
+        notificationService.publish(notification);
     }
 
 

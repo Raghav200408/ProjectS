@@ -4,6 +4,8 @@ import com.project.ProjectS.entity.User;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -45,4 +47,25 @@ public interface UserRepository extends JpaRepository<User, Long> {
     );
 
     boolean existsByPhoneNumberAndUserIdNot(String phoneNumber, Long userId);
+
+    @Query("""
+            select u from User u
+            where u.activeRow = true and (
+                :recipientType = 'ALL'
+                or (:recipientType = 'USER' and u.userId = :recipientUserId)
+                or (:recipientType = 'ROLE' and u.role.roleName = :recipientRole)
+                or (:recipientType = 'COLLEGE' and u.college.collegeId = :collegeId)
+                or (:recipientType = 'BRANCH' and u.branch.branchId = :branchId)
+                or (:recipientType = 'COURSE' and u.course.courseId = :courseId)
+                or (:recipientType = 'SECTION' and u.section.sectionId = :sectionId)
+            )
+            """)
+    List<User> findNotificationRecipients(
+            @Param("recipientType") String recipientType,
+            @Param("recipientUserId") Long recipientUserId,
+            @Param("recipientRole") String recipientRole,
+            @Param("collegeId") Long collegeId,
+            @Param("branchId") Long branchId,
+            @Param("courseId") Long courseId,
+            @Param("sectionId") Long sectionId);
 }
