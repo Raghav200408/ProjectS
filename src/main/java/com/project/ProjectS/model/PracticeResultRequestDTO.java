@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * One attempted unit of a practice question. The frontend decides isCorrect;
+ * One attempted answer position of a practice attribute. The frontend decides isCorrect;
  * the backend stores it as sent and only validates the structure and that the
  * hierarchy ids really belong to the question.
  */
@@ -21,6 +21,7 @@ public class PracticeResultRequestDTO {
     // The question_attributes row that was attempted. Required for
     // "ATTRIBUTE" questions.
     private Long questionAttributeId;
+    private Long attributeId;
 
     private Long courseId;
     private Long subjectId;
@@ -38,6 +39,7 @@ public class PracticeResultRequestDTO {
     // "AUTOFILL" (the app filled it in - saved as an event but not counted).
     private String eventType;
 
+    // Required for attribute units, independently counted positions 1 through 4.
     private Integer answerPosition;
 
     private String arithmetic;

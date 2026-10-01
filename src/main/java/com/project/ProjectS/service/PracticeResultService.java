@@ -131,7 +131,20 @@ public class PracticeResultService {
                     + "fill-in-the-blank questions are not supported yet");
         }
 
-        require(request.getQuestionAttributeId(), "questionAttributeId");
+        // Accept the table attribute directly; resolve its question row internally.
+        if (request.getQuestionAttributeId() == null) {
+            require(request.getAttributeId(), "attributeId");
+            QuestionAttribute resolved = questionAttributeRepository
+                    .findByQuestion_QuestionId(question.getQuestionId()).stream()
+                    .filter(a -> Boolean.TRUE.equals(a.getActiveRow()))
+                    .filter(a -> Objects.equals(a.getAttribute().getAttributeId(), request.getAttributeId()))
+                    .findFirst().orElseThrow(() -> badRequest("Attribute does not belong to this active question"));
+            request.setQuestionAttributeId(resolved.getQuestionAttributeId());
+        }
+        require(request.getAnswerPosition(), "answerPosition");
+        if (request.getAnswerPosition() < 1 || request.getAnswerPosition() > 4) {
+            throw badRequest("answerPosition must be between 1 and 4");
+        }
 
         QuestionAttribute questionAttribute = questionAttributeRepository
                 .findById(request.getQuestionAttributeId())
@@ -146,6 +159,11 @@ public class PracticeResultService {
                     + request.getQuestionAttributeId()
                     + " does not belong to question "
                     + question.getQuestionId());
+        }
+
+        if (request.getAttributeId() != null && !Objects.equals(request.getAttributeId(),
+                questionAttribute.getAttribute().getAttributeId())) {
+            throw badRequest("attributeId does not match the question attribute");
         }
 
         if (!Boolean.TRUE.equals(questionAttribute.getActiveRow())) {
@@ -190,6 +208,7 @@ public class PracticeResultService {
                 user.getUserId(),
                 question.getQuestionId(),
                 questionAttribute.getQuestionAttributeId(),
+                request.getAnswerPosition(),
                 question.getCourse().getCourseId(),
                 question.getSubject().getSubjectId(),
                 question.getChapter().getChapterId(),
@@ -197,10 +216,10 @@ public class PracticeResultService {
                 request.getIsCorrect());
 
         PracticeResult saved = practiceResultRepository
-                .findByUser_UserIdAndQuestion_QuestionIdAndQuestionAttribute_QuestionAttributeId(
+                .findByUser_UserIdAndQuestion_QuestionIdAndQuestionAttribute_QuestionAttributeIdAndAnswerPosition(
                         user.getUserId(),
                         question.getQuestionId(),
-                        questionAttribute.getQuestionAttributeId())
+                        questionAttribute.getQuestionAttributeId(), request.getAnswerPosition())
                 .orElseThrow(() -> new IllegalStateException(
                         "Practice result was not saved"));
 
@@ -315,6 +334,8 @@ public class PracticeResultService {
         response.setChapterId(result.getChapter().getChapterId());
         response.setTopicId(result.getTopic().getTopicId());
         response.setQuestionType(result.getQuestionType());
+        response.setAnswerPosition(result.getAnswerPosition());
+        response.setAttributeId(result.getAttribute() == null ? null : result.getAttribute().getAttributeId());
         response.setIsCorrect(result.getIsCorrect());
         response.setAttemptNumber(result.getAttemptNumber());
         response.setAnsweredAt(result.getAnsweredAt());

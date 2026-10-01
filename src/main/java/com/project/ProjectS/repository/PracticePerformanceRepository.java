@@ -154,9 +154,9 @@ public class PracticePerformanceRepository {
      *   attemptedUnits = current practice_results rows of those students
      *   correctUnits   = ...of which is_correct
      *
-     * Units per question: an MCQ is 1; every other question has one unit per
-     * ACTIVE question_attributes row. Matching / fill-in-the-blank have no
-     * attribute rows, so they contribute 0 until their unit is defined.
+     * Units per question: an MCQ is 1; attribute questions have one unit per
+     * active rule answer position on each active attribute. Matching counts source pairs and
+     * fill-in-the-blank counts distinct blank positions, not accepted answers.
      *
      * The totals and the attempts are aggregated separately and joined by
      * level id, so a question with 5 attributes and 3 attempts gives
@@ -171,15 +171,26 @@ public class PracticePerformanceRepository {
         sql.append(studentScopeCte(scope)).append(",\n");
 
         sql.append("""
+                attribute_positions AS (
+                    SELECT DISTINCT qa.question_id, qa.attribute_id, pos.answer_position
+                    FROM question_attributes qa
+                    JOIN rule_engines re ON re.attribute_id = qa.attribute_id AND re.active_row = true
+                    CROSS JOIN LATERAL (VALUES
+                        (1, re.arithmetic1), (2, re.arithmetic2),
+                        (3, re.arithmetic3), (4, re.arithmetic4)
+                    ) pos(answer_position, arithmetic)
+                    WHERE COALESCE(qa.active_row, true) = true AND pos.arithmetic IS NOT NULL
+                ),
                 attribute_counts AS (
-                    SELECT question_id, COUNT(*) AS units
-                    FROM question_attributes
-                    WHERE COALESCE(active_row, true) = true
-                    GROUP BY question_id
+                    SELECT question_id, COUNT(*) AS units FROM attribute_positions GROUP BY question_id
                 ),
                 question_units AS (
                     SELECT q.question_id,
                            CASE WHEN mq.question_id IS NOT NULL THEN 1
+                                WHEN EXISTS (SELECT 1 FROM question_matching_pairs mp WHERE mp.question_id = q.question_id)
+                                THEN (SELECT COUNT(*) FROM question_matching_pairs mp WHERE mp.question_id = q.question_id)
+                                WHEN EXISTS (SELECT 1 FROM question_fill_blank_answers fb WHERE fb.question_id = q.question_id)
+                                THEN (SELECT COUNT(DISTINCT COALESCE(fb.blank_number, 1)) FROM question_fill_blank_answers fb WHERE fb.question_id = q.question_id)
                                 ELSE COALESCE(ac.units, 0) END AS units,
                 """);
         sql.append("               q.").append(column).append(" AS level_id\n");
@@ -208,10 +219,18 @@ public class PracticePerformanceRepository {
                     JOIN question_units qu
                            ON qu.question_id = pr.question_id
                           AND qu.units > 0
-                    LEFT JOIN question_attributes qa
-                           ON qa.question_attribute_id = pr.question_attribute_id
-                    WHERE pr.question_attribute_id IS NULL
-                       OR COALESCE(qa.active_row, true) = true
+                    WHERE (pr.question_type <> 'ATTRIBUTE' OR EXISTS (
+                          SELECT 1 FROM attribute_positions ap
+                          WHERE ap.question_id = pr.question_id AND ap.attribute_id = pr.attribute_id
+                            AND ap.answer_position = pr.answer_position))
+                      AND (pr.question_type NOT IN ('FILL_BLANK', 'MATCHING')
+                        OR (pr.question_type = 'FILL_BLANK' AND EXISTS (
+                            SELECT 1 FROM question_fill_blank_answers fb
+                            WHERE fb.question_id = pr.question_id
+                              AND COALESCE(fb.blank_number, 1) = pr.answer_position))
+                        OR (pr.question_type = 'MATCHING' AND EXISTS (
+                            SELECT 1 FROM question_matching_pairs mp
+                            WHERE mp.question_id = pr.question_id AND mp.pair_id = pr.answer_position)))
                 """);
         sql.append("    GROUP BY pr.").append(column).append("\n)\n");
 

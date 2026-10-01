@@ -20,6 +20,8 @@ public class PracticeResultResponseDTO {
     private Long userId;
     private Long questionId;
     private Long questionAttributeId;
+    private Long attributeId;
+    private Integer answerPosition;
     private Long courseId;
     private Long subjectId;
     private Long chapterId;

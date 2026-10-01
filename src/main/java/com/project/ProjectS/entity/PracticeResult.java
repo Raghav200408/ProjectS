@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
  * The CURRENT practice result of one unit for one student.
  *
  * answer_events keeps every attempt; this keeps one row per (user, unit) that
- * is updated in place on a repeat attempt - see create_practice_results.sql.
+ * is updated in place on a repeat attempt - see practice_results_complete.sql.
  * Rows are written by native upserts in PracticeResultRepository, so this
  * entity is only used to read them back.
  */
@@ -37,6 +37,13 @@ public class PracticeResult {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "question_attribute_id")
     private QuestionAttribute questionAttribute;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "attribute_id")
+    private TableAttribute attribute;
+
+    @Column(name = "answer_position")
+    private Integer answerPosition;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
