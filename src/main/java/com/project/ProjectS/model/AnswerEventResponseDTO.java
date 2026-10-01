@@ -17,8 +17,19 @@ public class AnswerEventResponseDTO {
 
     private Long questionId;
 
+    private Long chapterId;
+    private String chapterName;
+
+    private Long topicId;
+    private String topicName;
+
+    private String questionText;
+   // private String questionType;
+
+
     private Long attributeId;
     private String attributeName;
+
 
     private Integer answerPosition;
 
