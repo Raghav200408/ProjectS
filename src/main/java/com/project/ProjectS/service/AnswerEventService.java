@@ -655,6 +655,39 @@ public class AnswerEventService {
             response.setQuestionId(
                     event.getQuestion().getQuestionId()
             );
+            response.setQuestionText(
+                    event.getQuestion().getQuestionText()
+            );
+
+            if (event.getQuestion().getChapter() != null) {
+
+                response.setChapterId(
+                        event.getQuestion()
+                                .getChapter()
+                                .getChapterId()
+                );
+
+                response.setChapterName(
+                        event.getQuestion()
+                                .getChapter()
+                                .getName()
+                );
+            }
+
+            if (event.getQuestion().getTopic() != null) {
+
+                response.setTopicId(
+                        event.getQuestion()
+                                .getTopic()
+                                .getTopicId()
+                );
+
+                response.setTopicName(
+                        event.getQuestion()
+                                .getTopic()
+                                .getName()
+                );
+            }
         }
 
 
