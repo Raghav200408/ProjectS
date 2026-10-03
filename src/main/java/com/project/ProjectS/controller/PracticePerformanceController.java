@@ -6,15 +6,18 @@ import com.project.ProjectS.repository.PracticePerformanceRepository.Level;
 import com.project.ProjectS.service.PracticePerformanceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
+import java.util.Locale;
 
 /*
  * Practice performance, from practice_results (current state) plus the
@@ -93,6 +96,28 @@ public class PracticePerformanceController {
         return ResponseEntity.ok(performanceService.getPerformance(
                 Level.TOPIC, new Filters(courseId, subjectId, chapterId),
                 collegeId, branchId, studentId, authentication));
+    }
+
+    @GetMapping("/mine/{level}")
+    public ResponseEntity<PracticePerformanceResponseDTO> mine(
+            @PathVariable String level,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false) Long chapterId,
+            Authentication authentication) {
+
+        final Level parsedLevel;
+        try {
+            parsedLevel = Level.valueOf(level.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Unsupported practice hierarchy level");
+        }
+
+        return ResponseEntity.ok(performanceService.getMyPerformance(
+                parsedLevel,
+                new Filters(courseId, subjectId, chapterId),
+                authentication));
     }
 
     // No global exception handler exists, so report the reason for a
