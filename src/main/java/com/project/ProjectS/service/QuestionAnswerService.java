@@ -8,6 +8,7 @@ import com.project.ProjectS.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.Authentication;
 import com.project.ProjectS.repository.AnswerEventRepository;
 
 import java.util.List;
@@ -31,6 +32,22 @@ public class QuestionAnswerService {
     private final TableNameRepository tableNameRepository;
     private final TableHeaderRepository tableHeaderRepository;
     private final TableAttributeRepository tableAttributeRepository;
+
+    public Long getAuthenticatedUserId(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new RuntimeException("Authenticated user is required");
+        }
+        return userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found"))
+                .getUserId();
+    }
+
+    public QuestionAnswerResponseDTO saveAnswer(
+            QuestionAnswerRequestDTO request,
+            Authentication authentication) {
+        request.setUserId(getAuthenticatedUserId(authentication));
+        return saveAnswer(request);
+    }
 
     public QuestionAnswerResponseDTO saveAnswer(QuestionAnswerRequestDTO request) {
         User user = userRepository.findById(

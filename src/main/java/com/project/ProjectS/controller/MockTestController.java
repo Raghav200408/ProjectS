@@ -29,7 +29,7 @@ public class MockTestController {
             @RequestBody McqSubmissionRequestDTO request,
             Authentication authentication) {
         request.setMockTest(true);
-        return ResponseEntity.ok(mcqQuestionService.submitMcqAnswersInternal(
-                request));
+        return ResponseEntity.ok(mcqQuestionService.submitMcqAnswersAsAuthenticated(
+                request, authentication.getName()));
     }
 }

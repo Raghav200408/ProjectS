@@ -7,6 +7,7 @@ import com.project.ProjectS.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.Authentication;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -36,6 +37,26 @@ public class AnswerEventService {
     private final QuestionRepository questionRepository;
     private final TableAttributeRepository tableAttributeRepository;
     private final QuestionFillBlankAnswerRepository fillBlankAnswerRepository;
+
+    public AnswerEventResponseDTO createEvent(
+            AnswerEventRequestDTO request,
+            Authentication authentication) {
+        User authenticatedUser = getAuthenticatedUser(authentication);
+        request.setUserId(authenticatedUser.getUserId());
+        return createEvent(request);
+    }
+
+    private User getAuthenticatedUser(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new RuntimeException("Authenticated user is required");
+        }
+        return userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+    }
+
+    public Long getAuthenticatedUserId(Authentication authentication) {
+        return getAuthenticatedUser(authentication).getUserId();
+    }
 
 
     public AnswerEventResponseDTO createEvent(
