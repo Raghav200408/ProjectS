@@ -60,6 +60,25 @@ public class PracticePerformanceService {
                 getLoggedInUser(authentication),
                 collegeId, branchId, studentId);
 
+        return buildResponse(level, filters, scope);
+    }
+
+    /** Current user's progress, regardless of their application role. */
+    public PracticePerformanceResponseDTO getMyPerformance(
+            Level level,
+            Filters filters,
+            Authentication authentication) {
+
+        User user = getLoggedInUser(authentication);
+        return buildResponse(level, filters,
+                new Scope(null, null, user.getUserId(), true));
+    }
+
+    private PracticePerformanceResponseDTO buildResponse(
+            Level level,
+            Filters filters,
+            Scope scope) {
+
         List<Row> rows =
                 performanceRepository.findMetrics(level, filters, scope);
 
@@ -100,7 +119,7 @@ public class PracticePerformanceService {
         return switch (role) {
 
             case "STUDENT" ->
-                    new Scope(null, null, user.getUserId());
+                    new Scope(null, null, user.getUserId(), false);
 
             case "BRANCH_ADMIN" -> {
                 if (user.getBranch() == null) {
@@ -108,7 +127,7 @@ public class PracticePerformanceService {
                             "Branch is not assigned to this user");
                 }
                 yield new Scope(
-                        null, user.getBranch().getBranchId(), studentId);
+                        null, user.getBranch().getBranchId(), studentId, false);
             }
 
             case "COLLEGE_ADMIN" -> {
@@ -117,11 +136,11 @@ public class PracticePerformanceService {
                             "College is not assigned to this user");
                 }
                 yield new Scope(
-                        user.getCollege().getCollegeId(), branchId, studentId);
+                        user.getCollege().getCollegeId(), branchId, studentId, false);
             }
 
             case "SUPER_ADMIN" ->
-                    new Scope(collegeId, branchId, studentId);
+                    new Scope(collegeId, branchId, studentId, false);
 
             default -> throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Practice performance is not available for this role");

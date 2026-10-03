@@ -70,7 +70,11 @@ public class PracticePerformanceRepository {
     }
 
     // Which students the numbers cover. Any field left null isn't filtered on.
-    public record Scope(Long collegeId, Long branchId, Long studentId) {
+    public record Scope(
+            Long collegeId,
+            Long branchId,
+            Long studentId,
+            boolean includeAllRoles) {
     }
 
     // Optional narrowing by hierarchy. Each one only applies to levels that
@@ -107,10 +111,16 @@ public class PracticePerformanceRepository {
                 student_scope AS (
                     SELECT u.user_id
                     FROM users u
-                    JOIN roles r ON r.role_id = u.role_id
-                    WHERE r.role_name = 'STUDENT'
-                      AND COALESCE(u.active_row, true) = true
+                    WHERE COALESCE(u.active_row, true) = true
                 """);
+
+        // Reporting views aggregate students only. The dedicated "mine"
+        // endpoint sets includeAllRoles so administrators and guests can see
+        // their own practice progress without entering student reports.
+        if (!scope.includeAllRoles()) {
+            sql.append("      AND EXISTS (SELECT 1 FROM roles r "
+                    + "WHERE r.role_id = u.role_id AND r.role_name = 'STUDENT')\n");
+        }
 
         if (scope.collegeId() != null) {
             sql.append("      AND u.college_id = :collegeId\n");
