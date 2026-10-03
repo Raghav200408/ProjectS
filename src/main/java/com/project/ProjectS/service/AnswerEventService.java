@@ -22,15 +22,13 @@ public class AnswerEventService {
             UserRepository userRepository,
             QuestionRepository questionRepository,
             TableAttributeRepository tableAttributeRepository,
-            QuestionFillBlankAnswerRepository fillBlankAnswerRepository,
-            PracticeResultRepository practiceResultRepository) {
+            QuestionFillBlankAnswerRepository fillBlankAnswerRepository) {
 
         this.answerEventRepository = answerEventRepository;
         this.userRepository = userRepository;
         this.questionRepository = questionRepository;
         this.tableAttributeRepository = tableAttributeRepository;
         this.fillBlankAnswerRepository = fillBlankAnswerRepository;
-        this.practiceResultRepository = practiceResultRepository;
     }
 
     private final AnswerEventRepository answerEventRepository;
@@ -38,7 +36,6 @@ public class AnswerEventService {
     private final QuestionRepository questionRepository;
     private final TableAttributeRepository tableAttributeRepository;
     private final QuestionFillBlankAnswerRepository fillBlankAnswerRepository;
-    private final PracticeResultRepository practiceResultRepository;
 
 
     public AnswerEventResponseDTO createEvent(
@@ -545,10 +542,8 @@ public class AnswerEventService {
             Long userId,
             Long questionId) {
 
-        // Reset starts the question over, so its current practice result
-        // goes with it. The (now inactive) answer_events stay as history.
-        practiceResultRepository.deleteByUserAndQuestion(userId, questionId);
-
+        // Reset only the current answer cycle. Practice performance persists
+        // across resets and is updated when the student answers again.
         return answerEventRepository
                 .deactivateByUserAndQuestion(
                         userId,

@@ -2,6 +2,8 @@ package com.project.ProjectS.controller;
 
 import com.project.ProjectS.model.PracticeResultRequestDTO;
 import com.project.ProjectS.model.PracticeResultResponseDTO;
+import com.project.ProjectS.model.PracticeEventResultRequestDTO;
+import com.project.ProjectS.service.PracticeEventResultService;
 import com.project.ProjectS.service.PracticeResultService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,12 +22,23 @@ import java.util.Map;
 @RequestMapping("/api/practice/results")
 public class PracticeResultController {
 
+    private final PracticeEventResultService eventResultService;
+
     private final PracticeResultService practiceResultService;
 
     @Autowired
     public PracticeResultController(
-            PracticeResultService practiceResultService) {
+            PracticeResultService practiceResultService,
+            PracticeEventResultService eventResultService) {
         this.practiceResultService = practiceResultService;
+        this.eventResultService = eventResultService;
+    }
+
+    @PostMapping("/from-event")
+    public ResponseEntity<Map<String, Boolean>> recordEventResult(
+            @RequestBody PracticeEventResultRequestDTO request,
+            Authentication authentication) {
+        return ResponseEntity.ok(Map.of("resultRecorded", eventResultService.record(request, authentication)));
     }
 
     /*
