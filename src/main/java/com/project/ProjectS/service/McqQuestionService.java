@@ -571,13 +571,14 @@ public class McqQuestionService {
         return submitMcqAnswersInternal(request);
     }
 
-//    public McqSubmissionResponseDTO submitMcqAnswersAsAuthenticated(
-//            McqSubmissionRequestDTO request, String email) {
-    ////        request.setUserId(userRepository.findByEmail(email)
-    ////                .orElseThrow(() -> new RuntimeException("Authenticated user not found"))
-    ////                .getUserId());
-//        return submitMcqAnswersInternal(request);
-//    }
+    @Transactional
+    public McqSubmissionResponseDTO submitMcqAnswersAsAuthenticated(
+            McqSubmissionRequestDTO request, String email) {
+        request.setUserId(userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found"))
+                .getUserId());
+        return submitMcqAnswersInternal(request);
+    }
 
     @Transactional
     public McqSubmissionResponseDTO submitMcqAnswersInternal(

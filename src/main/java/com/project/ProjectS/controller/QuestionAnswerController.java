@@ -5,6 +5,7 @@ import com.project.ProjectS.model.QuestionAnswerResponseDTO;
 import com.project.ProjectS.service.QuestionAnswerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,10 +20,12 @@ public class QuestionAnswerController {
 
     private final QuestionAnswerService questionAnswerService;
     @PostMapping()
-    public ResponseEntity<QuestionAnswerResponseDTO> saveAnswer(@RequestBody QuestionAnswerRequestDTO request)
+    public ResponseEntity<QuestionAnswerResponseDTO> saveAnswer(
+            @RequestBody QuestionAnswerRequestDTO request,
+            Authentication authentication)
     {
         return ResponseEntity.ok(
-                questionAnswerService.saveAnswer(request)
+                questionAnswerService.saveAnswer(request, authentication)
         );
     }
 
@@ -39,13 +42,14 @@ public class QuestionAnswerController {
     @GetMapping("/user/{userId}/question/{questionId}")
     public ResponseEntity<List<QuestionAnswerResponseDTO>>
     getAnswersByUserAndQuestion(
-            @PathVariable Long userId,
-            @PathVariable Long questionId) {
+            @PathVariable("userId") Long ignoredUserId,
+            @PathVariable Long questionId,
+            Authentication authentication) {
 
         return ResponseEntity.ok(
                 questionAnswerService
                         .getAnswersByUserAndQuestion(
-                                userId,
+                                questionAnswerService.getAuthenticatedUserId(authentication),
                                 questionId
                         )
         );
@@ -53,13 +57,14 @@ public class QuestionAnswerController {
 
     @PutMapping("/user/{userId}/question/{questionId}/reset")
     public ResponseEntity<String> resetAnswersByUserAndQuestion(
-            @PathVariable Long userId,
-            @PathVariable Long questionId) {
+            @PathVariable("userId") Long ignoredUserId,
+            @PathVariable Long questionId,
+            Authentication authentication) {
 
         return ResponseEntity.ok(
                 questionAnswerService
                         .resetAnswersByUserAndQuestion(
-                                userId,
+                                questionAnswerService.getAuthenticatedUserId(authentication),
                                 questionId
                         )
         );

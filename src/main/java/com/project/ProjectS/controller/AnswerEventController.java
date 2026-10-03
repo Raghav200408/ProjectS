@@ -6,6 +6,7 @@ import com.project.ProjectS.service.AnswerEventService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -27,10 +28,11 @@ public class AnswerEventController {
     @PostMapping
     public ResponseEntity<AnswerEventResponseDTO>
     createEvent(
-            @RequestBody AnswerEventRequestDTO request) {
+            @RequestBody AnswerEventRequestDTO request,
+            Authentication authentication) {
 
         return ResponseEntity.ok(
-                answerEventService.createEvent(request)
+                answerEventService.createEvent(request, authentication)
         );
     }
 
@@ -62,14 +64,15 @@ public class AnswerEventController {
     )
     public ResponseEntity<List<AnswerEventResponseDTO>>
     getByUserQuestionAttribute(
-            @PathVariable Long userId,
+            @PathVariable("userId") Long ignoredUserId,
             @PathVariable Long questionId,
-            @PathVariable Long attributeId) {
+            @PathVariable Long attributeId,
+            Authentication authentication) {
 
         return ResponseEntity.ok(
                 answerEventService
                         .getByUserQuestionAttribute(
-                                userId,
+                                answerEventService.getAuthenticatedUserId(authentication),
                                 questionId,
                                 attributeId
                         )
@@ -83,12 +86,13 @@ public class AnswerEventController {
     )
     public ResponseEntity<List<AnswerEventResponseDTO>>
     getMistakes(
-            @PathVariable Long userId,
-            @PathVariable Long questionId) {
+            @PathVariable("userId") Long ignoredUserId,
+            @PathVariable Long questionId,
+            Authentication authentication) {
 
         return ResponseEntity.ok(
                 answerEventService.getMistakes(
-                        userId,
+                        answerEventService.getAuthenticatedUserId(authentication),
                         questionId
                 )
         );
@@ -96,27 +100,32 @@ public class AnswerEventController {
     @GetMapping("/user/{userId}/mistakes")
     public ResponseEntity<List<AnswerEventResponseDTO>>
     getAllMistakesByUser(
-            @PathVariable Long userId) {
+            @PathVariable("userId") Long ignoredUserId,
+            Authentication authentication) {
 
         return ResponseEntity.ok(
-                answerEventService.getAllMistakesByUser(userId)
+                answerEventService.getAllMistakesByUser(
+                        answerEventService.getAuthenticatedUserId(authentication))
         );
     }
     @GetMapping("/user/{userId}/marks")
     public ResponseEntity<BigDecimal> getOverallMarks(
-            @PathVariable Long userId) {
+            @PathVariable("userId") Long ignoredUserId,
+            Authentication authentication) {
 
         return ResponseEntity.ok(
-                answerEventService.getOverallMarks(userId)
+                answerEventService.getOverallMarks(
+                        answerEventService.getAuthenticatedUserId(authentication))
         );
     }
     @PutMapping("/user/{userId}/question/{questionId}/reset")
     public ResponseEntity<String> resetEvents(
-            @PathVariable Long userId,
-            @PathVariable Long questionId) {
+            @PathVariable("userId") Long ignoredUserId,
+            @PathVariable Long questionId,
+            Authentication authentication) {
 
         int count = answerEventService.resetEvents(
-                userId,
+                answerEventService.getAuthenticatedUserId(authentication),
                 questionId
         );
 

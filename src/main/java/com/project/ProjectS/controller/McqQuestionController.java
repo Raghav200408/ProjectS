@@ -128,11 +128,12 @@ public class McqQuestionController {
     @PostMapping("/submit")
     public ResponseEntity<McqSubmissionResponseDTO>
     submitMcqAnswers(
-            @RequestBody McqSubmissionRequestDTO request) {
+            @RequestBody McqSubmissionRequestDTO request,
+            Authentication authentication) {
 
         McqSubmissionResponseDTO response =
-                mcqQuestionService.submitMcqAnswersInternal(
-                        request);
+                mcqQuestionService.submitMcqAnswersAsAuthenticated(
+                        request, authentication.getName());
 
         return ResponseEntity.ok(response);
     }
