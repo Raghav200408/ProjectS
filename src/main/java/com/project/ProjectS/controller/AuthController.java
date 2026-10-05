@@ -3,6 +3,7 @@ package com.project.ProjectS.controller;
 import com.project.ProjectS.entity.User;
 import com.project.ProjectS.model.LoginRequestDTO;
 import com.project.ProjectS.model.LoginResponseDTO;
+import com.project.ProjectS.model.UserProfileDTO;
 import com.project.ProjectS.repository.UserRepository;
 import com.project.ProjectS.security.jwt.JwtUtil;
 
@@ -10,6 +11,10 @@ import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.security.Principal;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -29,6 +34,18 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileDTO> currentUser(Principal principal) {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+        User user = userRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        return ResponseEntity.ok(new UserProfileDTO(
+                user.getUserId(), user.getName(), user.getEmail(),
+                user.getRole().getRoleName()));
+    }
 
 
     @PostMapping("/login")
