@@ -213,6 +213,43 @@ public class ExamScoringService {
         return new Score(totalMarks, maximumMarks, questionScores);
     }
 
+    /**
+     * How many marks one question is worth, independent of any attempt:
+     * 1 for an MCQ (single or multiple choice), or the number of distinct
+     * accounting attributes for every other question type. The same formula
+     * {@link #score} applies inline for its own maximumMarks - this is a
+     * separate, standalone copy for ExamService.addQuestionsToExam to store
+     * on exam_questions when a question is added to an exam. score() itself
+     * is not changed.
+     */
+    public double computeQuestionMaxMarks(Long questionId) {
+
+        Question question = questionRepository.findById(questionId).orElse(null);
+
+        if (question == null) {
+            return 0;
+        }
+
+        String questionType = normalizeQuestionType(
+                question.getQuestionType() != null
+                        ? question.getQuestionType().getQuestionType()
+                        : null);
+
+        boolean isMcq = "SINGLE_CHOICE".equals(questionType)
+                || "MULTIPLE_CHOICE".equals(questionType);
+
+        if (isMcq) {
+            return 1;
+        }
+
+        return questionAttributeRepository.findByQuestion_QuestionId(questionId)
+                .stream()
+                .filter(qa -> qa.getAttribute() != null)
+                .map(qa -> qa.getAttribute().getAttributeId())
+                .distinct()
+                .count();
+    }
+
     private boolean checkMcqAnswer(
             ExamQuestionAnswerDTO submittedQuestion) {
 
@@ -603,8 +640,10 @@ public class ExamScoringService {
         }
 
         Map<Long, Boolean> correctByQuestionId = new HashMap<>();
+        Map<Long, Double> marksByQuestionId = new HashMap<>();
         for (QuestionScore questionScore : questionScores) {
             correctByQuestionId.put(questionScore.questionId(), questionScore.correct());
+            marksByQuestionId.put(questionScore.questionId(), questionScore.earnedMarks());
         }
 
         List<ExamQuestionAnswerDTO> answers =
@@ -624,6 +663,10 @@ public class ExamScoringService {
             }
 
             Boolean questionCorrect = correctByQuestionId.get(submittedQuestion.getQuestionId());
+            Double questionMarks = marksByQuestionId.get(submittedQuestion.getQuestionId());
+            BigDecimal questionMarksDecimal = questionMarks == null
+                    ? null
+                    : BigDecimal.valueOf(questionMarks);
 
             List<QuestionAttribute> questionAttributes =
                     questionAttributeRepository.findByQuestion_QuestionId(
@@ -685,6 +728,12 @@ public class ExamScoringService {
                     event.setEventType("EXAM_SUBMIT");
                     event.setDescription(info.toString());
                     event.setIsCorrect(lineCorrect);
+                    // The whole question's earned marks, repeated on every
+                    // row for it - same convention as questionCorrect below.
+                    // Lets a reader find how many marks a student earned on
+                    // one question with user_id + question_id + exam_id,
+                    // without recomputing it from is_correct.
+                    event.setMarks(questionMarksDecimal);
                     event.setExam(exam);
                     event.setMockExam(mockExam);
 
@@ -700,6 +749,7 @@ public class ExamScoringService {
                     event.setOptionId(optionId);
                     event.setEventType("EXAM_SUBMIT");
                     event.setIsCorrect(questionCorrect);
+                    event.setMarks(questionMarksDecimal);
                     event.setExam(exam);
                     event.setMockExam(mockExam);
 
