@@ -58,6 +58,8 @@ CREATE TABLE IF NOT EXISTS public.practice_results (
 
 
 ALTER TABLE public.practice_results ADD COLUMN IF NOT EXISTS answer_position INTEGER;
+-- Re-running schema/data repairs must not create a practice day.
+DROP TRIGGER IF EXISTS practice_results_track_day ON public.practice_results;
 ALTER TABLE public.practice_results ADD COLUMN IF NOT EXISTS last_answer_event_id BIGINT
     REFERENCES public.answer_events(answer_event_id);
 ALTER TABLE public.practice_results DROP CONSTRAINT IF EXISTS chk_practice_results_type;
@@ -133,5 +135,39 @@ CREATE INDEX IF NOT EXISTS idx_practice_results_question
 CREATE INDEX IF NOT EXISTS idx_practice_results_question_attribute
     ON public.practice_results (question_attribute_id)
     WHERE question_attribute_id IS NOT NULL;
+
+-- Persistent distinct questions per India calendar day. Reset and later retries
+-- do not erase earlier days. All practice write paths (including MCQs) use this
+-- trigger; answer_events is unchanged. Existing rows recover only their latest
+-- known day, not a fabricated historical streak.
+CREATE TABLE IF NOT EXISTS public.practice_daily_questions (
+    user_id BIGINT NOT NULL REFERENCES public.users(user_id) ON DELETE CASCADE,
+    -- Keep the historical question id even if that question is later removed.
+    question_id BIGINT NOT NULL,
+    practice_date DATE NOT NULL,
+    PRIMARY KEY (user_id, practice_date, question_id)
+);
+INSERT INTO public.practice_daily_questions(user_id, question_id, practice_date)
+SELECT DISTINCT user_id, question_id, answered_at::date FROM public.practice_results
+WHERE answered_at IS NOT NULL
+ON CONFLICT DO NOTHING;
+
+CREATE OR REPLACE FUNCTION public.track_practice_day() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF TG_OP = 'UPDATE' AND NEW.answered_at IS NOT DISTINCT FROM OLD.answered_at
+        AND NEW.attempt_number IS NOT DISTINCT FROM OLD.attempt_number THEN
+        RETURN NEW;
+    END IF;
+    INSERT INTO public.practice_daily_questions(user_id, question_id, practice_date)
+    VALUES (NEW.user_id, NEW.question_id, (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Calcutta')::date)
+    ON CONFLICT DO NOTHING;
+    RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS practice_results_track_day ON public.practice_results;
+CREATE TRIGGER practice_results_track_day
+AFTER INSERT OR UPDATE OF answered_at, attempt_number ON public.practice_results
+FOR EACH ROW EXECUTE FUNCTION public.track_practice_day();
 
 COMMIT;
