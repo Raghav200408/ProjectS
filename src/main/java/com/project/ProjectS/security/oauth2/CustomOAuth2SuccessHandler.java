@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -30,6 +31,9 @@ public class CustomOAuth2SuccessHandler
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final JwtUtil jwtUtil;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
 	@Override
 	public void onAuthenticationSuccess(
@@ -104,7 +108,7 @@ public class CustomOAuth2SuccessHandler
 				);
 
 		response.sendRedirect(
-				"http://localhost:5173/oauth2/success?token="
+				frontendUrl.replaceAll("/+$", "") + "/oauth2/success?token="
 						+ token
 		);
 	}
