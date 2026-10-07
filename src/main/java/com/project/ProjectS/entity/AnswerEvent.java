@@ -29,6 +29,9 @@ public class AnswerEvent {
     @JoinColumn(name = "attribute_id")
     private TableAttribute attribute;
 
+    @Column(name = "question_attribute_id")
+    private Long questionAttributeId;
+
     // Null for practice-flow events. Set to identify which exam (or mock
     // exam) attempt this event came from - never both at once.
     @ManyToOne(fetch = FetchType.LAZY)

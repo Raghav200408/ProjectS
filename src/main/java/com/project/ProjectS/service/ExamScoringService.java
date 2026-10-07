@@ -213,6 +213,101 @@ public class ExamScoringService {
         return new Score(totalMarks, maximumMarks, questionScores);
     }
 
+    private QuestionScore scoreFinalAccounts(Question question, List<ExamAnswerDTO> submitted) {
+        List<QuestionAttribute> rows = questionAttributeRepository.findByQuestion_QuestionId(question.getQuestionId())
+                .stream().filter(qa -> qa.getAttribute() != null && !Boolean.FALSE.equals(qa.getActiveRow())).toList();
+        Map<Long, List<ExamAnswerDTO>> byRow = new HashMap<>();
+        boolean unknownRow = false;
+        for (ExamAnswerDTO answer : submitted == null ? List.<ExamAnswerDTO>of() : submitted) {
+            QuestionAttribute row = findFinalAccountsRow(rows, answer);
+            if (row == null) {
+                unknownRow = true;
+            } else {
+                byRow.computeIfAbsent(row.getQuestionAttributeId(), ignored -> new ArrayList<>()).add(answer);
+            }
+        }
+        double earned = 0;
+        for (QuestionAttribute row : rows) {
+            if (completeFinalAccountsRow(question, row, byRow.get(row.getQuestionAttributeId()))) {
+                earned++;
+            }
+        }
+        return new QuestionScore(question.getQuestionId(), !unknownRow && !rows.isEmpty() && earned == rows.size(),
+                unknownRow ? 0 : earned, rows.size());
+    }
+
+    private QuestionAttribute findFinalAccountsRow(List<QuestionAttribute> rows, ExamAnswerDTO answer) {
+        if (answer == null || answer.getAnsweredData() == null) {
+            return null;
+        }
+        Map<String, Object> data = answer.getAnsweredData();
+        Long attributeId = getLongValue(data.get("attributeId"));
+        Long rowId = getLongValue(data.get("questionAttributeId"));
+        List<QuestionAttribute> matching = rows.stream()
+                .filter(qa -> qa.getAttribute() != null
+                        && Objects.equals(attributeId, qa.getAttribute().getAttributeId())
+                        && !Boolean.FALSE.equals(qa.getActiveRow())
+                        && (rowId == null || Objects.equals(rowId, qa.getQuestionAttributeId())))
+                .toList();
+        // Old submissions without row IDs are only unambiguous for one occurrence of an account.
+        return matching.size() == 1 ? matching.get(0) : null;
+    }
+
+    private boolean completeFinalAccountsRow(Question question, QuestionAttribute row, List<ExamAnswerDTO> answers) {
+        if (answers == null || answers.isEmpty()) {
+            return false;
+        }
+        List<RuleEngineResponse> rules = ruleEngineService.getRuleEngineByAttributeId(
+                row.getAttribute().getAttributeId(), question.getChapter().getChapterId());
+        if (rules == null) {
+            return false;
+        }
+        for (RuleEngineResponse rule : rules) {
+            List<RuleConditionDTO> conditions = RuleEngineService.conditions(rule);
+            if (conditions.isEmpty() || conditions.size() != answers.size()) {
+                continue;
+            }
+            Set<Integer> matched = new HashSet<>();
+            boolean complete = true;
+            for (RuleConditionDTO condition : conditions) {
+                int match = -1;
+                for (int index = 0; index < answers.size(); index++) {
+                    if (!matched.contains(index) && matchesFinalAccountsCondition(answers.get(index), condition, row)) {
+                        match = index;
+                        break;
+                    }
+                }
+                if (match < 0) {
+                    complete = false;
+                    break;
+                }
+                matched.add(match);
+            }
+            if (complete) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean matchesFinalAccountsCondition(ExamAnswerDTO answer, RuleConditionDTO condition, QuestionAttribute row) {
+        if (answer == null || answer.getAnsweredData() == null) {
+            return false;
+        }
+        Map<String, Object> data = answer.getAnsweredData();
+        Long tableId = getLongValue(data.get("tableNameId"));
+        Long headerId = getLongValue(data.get("headerId"));
+        if (tableId == null && data.get("tableName") != null) {
+            tableId = ruleEngineService.resolveFinalAccountsTableId(data.get("tableName").toString());
+        }
+        if (headerId == null && data.get("headerName") != null) {
+            headerId = ruleEngineService.resolveFinalAccountsHeaderId(data.get("headerName").toString());
+        }
+        return RuleEngineService.matchesPlacement(condition, row, tableId, headerId,
+                data.get("arithmetic") == null ? null : data.get("arithmetic").toString(),
+                getBigDecimalValue(data.get("amount")));
+    }
+
     /**
      * How many marks one question is worth, independent of any attempt:
      * 1 for an MCQ (single or multiple choice), or the number of distinct
@@ -640,10 +735,8 @@ public class ExamScoringService {
         }
 
         Map<Long, Boolean> correctByQuestionId = new HashMap<>();
-        Map<Long, Double> marksByQuestionId = new HashMap<>();
         for (QuestionScore questionScore : questionScores) {
             correctByQuestionId.put(questionScore.questionId(), questionScore.correct());
-            marksByQuestionId.put(questionScore.questionId(), questionScore.earnedMarks());
         }
 
         List<ExamQuestionAnswerDTO> answers =
@@ -663,10 +756,6 @@ public class ExamScoringService {
             }
 
             Boolean questionCorrect = correctByQuestionId.get(submittedQuestion.getQuestionId());
-            Double questionMarks = marksByQuestionId.get(submittedQuestion.getQuestionId());
-            BigDecimal questionMarksDecimal = questionMarks == null
-                    ? null
-                    : BigDecimal.valueOf(questionMarks);
 
             List<QuestionAttribute> questionAttributes =
                     questionAttributeRepository.findByQuestion_QuestionId(
@@ -728,12 +817,6 @@ public class ExamScoringService {
                     event.setEventType("EXAM_SUBMIT");
                     event.setDescription(info.toString());
                     event.setIsCorrect(lineCorrect);
-                    // The whole question's earned marks, repeated on every
-                    // row for it - same convention as questionCorrect below.
-                    // Lets a reader find how many marks a student earned on
-                    // one question with user_id + question_id + exam_id,
-                    // without recomputing it from is_correct.
-                    event.setMarks(questionMarksDecimal);
                     event.setExam(exam);
                     event.setMockExam(mockExam);
 
@@ -749,7 +832,6 @@ public class ExamScoringService {
                     event.setOptionId(optionId);
                     event.setEventType("EXAM_SUBMIT");
                     event.setIsCorrect(questionCorrect);
-                    event.setMarks(questionMarksDecimal);
                     event.setExam(exam);
                     event.setMockExam(mockExam);
 

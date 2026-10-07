@@ -13,6 +13,7 @@ public class QuestionAnswerResponseDTO {
     private Long userId;
     private Long questionId;
     private Long attributeId;
+    private Long questionAttributeId;
     private String attributeName;
     private Long pairAttributeId;
     private String pairAttributeName;
