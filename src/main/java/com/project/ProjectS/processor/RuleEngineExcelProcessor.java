@@ -162,6 +162,13 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
             RuleEngine savedRule =
                     ruleEngineRepository.save(ruleEngine);
 
+            // Match manual rule creation: the linked attribute now has a rule.
+            if (ruleEngine.getTableAttributeid() != null) {
+                TableAttribute attribute = ruleEngine.getTableAttributeid();
+                attribute.setRowStatus("RULE");
+                tableAttributeRepository.save(attribute);
+            }
+
             System.out.println(
                     "========== SAVED RULE ENGINE ID : "
                             + savedRule.getRuleEngineId()
