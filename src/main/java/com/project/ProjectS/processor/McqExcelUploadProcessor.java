@@ -1,1472 +1,219 @@
+package com.project.ProjectS.processor;
 
-        package com.project.ProjectS.processor;
-
-import com.project.ProjectS.entity.Chapter;
-import com.project.ProjectS.entity.Course;
-import com.project.ProjectS.entity.McqOption;
-import com.project.ProjectS.entity.McqQuestion;
-import com.project.ProjectS.entity.Question;
-import com.project.ProjectS.entity.QuestionType;
-import com.project.ProjectS.entity.Topic;
-
-import com.project.ProjectS.repository.ChapterRepository;
-import com.project.ProjectS.repository.CourseRepository;
-import com.project.ProjectS.repository.McqOptionRepository;
-import com.project.ProjectS.repository.McqQuestionRepository;
-import com.project.ProjectS.repository.TopicRepository;
-import com.project.ProjectS.repository.QuestionRepository;
-import com.project.ProjectS.repository.QuestionTypeRepository;
-
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DataFormatter;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
-
+import com.project.ProjectS.entity.*;
+import com.project.ProjectS.model.QuestionExcelUploadResponseDTO;
+import com.project.ProjectS.model.QuestionUploadErrorDTO;
+import com.project.ProjectS.repository.*;
+import com.project.ProjectS.service.ExcelUploadService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.io.IOException;
+import java.util.*;
 
 @Component
 public class McqExcelUploadProcessor {
-
-    // =========================================================
-    // REPOSITORIES
-    // =========================================================
-
+    private static final List<String> REQUIRED_HEADERS = List.of(
+            "question_text", "question_type", "marks", "option_1", "option_2",
+            "option_3", "option_4", "correct_option");
     private final QuestionRepository questionRepository;
-
     private final McqQuestionRepository mcqQuestionRepository;
-
     private final McqOptionRepository mcqOptionRepository;
-
     private final CourseRepository courseRepository;
-
     private final ChapterRepository chapterRepository;
-
     private final TopicRepository topicRepository;
-
     private final QuestionTypeRepository questionTypeRepository;
+    private final ExcelUploadService excelUploadService;
 
-    // =========================================================
-    // CONSTRUCTOR
-    // =========================================================
-
-    public McqExcelUploadProcessor(
-            QuestionRepository questionRepository,
-            McqQuestionRepository mcqQuestionRepository,
-            McqOptionRepository mcqOptionRepository,
-            CourseRepository courseRepository,
-            ChapterRepository chapterRepository,
-            TopicRepository topicRepository,
-            QuestionTypeRepository questionTypeRepository) {
-
+    public McqExcelUploadProcessor(QuestionRepository questionRepository,
+            McqQuestionRepository mcqQuestionRepository, McqOptionRepository mcqOptionRepository,
+            CourseRepository courseRepository, ChapterRepository chapterRepository,
+            TopicRepository topicRepository, QuestionTypeRepository questionTypeRepository,
+            ExcelUploadService excelUploadService) {
         this.questionRepository = questionRepository;
-
         this.mcqQuestionRepository = mcqQuestionRepository;
-
         this.mcqOptionRepository = mcqOptionRepository;
-
         this.courseRepository = courseRepository;
-
         this.chapterRepository = chapterRepository;
-
-        this.topicRepository =
-                topicRepository;
-
-        this.questionTypeRepository =
-                questionTypeRepository;
+        this.topicRepository = topicRepository;
+        this.questionTypeRepository = questionTypeRepository;
+        this.excelUploadService = excelUploadService;
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    public QuestionExcelUploadResponseDTO processExcel(
+            MultipartFile file, Long courseId, Long chapterId, Long topicId) throws IOException {
+        if (courseId == null || chapterId == null || topicId == null) {
+            throw new IllegalArgumentException("Course, chapter and topic are required");
+        }
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+        Chapter chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new IllegalArgumentException("Chapter not found"));
+        Topic topic = topicRepository.findById(topicId)
+                .orElseThrow(() -> new IllegalArgumentException("Topic not found"));
+        validateHierarchy(courseId, chapterId, chapter, topic);
 
-    // =========================================================
-    // PROCESS EXCEL
-    // =========================================================
-
-    @Transactional
-    public int processExcel(
-            MultipartFile file,
-            Long courseId,
-            Long chapterId,
-            Long topicId
-    ) throws Exception {
-
-        int uploadedCount = 0;
-
-        int skippedCount = 0;
-
-        int failedCount = 0;
-
-        int totalProcessed = 0;
-
-
-        List<String> skippedQuestions =
-                new ArrayList<>();
-
-        List<String> failedQuestions =
-                new ArrayList<>();
-
-        // VALIDATE FILE
-
-        if (file == null || file.isEmpty()) {
-
-            throw new RuntimeException(
-                    "Excel file is required"
-            );
+        List<Map<String, String>> rows = excelUploadService.readExcel(file);
+        if (rows.isEmpty()) {
+            throw new IllegalArgumentException("Excel must contain a header and at least one question");
+        }
+        if (!rows.get(0).keySet().containsAll(REQUIRED_HEADERS)) {
+            throw new IllegalArgumentException("Required Excel columns: " + String.join(", ", REQUIRED_HEADERS));
+        }
+        QuestionExcelUploadResponseDTO result = new QuestionExcelUploadResponseDTO();
+        Map<String, Question> existing = new HashMap<>();
+        for (Question question : questionRepository
+                .findByCourse_CourseIdAndChapter_ChapterIdAndTopic_TopicIdAndActiveRowTrue(
+                        courseId, chapterId, topicId)) {
+            existing.putIfAbsent(question.getQuestionText().trim().toLowerCase(Locale.ROOT), question);
         }
 
-
-        // =====================================================
-        // VALIDATE FRONTEND IDs
-        // =====================================================
-
-        if (courseId == null) {
-
-            throw new RuntimeException(
-                    "Course ID is required"
-            );
-        }
-
-        if (chapterId == null) {
-
-            throw new RuntimeException(
-                    "Chapter ID is required"
-            );
-        }
-
-        if (topicId == null) {
-
-            throw new RuntimeException(
-                    "Topic ID is required"
-            );
-        }
-
-
-        // =====================================================
-        // FIND COURSE
-        // =====================================================
-
-        Optional<Course> courseOptional =
-                courseRepository.findById(courseId);
-
-        if (courseOptional.isEmpty()) {
-
-            throw new RuntimeException(
-                    "Course ID "
-                            + courseId
-                            + " not found"
-            );
-        }
-
-        Course course =
-                courseOptional.get();
-
-
-        // =====================================================
-        // FIND CHAPTER
-        // =====================================================
-
-        Optional<Chapter> chapterOptional =
-                chapterRepository.findById(chapterId);
-
-        if (chapterOptional.isEmpty()) {
-
-            throw new RuntimeException(
-                    "Chapter ID "
-                            + chapterId
-                            + " not found"
-            );
-        }
-
-        Chapter chapter =
-                chapterOptional.get();
-
-
-        // =====================================================
-        // FIND CATEGORY
-        // =====================================================
-
-        Optional<Topic> topicOptional =
-                topicRepository.findById(
-                        topicId
-                );
-
-        if (topicOptional.isEmpty()) {
-
-            throw new RuntimeException(
-                    "Topic ID "
-                            + topicId
-                            + " not found"
-            );
-        }
-
-        Topic topic =
-                topicOptional.get();
-
-
-        // =====================================================
-        // OPEN EXCEL
-        // =====================================================
-
-        try (
-                InputStream inputStream =
-                        file.getInputStream();
-
-                Workbook workbook =
-                        WorkbookFactory.create(
-                                inputStream
-                        )
-        ) {
-
-            // =================================================
-            // CHECK SHEETS
-            // =================================================
-
-            if (workbook.getNumberOfSheets() == 0) {
-
-                throw new RuntimeException(
-                        "Excel file does not contain any sheet"
-                );
+        for (Map<String, String> row : rows) {
+            if (row.entrySet().stream().filter(entry -> !entry.getKey().startsWith("_"))
+                    .allMatch(entry -> entry.getValue() == null || entry.getValue().isBlank())) {
+                continue;
             }
-
-
-            Sheet sheet =
-                    workbook.getSheetAt(0);
-
-
-            // =================================================
-            // START LOG
-            // =================================================
-
-            System.out.println();
-
-            System.out.println(
-                    "=========================================="
-            );
-
-            System.out.println(
-                    "PROCESSING MCQ EXCEL"
-            );
-
-            System.out.println(
-                    "=========================================="
-            );
-
-            System.out.println(
-                    "File Name = "
-                            + file.getOriginalFilename()
-            );
-
-            System.out.println(
-                    "Course ID = "
-                            + courseId
-            );
-
-            System.out.println(
-                    "Chapter ID = "
-                            + chapterId
-            );
-
-            System.out.println(
-                    "Topic ID = "
-                            + topicId
-            );
-
-            System.out.println(
-                    "Total Excel Rows = "
-                            + sheet.getLastRowNum()
-            );
-
-            System.out.println(
-                    "=========================================="
-            );
-
-
-            // =================================================
-            // HEADER
-            // =================================================
-
-            Row headerRow =
-                    sheet.getRow(0);
-
-            if (headerRow == null) {
-
-                throw new RuntimeException(
-                        "Excel header row is missing"
-                );
+            result.setTotalRows(result.getTotalRows() + 1);
+            ValidatedRow validated;
+            try {
+                validated = validateRow(row, topic);
+            } catch (IllegalArgumentException ex) {
+                QuestionUploadErrorDTO error = new QuestionUploadErrorDTO();
+                error.setRowNumber(Integer.parseInt(row.get("_excel_row_number")));
+                error.setQuestionText(row.get("question_text"));
+                error.setErrorMessage(ex.getMessage());
+                result.getErrors().add(error);
+                result.setFailedQuestions(result.getFailedQuestions() + 1);
+                continue;
             }
-
-
-            // =================================================
-            // PRINT HEADERS
-            // =================================================
-
-            String headers =
-                    getHeaders(headerRow);
-
-            System.out.println(
-                    "Excel Headers = "
-                            + headers
-            );
-
-
-            // =================================================
-            // VALIDATE HEADERS
-            // =================================================
-
-            validateHeaders(headerRow);
-
-
-            // =================================================
-            // PROCESS EACH ROW
-            // =================================================
-
-            for (
-                    int rowIndex = 1;
-                    rowIndex <= sheet.getLastRowNum();
-                    rowIndex++
-            ) {
-
-                Row row =
-                        sheet.getRow(rowIndex);
-
-
-                // -------------------------------------------------
-                // SKIP EMPTY ROW
-                // -------------------------------------------------
-
-                if (
-                        row == null ||
-                                isRowEmpty(row)
-                ) {
-
-                    continue;
-                }
-
-
-                totalProcessed++;
-
-
-                System.out.println();
-
-                System.out.println(
-                        "------------------------------------------"
-                );
-
-                System.out.println(
-                        "Processing Excel Row = "
-                                + (rowIndex + 1)
-                );
-
-                System.out.println(
-                        "------------------------------------------"
-                );
-
-
-                try {
-
-                    // =================================================
-                    // 1. QUESTION TEXT
-                    // =================================================
-
-                    String questionText =
-                            getCellValue(
-                                    row.getCell(0)
-                            );
-
-
-                    if (
-                            questionText == null ||
-                                    questionText.isBlank()
-                    ) {
-
-                        throw new RuntimeException(
-                                "Question text is required"
-                        );
-                    }
-
-
-                    System.out.println(
-                            "Question = "
-                                    + questionText
-                    );
-
-
-                    // =================================================
-                    // 2. QUESTION TYPE
-                    // =================================================
-
-                    String questionType =
-                            getCellValue(
-                                    row.getCell(1)
-                            );
-
-
-                    if (
-                            questionType == null ||
-                                    questionType.isBlank()
-                    ) {
-
-                        questionType =
-                                "SINGLE_CHOICE";
-                    }
-
-
-                    questionType =
-                            questionType
-                                    .trim()
-                                    .toUpperCase()
-                                    .replaceAll("\\s+", "_");
-
-
-                    // =================================================
-                    // 3. VALIDATE AND RESOLVE MCQ QUESTION TYPE
-                    // =================================================
-
-                    if (
-                            !"SINGLE_CHOICE".equals(questionType)
-                                    && !"MULTIPLE_CHOICE".equals(questionType)
-                    ) {
-
-                        throw new RuntimeException(
-                                "Only SINGLE_CHOICE and MULTIPLE_CHOICE questions "
-                                        + "are supported. Found: "
-                                        + questionType
-                        );
-                    }
-
-                    final String resolvedQuestionTypeName;
-
-                    if ("SINGLE_CHOICE".equals(questionType)) {
-
-                        resolvedQuestionTypeName = "MCQ Single Choice";
-
-                    } else {
-
-                        resolvedQuestionTypeName = "MCQ Multiple Choice";
-                    }
-
-                    QuestionType resolvedQuestionType =
-                            questionTypeRepository
-                                    .findByQuestionType(resolvedQuestionTypeName)
-                                    .orElseThrow(() ->
-                                            new RuntimeException(
-                                                    "Question type not found in question_type table: "
-                                                            + resolvedQuestionTypeName
-                                            )
-                                    );
-
-
-                    // =================================================
-                    // 4. MARKS
-                    // =================================================
-
-                    Double marks =
-                            getDoubleValue(
-                                    row.getCell(2),
-                                    "Marks",
-                                    rowIndex
-                            );
-
-
-                    if (marks == null) {
-
-                        marks = 1.0;
-                    }
-
-
-                    if (marks <= 0) {
-
-                        throw new RuntimeException(
-                                "Marks must be greater than 0"
-                        );
-                    }
-
-
-                    // =================================================
-                    // 5. OPTION 1
-                    // =================================================
-
-                    String option1 =
-                            getCellValue(
-                                    row.getCell(3)
-                            );
-
-
-                    validateOption(
-                            option1,
-                            "Option 1",
-                            rowIndex
-                    );
-
-
-                    // =================================================
-                    // 6. OPTION 2
-                    // =================================================
-
-                    String option2 =
-                            getCellValue(
-                                    row.getCell(4)
-                            );
-
-
-                    validateOption(
-                            option2,
-                            "Option 2",
-                            rowIndex
-                    );
-
-
-                    // =================================================
-                    // 7. OPTION 3
-                    // =================================================
-
-                    String option3 =
-                            getCellValue(
-                                    row.getCell(5)
-                            );
-
-
-                    validateOption(
-                            option3,
-                            "Option 3",
-                            rowIndex
-                    );
-
-
-                    // =================================================
-                    // 8. OPTION 4
-                    // =================================================
-
-                    String option4 =
-                            getCellValue(
-                                    row.getCell(6)
-                            );
-
-
-                    validateOption(
-                            option4,
-                            "Option 4",
-                            rowIndex
-                    );
-
-
-                    // =================================================
-                    // 9. CORRECT OPTION
-                    // =================================================
-
-                    String correctOption =
-                            getCellValue(
-                                    row.getCell(7)
-                            );
-
-
-                    if (
-                            correctOption == null ||
-                                    correctOption.isBlank()
-                    ) {
-
-                        throw new RuntimeException(
-                                "Correct option is required"
-                        );
-                    }
-
-
-                    int correctOptionNumber;
-
-
-                    try {
-
-                        correctOptionNumber =
-                                Integer.parseInt(
-                                        correctOption.trim()
-                                );
-
-                    } catch (
-                            NumberFormatException e
-                    ) {
-
-                        throw new RuntimeException(
-                                "Correct option must be "
-                                        + "a number between 1 and 4"
-                        );
-                    }
-
-
-                    // =================================================
-                    // 10. VALIDATE CORRECT OPTION
-                    // =================================================
-
-                    if (
-                            correctOptionNumber < 1 ||
-                                    correctOptionNumber > 4
-                    ) {
-
-                        throw new RuntimeException(
-                                "Correct option must be "
-                                        + "between 1 and 4"
-                        );
-                    }
-
-
-                    // =================================================
-                    // 11. CHECK EXISTING QUESTION
-                    // =================================================
-
-                    List<Question> existingQuestions =
-                            questionRepository
-                                    .findByCourse_CourseIdAndChapter_ChapterIdAndTopic_TopicIdAndActiveRowTrue(
-                                            courseId,
-                                            chapterId,
-                                            topicId
-                                    );
-
-
-                    Question existingQuestion = null;
-
-
-                    for (
-                            Question existing :
-                            existingQuestions
-                    ) {
-
-                        if (
-                                existing.getQuestionText()
-                                        != null
-                                        &&
-                                        existing.getQuestionText()
-                                                .trim()
-                                                .equalsIgnoreCase(
-                                                        questionText.trim()
-                                                )
-                        ) {
-
-                            existingQuestion =
-                                    existing;
-
-                            break;
-                        }
-                    }
-
-
-                    // =================================================
-                    // 12. DUPLICATE QUESTION FOUND
-                    // =================================================
-
-                    if (existingQuestion != null) {
-
-                        Long existingQuestionId =
-                                existingQuestion
-                                        .getQuestionId();
-
-
-                        // ---------------------------------------------
-                        // Check whether MCQ already exists
-                        // ---------------------------------------------
-
-                        Optional<McqQuestion> existingMcq =
-                                mcqQuestionRepository.findById(existingQuestionId);
-
-                        if (existingMcq.isPresent()) {
-
-                            // Keep the base question aligned with its MCQ configuration.
-                            QuestionType existingMcqType =
-                                    existingMcq.get().getQuestionType();
-
-                            if (existingQuestion.getQuestionType() == null
-                                    || !existingQuestion.getQuestionType()
-                                    .getQuestionTypeId()
-                                    .equals(existingMcqType.getQuestionTypeId())) {
-                                existingQuestion.setQuestionType(existingMcqType);
-                                questionRepository.save(existingQuestion);
-                            }
-
-                            skippedCount++;
-
-
-                            skippedQuestions.add(
-                                    "Row "
-                                            + (rowIndex + 1)
-                                            + " - Question ID "
-                                            + existingQuestionId
-                                            + " - "
-                                            + questionText
-                            );
-
-
-                            System.out.println(
-                                    "SKIPPED - MCQ already exists"
-                            );
-
-
-                            continue;
-                        }
-
-
-                        // ---------------------------------------------
-                        // Question exists but MCQ does not exist
-                        // ---------------------------------------------
-
-                        System.out.println(
-                                "Existing Question found. "
-                                        + "Using Question ID = "
-                                        + existingQuestionId
-                        );
-
-
-                        McqQuestion mcqQuestion =
-                                createMcqQuestion(
-                                        existingQuestionId,
-                                        resolvedQuestionType,
-                                        marks
-                                );
-
-                        existingQuestion.setQuestionType(resolvedQuestionType);
-                        questionRepository.save(existingQuestion);
-
-
-                        mcqQuestionRepository.save(
-                                mcqQuestion
-                        );
-
-
-                        saveOptions(
-                                existingQuestionId,
-                                option1,
-                                option2,
-                                option3,
-                                option4,
-                                correctOptionNumber
-                        );
-
-
-                        uploadedCount++;
-
-
-                        System.out.println(
-                                "MCQ CREATED FOR EXISTING QUESTION"
-                        );
-
-
-                        continue;
-                    }
-
-
-                    // =================================================
-                    // 13. CREATE NEW QUESTION
-                    // =================================================
-
-                    Question question =
-                            new Question();
-
-
-                    question.setCourse(
-                            course
-                    );
-
-
-                    question.setChapter(
-                            chapter
-                    );
-
-
-                    question.setTopic(
-                            topic
-                    );
-                    question.setSubject(topic.getSubject());
-
-                    question.setQuestionType(resolvedQuestionType);
-
-
-                    question.setQuestionText(
-                            questionText
-                    );
-
-
-                    question.setActiveRow(
-                            true
-                    );
-
-
-                    // =================================================
-                    // 14. SAVE QUESTION
-                    // =================================================
-
-                    Question savedQuestion =
-                            questionRepository.save(
-                                    question
-                            );
-
-
-                    // =================================================
-                    // 15. GET AUTO GENERATED QUESTION ID
-                    // =================================================
-
-                    Long generatedQuestionId =
-                            savedQuestion.getQuestionId();
-
-
-                    if (generatedQuestionId == null) {
-
-                        throw new RuntimeException(
-                                "Question ID was not generated"
-                        );
-                    }
-
-
-                    System.out.println(
-                            "Generated Question ID = "
-                                    + generatedQuestionId
-                    );
-
-
-                    // =================================================
-                    // 16. CREATE MCQ QUESTION
-                    // =================================================
-
-                    McqQuestion mcqQuestion =
-                            createMcqQuestion(
-                                    generatedQuestionId,
-                                    resolvedQuestionType,
-                                    marks
-                            );
-
-
-                    // =================================================
-                    // 17. SAVE MCQ QUESTION
-                    // =================================================
-
-                    mcqQuestionRepository.save(
-                            mcqQuestion
-                    );
-
-
-                    // =================================================
-                    // 18. SAVE OPTIONS
-                    // =================================================
-
-                    saveOptions(
-                            generatedQuestionId,
-                            option1,
-                            option2,
-                            option3,
-                            option4,
-                            correctOptionNumber
-                    );
-
-
-                    // =================================================
-                    // 19. SUCCESS
-                    // =================================================
-
-                    uploadedCount++;
-
-
-                    System.out.println(
-                            "UPLOADED SUCCESSFULLY"
-                    );
-
-
-                    System.out.println(
-                            "Question ID = "
-                                    + generatedQuestionId
-                    );
-
-
-                    System.out.println(
-                            "Question Type = "
-                                    + questionType
-                    );
-
-
-                    System.out.println(
-                            "Marks = "
-                                    + marks
-                    );
-
-
-                    System.out.println(
-                            "Correct Option = "
-                                    + correctOptionNumber
-                    );
-
-
-                } catch (Exception e) {
-
-                    // =================================================
-                    // ROW FAILED
-                    // =================================================
-
-                    failedCount++;
-
-
-                    String questionText =
-                            getCellValue(
-                                    row.getCell(0)
-                            );
-
-
-                    String failedMessage =
-                            "Row "
-                                    + (rowIndex + 1)
-                                    + " - Question "
-                                    + questionText
-                                    + " - "
-                                    + e.getMessage();
-
-
-                    failedQuestions.add(
-                            failedMessage
-                    );
-
-
-                    System.out.println(
-                            "FAILED"
-                    );
-
-
-                    System.out.println(
-                            "Row = "
-                                    + (rowIndex + 1)
-                    );
-
-
-                    System.out.println(
-                            "Question = "
-                                    + questionText
-                    );
-
-
-                    System.out.println(
-                            "Error = "
-                                    + e.getMessage()
-                    );
-                }
+            String key = validated.text().toLowerCase(Locale.ROOT);
+            Question question = existing.get(key);
+            if (question != null && mcqQuestionRepository.existsById(question.getQuestionId())) {
+                result.setSkippedRows(result.getSkippedRows() + 1);
+                continue;
             }
-        }
-
-
-        // =========================================================
-        // FINAL SUMMARY
-        // =========================================================
-
-        System.out.println();
-
-        System.out.println(
-                "=========================================="
-        );
-
-        System.out.println(
-                "MCQ EXCEL UPLOAD SUMMARY"
-        );
-
-        System.out.println(
-                "=========================================="
-        );
-
-        System.out.println(
-                "Uploaded = "
-                        + uploadedCount
-        );
-
-        System.out.println(
-                "Skipped  = "
-                        + skippedCount
-        );
-
-        System.out.println(
-                "Failed   = "
-                        + failedCount
-        );
-
-        System.out.println(
-                "Total Processed = "
-                        + totalProcessed
-        );
-
-        System.out.println(
-                "=========================================="
-        );
-
-
-        // =========================================================
-        // SKIPPED QUESTIONS
-        // =========================================================
-
-        if (
-                !skippedQuestions.isEmpty()
-        ) {
-
-            System.out.println();
-
-            System.out.println(
-                    "SKIPPED QUESTIONS:"
-            );
-
-
-            for (
-                    String skipped :
-                    skippedQuestions
-            ) {
-
-                System.out.println(
-                        "  "
-                                + skipped
-                );
+            // Persistence failures must escape so the transaction rolls back, not report success.
+            if (question == null) {
+                question = new Question();
+                question.setCourse(course);
+                question.setChapter(chapter);
+                question.setTopic(topic);
+                question.setQuestionText(validated.text());
+                question.setActiveRow(true);
             }
-        }
+            question.setSubject(topic.getSubject());
+            question.setQuestionType(validated.type());
+            question = questionRepository.save(question);
+            existing.put(key, question);
 
-
-        // =========================================================
-        // FAILED QUESTIONS
-        // =========================================================
-
-        if (
-                !failedQuestions.isEmpty()
-        ) {
-
-            System.out.println();
-
-            System.out.println(
-                    "FAILED QUESTIONS:"
-            );
-
-
-            for (
-                    String failed :
-                    failedQuestions
-            ) {
-
-                System.out.println(
-                        "  "
-                                + failed
-                );
+            McqQuestion mcq = new McqQuestion();
+            mcq.setQuestionId(question.getQuestionId());
+            mcq.setQuestionType(validated.type());
+            mcq.setMarks(validated.marks());
+            mcq.setActiveRow(true);
+            mcqQuestionRepository.save(mcq);
+            List<McqOption> options = new ArrayList<>();
+            for (int i = 1; i <= 4; i++) {
+                McqOption option = new McqOption();
+                option.setQuestionId(question.getQuestionId());
+                option.setOptionOrder(i);
+                option.setOptionText(row.get("option_" + i).trim());
+                option.setIsCorrect(validated.correctOptions().contains(i));
+                option.setActiveRow(true);
+                options.add(option);
             }
+            mcqOptionRepository.saveAll(options);
+            result.setUploadedQuestions(result.getUploadedQuestions() + 1);
         }
-
-
-        // =========================================================
-        // COMPLETION
-        // =========================================================
-
-        System.out.println();
-
-        System.out.println(
-                "=========================================="
-        );
-
-        System.out.println(
-                "MCQ Upload Completed"
-        );
-
-        System.out.println(
-                "Uploaded Count: "
-                        + uploadedCount
-        );
-
-        System.out.println(
-                "=========================================="
-        );
-
-
-        return uploadedCount;
+        result.setSuccess(result.getTotalRows() > 0 && result.getFailedQuestions() == 0);
+        result.setMessage(result.getUploadedQuestions() + " MCQ questions uploaded, "
+                + result.getSkippedRows() + " duplicates skipped, "
+                + result.getFailedQuestions() + " failed");
+        return result;
     }
 
-
-    // =========================================================
-    // CREATE MCQ QUESTION
-    // =========================================================
-
-    private McqQuestion createMcqQuestion(
-            Long questionId,
-            QuestionType questionType,
-            Double marks) {
-
-        McqQuestion mcqQuestion =
-                new McqQuestion();
-
-
-        /*
-         * questionId comes from the questions table.
-         *
-         * It is NOT generated independently here.
-         */
-
-        mcqQuestion.setQuestionId(
-                questionId
-        );
-
-
-        mcqQuestion.setQuestionType(
-                questionType
-        );
-
-
-        mcqQuestion.setMarks(
-                marks
-        );
-
-
-        mcqQuestion.setActiveRow(
-                true
-        );
-
-
-        return mcqQuestion;
-    }
-
-
-    // =========================================================
-    // SAVE ALL MCQ OPTIONS
-    // =========================================================
-
-    private void saveOptions(
-            Long questionId,
-            String option1,
-            String option2,
-            String option3,
-            String option4,
-            int correctOptionNumber) {
-
-
-        McqOption mcqOption1 =
-                createOption(
-                        questionId,
-                        1,
-                        option1,
-                        correctOptionNumber == 1
-                );
-
-
-        McqOption mcqOption2 =
-                createOption(
-                        questionId,
-                        2,
-                        option2,
-                        correctOptionNumber == 2
-                );
-
-
-        McqOption mcqOption3 =
-                createOption(
-                        questionId,
-                        3,
-                        option3,
-                        correctOptionNumber == 3
-                );
-
-
-        McqOption mcqOption4 =
-                createOption(
-                        questionId,
-                        4,
-                        option4,
-                        correctOptionNumber == 4
-                );
-
-
-        mcqOptionRepository.saveAll(
-                List.of(
-                        mcqOption1,
-                        mcqOption2,
-                        mcqOption3,
-                        mcqOption4
-                )
-        );
-    }
-
-
-    // =========================================================
-    // CREATE MCQ OPTION
-    // =========================================================
-
-    private McqOption createOption(
-            Long questionId,
-            Integer optionOrder,
-            String optionText,
-            Boolean isCorrect) {
-
-        McqOption option =
-                new McqOption();
-
-
-        option.setQuestionId(
-                questionId
-        );
-
-
-        option.setOptionOrder(
-                optionOrder
-        );
-
-
-        option.setOptionText(
-                optionText
-        );
-
-
-        option.setIsCorrect(
-                isCorrect
-        );
-
-
-        option.setActiveRow(
-                true
-        );
-
-
-        return option;
-    }
-
-
-    // =========================================================
-    // VALIDATE OPTION
-    // =========================================================
-
-    private void validateOption(
-            String option,
-            String optionName,
-            int rowIndex) {
-
-        if (
-                option == null ||
-                        option.isBlank()
-        ) {
-
-            throw new RuntimeException(
-                    optionName
-                            + " is required at Excel row "
-                            + (rowIndex + 1)
-            );
+    static void validateHierarchy(Long courseId, Long chapterId, Chapter chapter, Topic topic) {
+        if (chapter.getCourse() == null || !courseId.equals(chapter.getCourse().getCourseId())
+                || topic.getCourse() == null || !courseId.equals(topic.getCourse().getCourseId())
+                || topic.getChapter() == null || !chapterId.equals(topic.getChapter().getChapterId())
+                || topic.getSubject() == null || chapter.getSubject() == null
+                || !Objects.equals(topic.getSubject().getSubjectId(), chapter.getSubject().getSubjectId())) {
+            throw new IllegalArgumentException("Selected course, chapter, topic and subject do not match");
         }
     }
 
-
-    // =========================================================
-    // GET CELL VALUE
-    // =========================================================
-
-    private String getCellValue(
-            Cell cell) {
-
-        if (cell == null) {
-
-            return null;
+    private ValidatedRow validateRow(Map<String, String> row, Topic topic) {
+        String text = required(row, "question_text");
+        String type = required(row, "question_type").toUpperCase(Locale.ROOT).replaceAll("\\s+", "_");
+        if (!Set.of("SINGLE_CHOICE", "MULTIPLE_CHOICE").contains(type)) {
+            throw new IllegalArgumentException("question_type must be SINGLE_CHOICE or MULTIPLE_CHOICE");
         }
-
-
-        DataFormatter formatter =
-                new DataFormatter();
-
-
-        String value =
-                formatter.formatCellValue(
-                        cell
-                );
-
-
-        if (value == null) {
-
-            return null;
-        }
-
-
-        value =
-                value.trim();
-
-
-        return value.isEmpty()
-                ? null
-                : value;
-    }
-
-
-    // =========================================================
-    // GET DOUBLE VALUE
-    // =========================================================
-
-    private Double getDoubleValue(
-            Cell cell,
-            String columnName,
-            int rowIndex) {
-
-        String value =
-                getCellValue(cell);
-
-
-        if (
-                value == null ||
-                        value.isBlank()
-        ) {
-
-            return null;
-        }
-
-
+        double marks;
         try {
+            marks = Double.parseDouble(required(row, "marks"));
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("marks must be a positive number");
+        }
+        if (!Double.isFinite(marks) || marks <= 0) {
+            throw new IllegalArgumentException("marks must be a positive number");
+        }
+        for (int i = 1; i <= 4; i++) {
+            required(row, "option_" + i);
+        }
+        Set<Integer> correct = parseCorrectOptions(required(row, "correct_option"), type);
+        if (row.containsKey("subject_name")) {
+            validateSubject(row.get("subject_name"), topic);
+        }
+        String name = type.equals("SINGLE_CHOICE") ? "MCQ Single Choice" : "MCQ Multiple Choice";
+        QuestionType questionType = questionTypeRepository.findByQuestionType(name)
+                .orElseThrow(() -> new IllegalArgumentException("Question type not configured: " + name));
+        return new ValidatedRow(text, questionType, marks, correct);
+    }
 
-            return Double.parseDouble(
-                    value.trim()
-            );
+    private static String required(Map<String, String> row, String field) {
+        String value = row.get(field);
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return value.trim();
+    }
 
-        } catch (
-                NumberFormatException e
-        ) {
+    static Set<Integer> parseCorrectOptions(String value, String questionType) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Correct option is required");
+        }
+        Set<Integer> options = new LinkedHashSet<>();
+        for (String token : value.split(",", -1)) {
+            int option;
+            try {
+                option = Integer.parseInt(token.trim());
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("Correct option must contain numbers from 1 to 4, separated by commas");
+            }
+            if (option < 1 || option > 4) {
+                throw new IllegalArgumentException("Correct option must be between 1 and 4");
+            }
+            if (!options.add(option)) {
+                throw new IllegalArgumentException("Duplicate correct option: " + option);
+            }
+        }
+        if ("SINGLE_CHOICE".equals(questionType) && options.size() != 1) {
+            throw new IllegalArgumentException("SINGLE_CHOICE requires exactly one correct option");
+        }
+        return options;
+    }
 
-            throw new RuntimeException(
-                    "Invalid "
-                            + columnName
-                            + " at Excel row "
-                            + (rowIndex + 1)
-                            + ": "
-                            + value
-            );
+    static void validateSubject(String subjectName, Topic topic) {
+        if (subjectName == null || subjectName.isBlank()) {
+            throw new IllegalArgumentException("subject_name is required");
+        }
+        if (topic.getSubject() == null || topic.getSubject().getSubjectName() == null
+                || !topic.getSubject().getSubjectName().trim().equalsIgnoreCase(subjectName.trim())) {
+            throw new IllegalArgumentException("subject_name must match the subject of the selected topic");
         }
     }
 
-
-    // =========================================================
-    // GET HEADERS
-    // =========================================================
-
-    private String getHeaders(
-            Row headerRow) {
-
-        StringBuilder headers =
-                new StringBuilder();
-
-
-        for (
-                int i = 0;
-                i < 8;
-                i++
-        ) {
-
-            if (i > 0) {
-
-                headers.append(", ");
-            }
-
-
-            String header =
-                    getCellValue(
-                            headerRow.getCell(i)
-                    );
-
-
-            headers.append(
-                    header
-            );
-        }
-
-
-        return headers.toString();
-    }
-
-
-    // =========================================================
-    // VALIDATE HEADERS
-    // =========================================================
-
-    private void validateHeaders(
-            Row headerRow) {
-
-        String[] expectedHeaders = {
-
-                "question_text",
-                "question_type",
-                "marks",
-                "option_1",
-                "option_2",
-                "option_3",
-                "option_4",
-                "correct_option"
-        };
-
-
-        for (
-                int i = 0;
-                i < expectedHeaders.length;
-                i++
-        ) {
-
-            String actualHeader =
-                    getCellValue(
-                            headerRow.getCell(i)
-                    );
-
-
-            if (
-                    actualHeader == null ||
-                            actualHeader.isBlank()
-            ) {
-
-                throw new RuntimeException(
-                        "Header name is required at column "
-                                + (i + 1)
-                                + ". Expected: "
-                                + expectedHeaders[i]
-                );
-            }
-
-
-            if (
-                    !actualHeader
-                            .trim()
-                            .equalsIgnoreCase(
-                                    expectedHeaders[i]
-                            )
-            ) {
-
-                throw new RuntimeException(
-                        "Invalid header at column "
-                                + (i + 1)
-                                + ". Expected: "
-                                + expectedHeaders[i]
-                                + ", Found: "
-                                + actualHeader
-                );
-            }
-        }
-    }
-
-
-    // =========================================================
-    // CHECK EMPTY ROW
-    // =========================================================
-
-    private boolean isRowEmpty(
-            Row row) {
-
-        for (
-                int i = 0;
-                i < 8;
-                i++
-        ) {
-
-            String value =
-                    getCellValue(
-                            row.getCell(i)
-                    );
-
-
-            if (
-                    value != null &&
-                            !value.isBlank()
-            ) {
-
-                return false;
-            }
-        }
-
-
-        return true;
-    }
+    private record ValidatedRow(String text, QuestionType type, double marks, Set<Integer> correctOptions) {}
 }
-
