@@ -59,4 +59,14 @@ public interface RuleEngineRepository extends JpaRepository<RuleEngine, Long> {
         AND r.activeRow = true
         """)
     List<RuleEngine> findByAttributeId(Long attributeId);
+
+    @Query("""
+        SELECT r FROM RuleEngine r
+        WHERE r.tableAttributeid.attributeId = :attributeId
+          AND r.chapter.chapterId = :chapterId
+          AND r.activeRow = true
+        ORDER BY r.ruleEngineId
+        """)
+    List<RuleEngine> findByAttributeIdAndChapterId(
+            @Param("attributeId") Long attributeId, @Param("chapterId") Long chapterId);
     }

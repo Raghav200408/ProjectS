@@ -1,6 +1,8 @@
 package com.project.ProjectS.service;
 
 import com.project.ProjectS.entity.Chapter;
+import com.project.ProjectS.entity.Question;
+import com.project.ProjectS.entity.QuestionAttribute;
 import com.project.ProjectS.entity.RuleEngine;
 import com.project.ProjectS.entity.TableAttribute;
 import com.project.ProjectS.entity.TableHeader;
@@ -9,6 +11,7 @@ import com.project.ProjectS.mapper.RuleEngineMapper;
 import com.project.ProjectS.model.RuleEngineRequestDTO;
 import com.project.ProjectS.model.RuleEngineResponse;
 import com.project.ProjectS.model.RuleEngineResponseDTO;
+import com.project.ProjectS.model.RuleConditionDTO;
 import com.project.ProjectS.repository.ChapterRepository;
 import com.project.ProjectS.repository.RuleEngineRepository;
 import com.project.ProjectS.repository.TableAttributeRepository;
@@ -18,7 +21,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
 
@@ -291,6 +298,105 @@ public class RuleEngineService {
                 .stream()
                 .map(mapper::toResponse)
                 .toList();
+    }
+
+    public List<RuleEngineResponse> getRuleEngineByAttributeId(Long attributeId, Long chapterId) {
+        if (chapterId == null) {
+            return getRuleEngineByAttributeId(attributeId);
+        }
+        return ruleEngineRepository.findByAttributeIdAndChapterId(attributeId, chapterId)
+                .stream().map(mapper::toResponse).toList();
+    }
+
+    // Final Accounts is an existing drag-and-drop question, not a separate question type.
+    public static boolean isFinalAccountsDragDrop(Question question) {
+        if (question == null || question.getQuestionType() == null || question.getChapter() == null) {
+            return false;
+        }
+        String type = normalize(question.getQuestionType().getQuestionType());
+        return "draganddrop".equals(type)
+                && normalize(question.getChapter().getName()).startsWith("finalaccounts");
+    }
+
+    private static String normalize(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+    }
+
+    public static List<RuleConditionDTO> conditions(RuleEngineResponse rule) {
+        return Stream.of(rule.getCondition1(), rule.getCondition2(), rule.getCondition3(), rule.getCondition4())
+                .filter(Objects::nonNull)
+                .filter(condition -> condition.getTableId() != null && condition.getHeaderId() != null
+                        && condition.getArithmetic() != null && condition.getAmountPosition() != null)
+                .toList();
+    }
+
+    public static BigDecimal selectedAmount(RuleConditionDTO condition, QuestionAttribute row) {
+        if (condition == null || row == null || condition.getAmountPosition() == null) {
+            return null;
+        }
+        return switch (condition.getAmountPosition().trim().toLowerCase(Locale.ROOT)) {
+            case "1", "amount", "amount1" -> row.getAmount();
+            case "2", "amount2" -> row.getAmount2();
+            default -> null;
+        };
+    }
+
+    public static boolean matchesPlacement(RuleConditionDTO condition, QuestionAttribute row,
+            Long tableId, Long headerId, String arithmetic, BigDecimal amount) {
+        BigDecimal expected = selectedAmount(condition, row);
+        return condition != null && Objects.equals(tableId, condition.getTableId())
+                && Objects.equals(headerId, condition.getHeaderId())
+                && arithmetic != null && condition.getArithmetic() != null
+                && normalizeArithmetic(arithmetic).equals(normalizeArithmetic(condition.getArithmetic()))
+                && expected != null && amount != null && expected.compareTo(amount) == 0;
+    }
+
+    private static String normalizeArithmetic(String arithmetic) {
+        return switch (arithmetic.trim().toLowerCase(Locale.ROOT)) {
+            case "subtract", "less" -> "less";
+            default -> arithmetic.trim().toLowerCase(Locale.ROOT);
+        };
+    }
+
+    public boolean validatesFinalAccountsPlacement(Question question, QuestionAttribute row,
+            Long tableId, Long headerId, String arithmetic, BigDecimal amount, Long conditionId) {
+        if (!isFinalAccountsDragDrop(question) || row == null || row.getAttribute() == null) {
+            return false;
+        }
+        List<RuleEngineResponse> rules = getRuleEngineByAttributeId(
+                row.getAttribute().getAttributeId(), question.getChapter().getChapterId());
+        for (RuleEngineResponse rule : rules) {
+            RuleConditionDTO[] ordered = {rule.getCondition1(), rule.getCondition2(), rule.getCondition3(), rule.getCondition4()};
+            for (int index = 0; index < ordered.length; index++) {
+                if ((conditionId == null || conditionId == index + 1L)
+                        && matchesPlacement(ordered[index], row, tableId, headerId, arithmetic, amount)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public Long resolveFinalAccountsTableId(String name) {
+        String key = normalize(name).replace("profitandloss", "profitloss");
+        return tableNameRepository.findAll().stream()
+                .filter(table -> normalize(table.getName()).replace("profitandloss", "profitloss").equals(key))
+                .map(TableName::getTableNameId).findFirst().orElse(null);
+    }
+
+    public Long resolveFinalAccountsHeaderId(String name) {
+        String key = normalizeHeader(name);
+        return tableHeaderRepository.findAll().stream()
+                .filter(header -> normalizeHeader(header.getName()).equals(key))
+                .map(TableHeader::getHeaderId).findFirst().orElse(null);
+    }
+
+    private static String normalizeHeader(String name) {
+        return switch (normalize(name)) {
+            case "assets", "assetside", "assetsside" -> "asset";
+            case "liabilities", "liabilitiesside", "liabilityside" -> "liability";
+            default -> normalize(name);
+        };
     }
 }
 

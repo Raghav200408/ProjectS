@@ -28,6 +28,7 @@ public class AnswerEventResponseDTO {
 
 
     private Long attributeId;
+    private Long questionAttributeId;
     private String attributeName;
 
 

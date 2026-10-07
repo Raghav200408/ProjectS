@@ -47,6 +47,9 @@ public class QuestionAnswer {
     @JoinColumn(name = "attribute_id")
     private TableAttribute attribute;
 
+    @Column(name = "question_attribute_id")
+    private Long questionAttributeId;
+
     // Table Pair Attribute
     @ManyToOne
     @JoinColumn(name = "pair_attribute_id")

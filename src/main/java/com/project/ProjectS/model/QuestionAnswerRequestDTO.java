@@ -19,6 +19,8 @@ public class QuestionAnswerRequestDTO {
 
     private Long attributeId;
 
+    private Long questionAttributeId;
+
     private String arithmetic;
 
     private BigDecimal amount;
