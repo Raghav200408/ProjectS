@@ -13,7 +13,7 @@ import java.util.List;
 
 @Repository
 public class DashboardRepository {
-    public static final ZoneId PRACTICE_ZONE = ZoneId.of("Asia/Kolkata");
+    public static final ZoneId PRACTICE_ZONE = ZoneId.of("Asia/Calcutta");
     public record Scope(Long collegeId, Long branchId, boolean selfOnly, boolean subscribedOnly) {}
     public record Ranking(List<LeaderboardEntry> entries, Long currentRank, long studentCount) {}
     private final NamedParameterJdbcTemplate jdbc;
@@ -50,8 +50,8 @@ public class DashboardRepository {
                   (SELECT COUNT(DISTINCT c.course_id) FROM user_subscriptions us
                     JOIN courses c ON c.course_id = us.course_id AND COALESCE(c.active_row, true)
                     JOIN subscription_plans sp ON sp.plan_id = us.plan_id AND sp.active
-                    WHERE us.user_id = :userId AND us.active AND us.starts_at <= (now() AT TIME ZONE 'Asia/Kolkata')
-                      AND (us.expires_at IS NULL OR us.expires_at > (now() AT TIME ZONE 'Asia/Kolkata'))) AS my_courses
+                    WHERE us.user_id = :userId AND us.active AND us.starts_at <= (now() AT TIME ZONE 'Asia/Calcutta')
+                      AND (us.expires_at IS NULL OR us.expires_at > (now() AT TIME ZONE 'Asia/Calcutta'))) AS my_courses
                 """, p);
         result.setTotalColleges(((Number) counts.get("colleges")).longValue());
         result.setTotalBranches(((Number) counts.get("branches")).longValue());
@@ -68,8 +68,8 @@ public class DashboardRepository {
                       SELECT 1 FROM user_subscriptions us
                       JOIN subscription_plans sp ON sp.plan_id = us.plan_id AND sp.active
                       WHERE us.user_id = :userId AND us.course_id = q.course_id AND us.active
-                        AND us.starts_at <= (now() AT TIME ZONE 'Asia/Kolkata')
-                        AND (us.expires_at IS NULL OR us.expires_at > (now() AT TIME ZONE 'Asia/Kolkata'))))
+                        AND us.starts_at <= (now() AT TIME ZONE 'Asia/Calcutta')
+                        AND (us.expires_at IS NULL OR us.expires_at > (now() AT TIME ZONE 'Asia/Calcutta'))))
                       OR (NOT :subscribedOnly AND NOT :selfOnly
                         AND (CAST(:collegeId AS bigint) IS NULL OR c.college_id = :collegeId)
                         AND (CAST(:branchId AS bigint) IS NULL OR c.branch_id = :branchId)))
@@ -174,7 +174,7 @@ public class DashboardRepository {
                   UNION ALL
                   SELECT 'subscription:' || us.subscription_id, 'SUBSCRIPTION', 'Started subscription: ' || c.name,
                     'Course subscription', us.starts_at FROM user_subscriptions us JOIN courses c ON c.course_id = us.course_id
-                    WHERE us.user_id = :userId AND us.starts_at <= (now() AT TIME ZONE 'Asia/Kolkata')
+                    WHERE us.user_id = :userId AND us.starts_at <= (now() AT TIME ZONE 'Asia/Calcutta')
                 ) activity WHERE occurred_at IS NOT NULL ORDER BY occurred_at DESC, id DESC LIMIT 12
                 """, new MapSqlParameterSource("userId", userId), (rs, index) -> new Activity(
                 rs.getString("id"), rs.getString("type"), rs.getString("title"), rs.getString("detail"),

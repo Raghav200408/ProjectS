@@ -160,7 +160,7 @@ BEGIN
         RETURN NEW;
     END IF;
     INSERT INTO public.practice_daily_questions(user_id, question_id, practice_date)
-    VALUES (NEW.user_id, NEW.question_id, (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata')::date)
+    VALUES (NEW.user_id, NEW.question_id, (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Calcutta')::date)
     ON CONFLICT DO NOTHING;
     RETURN NEW;
 END;

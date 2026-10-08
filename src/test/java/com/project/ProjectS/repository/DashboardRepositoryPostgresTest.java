@@ -134,7 +134,7 @@ class DashboardRepositoryPostgresTest {
         assertNull(repository.ranking(5,new DashboardRepository.Scope(1L,1L,false,false)).currentRank());
     }
     @Test void dailyHistoryDeduplicatesQuestionsAndSurvivesLaterAttemptsAndReset() throws Exception {
-        LocalDate today = jdbc.queryForObject("SELECT (now() AT TIME ZONE 'Asia/Kolkata')::date", LocalDate.class);
+        LocalDate today = jdbc.queryForObject("SELECT (now() AT TIME ZONE 'Asia/Calcutta')::date", LocalDate.class);
         attempt(1,2,"ATTRIBUTE",10L,1);
         attempt(1,2,"ATTRIBUTE",10L,2);
         attempt(1,2,"ATTRIBUTE",10L,2);
