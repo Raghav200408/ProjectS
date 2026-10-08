@@ -17,6 +17,8 @@ public class QuestionAttributeResponseDTO {
 
     private Long attributeId;
     private String attributeName;
+    private Long attributeHeaderId;
+    private String attributeHeaderName;
 
     private LocalDate transactionDate;
 
