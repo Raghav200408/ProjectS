@@ -39,6 +39,14 @@ public class ExamQuestion {
     )
     private Question question;
 
+    // How many marks this question is worth on this exam's paper. Set once,
+    // when the question is added (ExamService.addQuestionsToExam), from
+    // ExamScoringService.computeQuestionMaxMarks - the same number
+    // score() works out live, kept here so the Performance dashboard's
+    // chapter breakdown can read it without recomputing it.
+    @Column(name = "marks", nullable = false)
+    private Double marks;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

@@ -1,19 +1,26 @@
 package com.project.ProjectS.service;
 
 
+import com.project.ProjectS.entity.Chapter;
 import com.project.ProjectS.entity.Exam;
+import com.project.ProjectS.entity.ExamQuestion;
 import com.project.ProjectS.entity.ExamResult;
 import com.project.ProjectS.entity.User;
 import com.project.ProjectS.model.*;
+import com.project.ProjectS.repository.AnswerEventRepository;
+import com.project.ProjectS.repository.ExamQuestionRepository;
 import com.project.ProjectS.repository.ExamRepository;
 import com.project.ProjectS.repository.ExamResultRepository;
 import com.project.ProjectS.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,16 +32,22 @@ public class PerformanceService {
     public PerformanceService(
             ExamRepository examRepository,
             ExamResultRepository examResultRepository,
-            UserRepository userRepository) {
+            ExamQuestionRepository examQuestionRepository,
+            UserRepository userRepository,
+            AnswerEventRepository answerEventRepository) {
 
         this.examRepository = examRepository;
         this.examResultRepository = examResultRepository;
+        this.examQuestionRepository = examQuestionRepository;
         this.userRepository = userRepository;
+        this.answerEventRepository = answerEventRepository;
     }
 
     private final ExamRepository examRepository;
     private final ExamResultRepository examResultRepository;
+    private final ExamQuestionRepository examQuestionRepository;
     private final UserRepository userRepository;
+    private final AnswerEventRepository answerEventRepository;
 
 
     /*
@@ -47,7 +60,8 @@ public class PerformanceService {
             Long branchId,
             Long courseId,
             Long sectionId,
-            Long examId) {
+            Long examId,
+            Long studentId) {
 
         User admin = getLoggedInUser(authentication);
 
@@ -127,6 +141,12 @@ public class PerformanceService {
                         return false;
                     }
 
+                    if (studentId != null &&
+                            (result.getUser() == null ||
+                                    !result.getUser().getUserId().equals(studentId))) {
+                        return false;
+                    }
+
                     return true;
                 })
                 .toList();
@@ -144,7 +164,8 @@ public class PerformanceService {
             Long branchId,
             Long courseId,
             Long sectionId,
-            Long examId) {
+            Long examId,
+            Long studentId) {
 
         User admin = getLoggedInUser(authentication);
 
@@ -234,6 +255,12 @@ public class PerformanceService {
                         return false;
                     }
 
+                    if (studentId != null &&
+                            (result.getUser() == null ||
+                                    !result.getUser().getUserId().equals(studentId))) {
+                        return false;
+                    }
+
                     return true;
                 })
                 .toList();
@@ -250,7 +277,8 @@ public class PerformanceService {
             Authentication authentication,
             Long courseId,
             Long sectionId,
-            Long examId) {
+            Long examId,
+            Long studentId) {
 
         User admin = getLoggedInUser(authentication);
 
@@ -318,6 +346,12 @@ public class PerformanceService {
 
                     if (examId != null &&
                             !exam.getExamId().equals(examId)) {
+                        return false;
+                    }
+
+                    if (studentId != null &&
+                            (result.getUser() == null ||
+                                    !result.getUser().getUserId().equals(studentId))) {
                         return false;
                     }
 
@@ -923,6 +957,10 @@ public class PerformanceService {
             PerformanceTrendDTO dto =
                     new PerformanceTrendDTO();
 
+            dto.setExamId(
+                    first.getExam().getExamId()
+            );
+
             dto.setExamName(
                     first.getExam().getExamName()
             );
@@ -940,6 +978,13 @@ public class PerformanceService {
             dto.setExamDate(
                     first.getExam().getStartDate()
             );
+
+            // One attempt behind this bar - open the chapter breakdown /
+            // "view attempt" drill-down for it. More than one attempt here
+            // (several students, or retakes) has no single attempt to open.
+            if (examResults.size() == 1) {
+                dto.setResultId(first.getExamResultId());
+            }
 
             response.add(dto);
         }
@@ -1189,6 +1234,120 @@ public class PerformanceService {
         return response.stream()
                 .limit(5)
                 .collect(Collectors.toList());
+    }
+
+
+    /*
+     * ============================================================
+     * EXAM ATTEMPT CHAPTER BREAKDOWN
+     * ============================================================
+     * The Performance dashboard's trend drill-down: for one exam attempt,
+     * which chapters were on the paper and how many marks it scored in each
+     * one.
+     *
+     * Both numbers are plain stored values, not recomputed:
+     *   max per question    - exam_questions.marks (set when the question
+     *                         was added to the exam)
+     *   scored per question - answer_events.marks for that user/question/
+     *                         exam (every row for a question carries that
+     *                         question's earned marks - see
+     *                         ExamScoringService.persistAnswerInfo)
+     * A question with no answer_events rows was never attempted, so it
+     * scores 0 but still counts towards its chapter's maximum.
+     */
+    public ExamChapterBreakdownResponseDTO getExamResultChapterBreakdown(
+            Long resultId,
+            Authentication authentication) {
+
+        ExamResult result = examResultRepository.findById(resultId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Exam result not found with id: " + resultId));
+
+        User caller = getLoggedInUser(authentication);
+        assertCanViewResult(caller, result);
+
+        Long examId = result.getExam().getExamId();
+
+        List<ExamQuestion> examQuestions =
+                examQuestionRepository.findByExam_ExamId(examId);
+
+        // Every row for a question repeats that question's own earned
+        // marks, so the first non-null one found is the answer.
+        Map<Long, Double> scoredMarksByQuestionId = answerEventRepository
+                .findByUser_UserIdAndExam_ExamIdAndEventType(
+                        result.getUser().getUserId(), examId, "EXAM_SUBMIT")
+                .stream()
+                .filter(event -> event.getMarks() != null)
+                .collect(Collectors.toMap(
+                        event -> event.getQuestion().getQuestionId(),
+                        event -> event.getMarks().doubleValue(),
+                        (first, second) -> first));
+
+        Map<Long, ChapterMarksDTO> chapterById = new LinkedHashMap<>();
+
+        for (ExamQuestion examQuestion : examQuestions) {
+
+            Chapter chapter = examQuestion.getQuestion().getChapter();
+
+            if (chapter == null) {
+                continue;
+            }
+
+            double maxMarks = examQuestion.getMarks() == null
+                    ? 0.0
+                    : examQuestion.getMarks();
+
+            double scoredMarks = scoredMarksByQuestionId.getOrDefault(
+                    examQuestion.getQuestion().getQuestionId(), 0.0);
+
+            ChapterMarksDTO chapterMarks = chapterById.computeIfAbsent(
+                    chapter.getChapterId(),
+                    chapterId -> {
+                        ChapterMarksDTO dto = new ChapterMarksDTO();
+                        dto.setChapterId(chapterId);
+                        dto.setChapterName(chapter.getName());
+                        dto.setScoredMarks(0.0);
+                        dto.setMaxMarks(0.0);
+                        return dto;
+                    });
+
+            chapterMarks.setScoredMarks(chapterMarks.getScoredMarks() + scoredMarks);
+            chapterMarks.setMaxMarks(chapterMarks.getMaxMarks() + maxMarks);
+        }
+
+        ExamChapterBreakdownResponseDTO response =
+                new ExamChapterBreakdownResponseDTO();
+
+        response.setResultId(result.getExamResultId());
+        response.setExamId(examId);
+        response.setExamName(result.getExam().getExamName());
+        response.setStudentId(result.getUser().getUserId());
+        response.setStudentName(result.getUser().getName());
+        response.setTotalMarks(result.getTotalMarks());
+        response.setMaximumMarks(result.getMaximumMarks());
+        response.setPercentage(result.getPercentage());
+        response.setChapters(new ArrayList<>(chapterById.values()));
+
+        return response;
+    }
+
+    // Same ownership rule as the Exam Review screen (ExamService
+    // .getExamResultReview): the student who sat the exam, or any
+    // SUPER_ADMIN / COLLEGE_ADMIN / BRANCH_ADMIN.
+    private void assertCanViewResult(User caller, ExamResult result) {
+
+        boolean isOwner = caller.getUserId()
+                .equals(result.getUser().getUserId());
+
+        boolean isManager = caller.getRole() != null
+                && List.of("SUPER_ADMIN", "COLLEGE_ADMIN", "BRANCH_ADMIN")
+                        .contains(caller.getRole().getRoleName().toUpperCase());
+
+        if (!isOwner && !isManager) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Not authorised to view this result");
+        }
     }
 
 
