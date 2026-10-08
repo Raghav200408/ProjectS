@@ -607,6 +607,11 @@ public class AnswerEventService {
     }
 
 
+    public List<AnswerEventResponseDTO> getCurrentPracticeEvents(Long userId, Long questionId) {
+        return answerEventRepository.findCurrentPracticeEvents(userId, questionId)
+                .stream().map(this::convertToResponse).toList();
+    }
+
     public int resetEvents(
             Long userId,
             Long questionId) {
@@ -701,6 +706,7 @@ public class AnswerEventService {
                 event.getAnswerEventId()
         );
         response.setQuestionAttributeId(event.getQuestionAttributeId());
+        response.setOptionId(event.getOptionId());
 
 
         if (event.getUser() != null) {

@@ -13,6 +13,15 @@ import java.util.List;
 public interface AnswerEventRepository
         extends JpaRepository<AnswerEvent, Long> {
 
+    @Query("""
+            SELECT ae FROM AnswerEvent ae
+            WHERE ae.user.userId = :userId AND ae.question.questionId = :questionId
+              AND ae.activeRow = true AND ae.exam IS NULL AND ae.mockExam IS NULL
+            ORDER BY ae.answerEventId
+            """)
+    List<AnswerEvent> findCurrentPracticeEvents(@Param("userId") Long userId,
+            @Param("questionId") Long questionId);
+
     long countByUser_UserIdAndQuestion_QuestionIdAndQuestionAttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
             Long userId, Long questionId, Long questionAttributeId, Integer answerPosition, String eventType);
 
@@ -126,6 +135,7 @@ public interface AnswerEventRepository
                 WHERE ae.user.userId = :userId
                   AND ae.question.questionId = :questionId
                   AND ae.activeRow = true
+                  AND ae.exam IS NULL AND ae.mockExam IS NULL
             """)
     int deactivateByUserAndQuestion(
             @Param("userId") Long userId,

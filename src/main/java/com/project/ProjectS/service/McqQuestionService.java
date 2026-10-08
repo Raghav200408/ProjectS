@@ -837,7 +837,7 @@ public class McqQuestionService {
             );
 
             answerEvent.setDescription(
-                    "MCQ attempt"
+                    "MCQ attempt | selectedOptionIds=" + selectedIds.stream().sorted().toList()
             );
 
             answerEvent.setActiveRow(true);

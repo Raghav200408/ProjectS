@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,6 +21,22 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class QuestionService {
+
+    // Journal/dropdown targets may intentionally use other headers. Trial-balance
+    // attributes must retain the header under which the attribute was defined.
+    static void validateAttributeHeader(Question question, TableHeader header, TableAttribute attribute) {
+        String type = question.getQuestionType() == null ? "" :
+                question.getQuestionType().getQuestionType();
+        if (type == null || !type.replaceAll("[\\s_-]", "").equalsIgnoreCase("DRAGANDDROP")) {
+            return;
+        }
+        TableHeader expected = attribute.getTableHeader();
+        if (expected == null || expected.getHeaderId() == null ||
+                !expected.getHeaderId().equals(header.getHeaderId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Header does not match attribute: " + attribute.getName());
+        }
+    }
 
     private final QuestionRepository questionRepository;
 
@@ -360,6 +378,7 @@ public class QuestionService {
                 );
 
 
+                validateAttributeHeader(savedQuestion, header, attribute);
                 questionAttribute.setHeader(header);
 
                 questionAttribute.setAttribute(attribute);
@@ -1007,6 +1026,7 @@ public class QuestionService {
                 );
 
 
+                validateAttributeHeader(savedQuestion, header, attribute);
                 questionAttribute.setHeader(header);
 
                 questionAttribute.setAttribute(attribute);
@@ -1480,6 +1500,11 @@ public class QuestionService {
                                 .getAttribute()
                                 .getName()
                 );
+                TableHeader attributeHeader = questionAttribute.getAttribute().getTableHeader();
+                if (attributeHeader != null) {
+                    attributeResponse.setAttributeHeaderId(attributeHeader.getHeaderId());
+                    attributeResponse.setAttributeHeaderName(attributeHeader.getName());
+                }
             }
 
 

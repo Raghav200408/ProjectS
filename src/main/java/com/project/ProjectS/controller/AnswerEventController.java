@@ -37,6 +37,14 @@ public class AnswerEventController {
     }
 
     // GET ALL
+    @GetMapping("/user/{userId}/question/{questionId}")
+    public ResponseEntity<List<AnswerEventResponseDTO>> getCurrentPracticeEvents(
+            @PathVariable("userId") Long ignoredUserId,
+            @PathVariable Long questionId, Authentication authentication) {
+        return ResponseEntity.ok(answerEventService.getCurrentPracticeEvents(
+                answerEventService.getAuthenticatedUserId(authentication), questionId));
+    }
+
     @GetMapping
     public ResponseEntity<List<AnswerEventResponseDTO>>
     getAllEvents() {
