@@ -54,6 +54,8 @@ public class RuleEngineService {
 
 
     public String create(RuleEngineRequestDTO request) {
+        log.info("Creating rule engine: chapterName={} relationshipName={} table1Name={} table2Name={}",
+                request.getChapterName(), request.getRelationshipName(), request.getTable1Name(), request.getTable2Name());
 
         RuleEngine entity = new RuleEngine();
         mapRequest(entity, request);
@@ -66,42 +68,58 @@ public class RuleEngineService {
             tableAttributeRepository.save(entity.getTableAttributeid());
         }
 
+        log.info("Rule engine created successfully: relationshipName={}", request.getRelationshipName());
         return "Rule Engine created successfully";
     }
 
     public List<RuleEngineResponseDTO> getAll() {
-
-        return ruleEngineRepository.findAll()
+        List<RuleEngineResponseDTO> result = ruleEngineRepository.findAll()
                 .stream()
                 .map(this::convert)
                 .collect(Collectors.toList());
+        log.debug("Fetched all rule engines: count={}", result.size());
+        return result;
     }
 
     public RuleEngineResponseDTO getById(Long id) {
+        log.debug("Fetching rule engine by id={}", id);
 
         RuleEngine entity = ruleEngineRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Rule Engine not found"));
+                .orElseThrow(() -> {
+                    log.warn("Rule engine not found: id={}", id);
+                    return new RuntimeException("Rule Engine not found");
+                });
 
         return convert(entity);
     }
 
     public String update(Long id, RuleEngineRequestDTO request) {
+        log.info("Updating rule engine: id={} relationshipName={}", id, request.getRelationshipName());
 
         RuleEngine entity = ruleEngineRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Rule Engine not found"));
+                .orElseThrow(() -> {
+                    log.warn("Could not update rule engine; id not found: id={}", id);
+                    return new RuntimeException("Rule Engine not found");
+                });
 
         mapRequest(entity, request);
         ruleEngineRepository.save(entity);
 
+        log.info("Rule engine updated successfully: id={}", id);
         return "Rule Engine updated successfully";
     }
 
     public String delete(Long id) {
+        log.info("Deleting rule engine: id={}", id);
 
         RuleEngine entity = ruleEngineRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Rule Engine not found"));
+                .orElseThrow(() -> {
+                    log.warn("Could not delete rule engine; id not found: id={}", id);
+                    return new RuntimeException("Rule Engine not found");
+                });
 
         ruleEngineRepository.delete(entity);
+        log.info("Rule engine deleted successfully: id={}", id);
 
         return "Rule Engine deleted successfully";
     }

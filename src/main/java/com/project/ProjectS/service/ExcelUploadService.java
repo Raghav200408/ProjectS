@@ -35,7 +35,8 @@ public class ExcelUploadService {
 
     public List<Map<String,String>> readExcel(
             MultipartFile file) throws IOException {
-
+        log.info("Reading Excel upload: originalFilename={} size={}",
+                file == null ? null : file.getOriginalFilename(), file == null ? 0 : file.getSize());
 
         // Step 1: Validate file
         fileValidator.validate(file);

@@ -37,6 +37,7 @@ public class UserActivitySessionService {
 
     @Transactional
     public ActivitySessionResponseDTO start(User user) {
+        log.info("Starting activity session for userId={}", user.getUserId());
         LocalDateTime now = LocalDateTime.now();
         repository.findByUser_UserIdAndStatusIn(user.getUserId(), List.of(ACTIVE, IDLE))
                 .forEach(session -> closeSession(session, CLOSED, now));
@@ -49,11 +50,14 @@ public class UserActivitySessionService {
         session.setLastHeartbeatAt(now);
         session.setLastInteractionAt(now);
         session.setTotalActiveSeconds(0L);
-        return toResponse(repository.save(session));
+        ActivitySessionResponseDTO response = toResponse(repository.save(session));
+        log.debug("Activity session created: userId={} sessionKey={} status={}", user.getUserId(), session.getSessionKey(), session.getStatus());
+        return response;
     }
 
     @Transactional
     public ActivitySessionResponseDTO heartbeat(User user, String sessionKey) {
+        log.debug("Heartbeat received: userId={} sessionKey={}", user.getUserId(), sessionKey);
         UserActivitySession session = getSession(user, sessionKey);
         LocalDateTime now = LocalDateTime.now();
         rejectExpiredSession(session, now);
@@ -72,6 +76,7 @@ public class UserActivitySessionService {
 
     @Transactional
     public ActivitySessionResponseDTO idle(User user, String sessionKey) {
+        log.debug("Activity session set to idle: userId={} sessionKey={}", user.getUserId(), sessionKey);
         UserActivitySession session = getSession(user, sessionKey);
         LocalDateTime now = LocalDateTime.now();
         rejectExpiredSession(session, now);
@@ -84,6 +89,7 @@ public class UserActivitySessionService {
 
     @Transactional
     public ActivitySessionResponseDTO resume(User user, String sessionKey) {
+        log.debug("Resuming activity session: userId={} sessionKey={}", user.getUserId(), sessionKey);
         UserActivitySession session = getSession(user, sessionKey);
         LocalDateTime now = LocalDateTime.now();
         rejectExpiredSession(session, now);
@@ -98,6 +104,7 @@ public class UserActivitySessionService {
 
     @Transactional
     public ActivitySessionResponseDTO close(User user, String sessionKey) {
+        log.info("Closing activity session: userId={} sessionKey={}", user.getUserId(), sessionKey);
         UserActivitySession session = getSession(user, sessionKey);
         closeSession(session, CLOSED, LocalDateTime.now());
         return toResponse(repository.save(session));
@@ -106,17 +113,20 @@ public class UserActivitySessionService {
     @Transactional
     public long totalTime(User user) {
         LocalDateTime now = LocalDateTime.now();
-        return repository.findByUser_UserIdAndStatusIn(
+        long total = repository.findByUser_UserIdAndStatusIn(
                         user.getUserId(), List.of(ACTIVE, IDLE, CLOSED, EXPIRED))
                 .stream()
                 .mapToLong(session -> session.getTotalActiveSeconds()
                         + pendingActiveSeconds(session, now))
                 .sum();
+        log.debug("Computed total active time: userId={} totalSeconds={}", user.getUserId(), total);
+        return total;
     }
 
     @Scheduled(fixedDelay = 60_000)
     @Transactional
     public void cleanStaleSessions() {
+        log.info("Running stale activity session cleanup");
         LocalDateTime now = LocalDateTime.now();
         repository.findByStatusAndLastHeartbeatAtBefore(ACTIVE, now.minus(MISSED_HEARTBEAT))
                 .forEach(session -> {

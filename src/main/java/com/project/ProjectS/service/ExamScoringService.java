@@ -116,6 +116,9 @@ public class ExamScoringService {
     public Score score(
             List<Long> questionIds,
             List<ExamQuestionAnswerDTO> submittedAnswers) {
+        log.info("Scoring exam answers: questionCount={} submittedAnswerCount={}",
+                questionIds == null ? 0 : questionIds.size(),
+                submittedAnswers == null ? 0 : submittedAnswers.size());
 
         List<ExamQuestionAnswerDTO> answers =
                 submittedAnswers == null ? List.of() : submittedAnswers;

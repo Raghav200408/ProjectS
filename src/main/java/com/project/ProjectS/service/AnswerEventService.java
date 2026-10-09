@@ -57,6 +57,8 @@ public class AnswerEventService {
     public AnswerEventResponseDTO createEvent(
             AnswerEventRequestDTO request,
             Authentication authentication) {
+        log.info("Creating answer event via authenticated user: userEmail={} questionId={} eventType={}",
+                authentication == null ? null : authentication.getName(), request.getQuestionId(), request.getEventType());
         User authenticatedUser = getAuthenticatedUser(authentication);
         request.setUserId(authenticatedUser.getUserId());
         return createEvent(request);
@@ -64,19 +66,27 @@ public class AnswerEventService {
 
     private User getAuthenticatedUser(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
+            log.warn("Answer event rejected: missing authenticated user");
             throw new RuntimeException("Authenticated user is required");
         }
         return userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+                .orElseThrow(() -> {
+                    log.warn("Answer event rejected: user not found for email={}", authentication.getName());
+                    return new RuntimeException("Authenticated user not found");
+                });
     }
 
     public Long getAuthenticatedUserId(Authentication authentication) {
-        return getAuthenticatedUser(authentication).getUserId();
+        Long userId = getAuthenticatedUser(authentication).getUserId();
+        log.debug("Resolved authenticated userId={} from authentication", userId);
+        return userId;
     }
 
 
     public AnswerEventResponseDTO createEvent(
             AnswerEventRequestDTO request) {
+        log.info("Persisting answer event: userId={} questionId={} eventType={} attributeId={} answerPosition={}",
+                request.getUserId(), request.getQuestionId(), request.getEventType(), request.getAttributeId(), request.getAnswerPosition());
 
         String eventType = request.getEventType()
                 .trim()
