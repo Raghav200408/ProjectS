@@ -33,7 +33,7 @@ public class CourseService {
     }
 
 
-    private static final Logger logger =
+    private static final Logger log =
             LogManager.getLogger(CourseService.class);
     private final CourseRepository courseRepository;
     private final BranchRepository branchRepository;
@@ -41,12 +41,12 @@ public class CourseService {
 
     public String create(CourseRequestDTO request) {
 
-        logger.info("Creating course with name: {}", request.getName());
+        log.info("Creating course with name: {}", request.getName());
 
         College college = collegeRepository.findById(request.getCollegeId())
                 .orElseThrow(() -> {
 
-                    logger.warn(
+                    log.warn(
                             "College not found with ID: {}",
                             request.getCollegeId()
                     );
@@ -57,7 +57,7 @@ public class CourseService {
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> {
 
-                    logger.warn(
+                    log.warn(
                             "Branch not found with ID: {}",
                             request.getBranchId()
                     );
@@ -72,7 +72,7 @@ public class CourseService {
                 branch
         )) {
 
-            logger.warn(
+            log.warn(
                     "Course already exists: {} in branch {}",
                     request.getName(),
                     branch.getBranchName()
@@ -102,7 +102,7 @@ public class CourseService {
         courseRepository.save(entity);
 
 
-        logger.info(
+        log.info(
                 "Course created successfully with name: {}",
                 request.getName()
         );
@@ -113,52 +113,52 @@ public class CourseService {
 
     public List<CourseResponseDTO> getAll() {
 
-        logger.info("Fetching all courses.");
+        log.info("Fetching all courses.");
 
         List<CourseResponseDTO> courses = courseRepository.findAll()
                 .stream()
                 .map(this::convert)
                 .collect(Collectors.toList());
 
-        logger.info("Fetched {} courses.", courses.size());
+        log.info("Fetched {} courses.", courses.size());
 
         return courses;
     }
 
     public CourseResponseDTO getById(Long id) {
 
-        logger.info("Fetching course with ID: {}", id);
+        log.info("Fetching course with ID: {}", id);
 
         Course entity = courseRepository.findById(id)
                 .orElseThrow(() -> {
-                    logger.warn("Course not found with ID: {}", id);
+                    log.warn("Course not found with ID: {}", id);
                     return new RuntimeException("Course not found");
                 });
 
-        logger.info("Course fetched successfully with ID: {}", id);
+        log.info("Course fetched successfully with ID: {}", id);
 
         return convert(entity);
     }
 
     public String update(Long id, CourseRequestDTO request) {
 
-        logger.info("Updating course with ID: {}", id);
+        log.info("Updating course with ID: {}", id);
 
         Course entity = courseRepository.findById(id)
                 .orElseThrow(() -> {
-                    logger.warn("Course not found with ID: {}", id);
+                    log.warn("Course not found with ID: {}", id);
                     return new RuntimeException("Course not found");
                 });
 
         College college = collegeRepository.findById(request.getCollegeId())
                 .orElseThrow(() -> {
-                    logger.warn("College not found with ID: {}", request.getCollegeId());
+                    log.warn("College not found with ID: {}", request.getCollegeId());
                     return new RuntimeException("College not found");
                 });
 
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> {
-                    logger.warn("Branch not found with ID: {}", request.getBranchId());
+                    log.warn("Branch not found with ID: {}", request.getBranchId());
                     return new RuntimeException("Branch not found");
                 });
 
@@ -179,24 +179,24 @@ public class CourseService {
 
         courseRepository.save(entity);
 
-        logger.info("Course updated successfully with ID: {}", id);
+        log.info("Course updated successfully with ID: {}", id);
 
         return "Course updated successfully";
     }
 
     public String delete(Long id) {
 
-        logger.info("Deleting course with ID: {}", id);
+        log.info("Deleting course with ID: {}", id);
 
         Course entity = courseRepository.findById(id)
                 .orElseThrow(() -> {
-                    logger.warn("Course not found with ID: {}", id);
+                    log.warn("Course not found with ID: {}", id);
                     return new RuntimeException("Course not found");
                 });
 
         courseRepository.delete(entity);
 
-        logger.info("Course deleted successfully with ID: {}", id);
+        log.info("Course deleted successfully with ID: {}", id);
 
         return "Course deleted successfully";
     }
@@ -226,10 +226,10 @@ public class CourseService {
 
     public String uploadCourse(MultipartFile file) {
 
-        logger.info("Starting course Excel upload process.");
+        log.info("Starting course Excel upload process.");
 
         if (file.isEmpty()) {
-            logger.warn("Uploaded file is empty.");
+            log.warn("Uploaded file is empty.");
             throw new RuntimeException("File cannot be empty");
         }
 
@@ -269,7 +269,7 @@ public class CourseService {
 
 
 
-                logger.info(
+                log.info(
                         "Processing course: {} for branch: {}",
                         courseName,
                         branchName
@@ -285,7 +285,7 @@ public class CourseService {
 
                 if (branches.isEmpty()) {
 
-                    logger.warn(
+                    log.warn(
                             "Branch not found: {}",
                             branchName
                     );
@@ -307,7 +307,7 @@ public class CourseService {
                 )){
 
 
-                    logger.warn(
+                    log.warn(
                             "Course already exists: {} in branch {}",
                             courseName,
                             branchName
@@ -335,7 +335,7 @@ public class CourseService {
                 savedCount++;
 
 
-                logger.info(
+                log.info(
                         "Course saved successfully: {}",
                         courseName
                 );
@@ -344,7 +344,7 @@ public class CourseService {
 
 
 
-            logger.info(
+            log.info(
                     "Course Excel upload completed. Saved: {}, Skipped: {}",
                     savedCount,
                     skippedCount
@@ -360,7 +360,7 @@ public class CourseService {
         }
         catch(Exception e){
 
-            logger.error(
+            log.error(
                     "Failed while processing course Excel file",
                     e
             );

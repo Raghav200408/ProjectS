@@ -21,15 +21,15 @@ public class CollegeService {
     }
 
 
-    private static final Logger logger =
+    private static final Logger log =
             LogManager.getLogger(CollegeService.class);
     private final CollegeRepository repository;
 
     public String create(CollegeRequestDTO request) {
 
-        logger.info("Creating college with name: {}", request.getInstituteName());
+        log.info("Creating college with name: {}", request.getInstituteName());
         if (repository.existsByInstituteName(request.getInstituteName())) {
-            logger.warn("College already exists with name: {}", request.getInstituteName());
+            log.warn("College already exists with name: {}", request.getInstituteName());
             throw new RuntimeException("College already exists");
         }
 
@@ -42,49 +42,49 @@ public class CollegeService {
         entity.setActiveRow(request.getActiveRow());
         repository.save(entity);
 
-        logger.info("College created successfully. College ID: {}", entity.getCollegeId());
+        log.info("College created successfully. College ID: {}", entity.getCollegeId());
         return "College created successfully";
     }
 
     public List<CollegeResponseDTO> getAll() {
 
-        logger.info("Fetching all colleges.");
+        log.info("Fetching all colleges.");
 
         List<CollegeResponseDTO> colleges = repository.findAll()
                 .stream()
                 .map(this::convert)
                 .collect(Collectors.toList());
 
-        logger.info("Fetched {} colleges.", colleges.size());
+        log.info("Fetched {} colleges.", colleges.size());
 
         return colleges;
     }
 
     public College getById(Long id) {
 
-        logger.info("Fetching college with ID: {}", id);
+        log.info("Fetching college with ID: {}", id);
 
         College entity = repository.findById(id)
                 .orElseThrow(() -> {
 
-                    logger.warn("College not found with ID: {}", id);
+                    log.warn("College not found with ID: {}", id);
 
                     return new RuntimeException("College not found");
                 });
 
-        logger.info("College fetched successfully with ID: {}", id);
+        log.info("College fetched successfully with ID: {}", id);
 
         return entity;
     }
 
     public String update(Long id, CollegeRequestDTO request) {
 
-        logger.info("Updating college with ID: {}", id);
+        log.info("Updating college with ID: {}", id);
 
         College entity = repository.findById(id)
                 .orElseThrow(() -> {
 
-                    logger.warn("College not found with ID: {}", id);
+                    log.warn("College not found with ID: {}", id);
 
                     return new RuntimeException("College not found");
                 });
@@ -96,26 +96,26 @@ public class CollegeService {
         entity.setActiveRow(request.getActiveRow());
         repository.save(entity);
 
-        logger.info("College updated successfully with ID: {}", id);
+        log.info("College updated successfully with ID: {}", id);
 
         return "College updated successfully";
     }
 
     public String delete(Long id) {
 
-        logger.info("Deleting college with ID: {}", id);
+        log.info("Deleting college with ID: {}", id);
 
         College entity = repository.findById(id)
                 .orElseThrow(() -> {
 
-                    logger.warn("College not found with ID: {}", id);
+                    log.warn("College not found with ID: {}", id);
 
                     return new RuntimeException("College not found");
                 });
 
         repository.delete(entity);
 
-        logger.info("College deleted successfully with ID: {}", id);
+        log.info("College deleted successfully with ID: {}", id);
 
         return "College deleted successfully";
     }

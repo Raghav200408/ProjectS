@@ -32,7 +32,7 @@ public class SectionService {
     }
 
 
-    private static final Logger logger =
+    private static final Logger log =
             LogManager.getLogger(SectionService.class);
     private final SectionRepository sectionRepository;
     private final CourseRepository courseRepository;
@@ -41,13 +41,13 @@ public class SectionService {
 
     public String create(SectionRequestDTO request) {
 
-        logger.info("Creating section with name: {}", request.getSectionName());
+        log.info("Creating section with name: {}", request.getSectionName());
 
         if (sectionRepository.existsBySectionNameAndCourse_CourseId(
                 request.getSectionName(),
                 request.getCourseId())) {
 
-            logger.warn(
+            log.warn(
                     "Section {} already exists for course {}",
                     request.getSectionName(),
                     request.getCourseId()
@@ -59,7 +59,7 @@ public class SectionService {
         College college = collegeRepository.findById(request.getCollegeId())
                 .orElseThrow(() -> {
 
-                    logger.warn(
+                    log.warn(
                             "College not found with ID: {}",
                             request.getCollegeId()
                     );
@@ -70,7 +70,7 @@ public class SectionService {
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> {
 
-                    logger.warn(
+                    log.warn(
                             "Branch not found with ID: {}",
                             request.getBranchId()
                     );
@@ -81,7 +81,7 @@ public class SectionService {
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> {
 
-                    logger.warn(
+                    log.warn(
                             "Course not found with ID: {}",
                             request.getCourseId()
                     );
@@ -98,7 +98,7 @@ public class SectionService {
                 course
         )) {
 
-            logger.warn(
+            log.warn(
                     "Section already exists: {} for course: {}",
                     request.getSectionName(),
                     course.getName()
@@ -137,7 +137,7 @@ public class SectionService {
 
 
 
-        logger.info(
+        log.info(
                 "Section created successfully with name: {}",
                 request.getSectionName()
         );
@@ -148,46 +148,46 @@ public class SectionService {
 
     public List<SectionResponseDTO> getAll() {
 
-        logger.info("Fetching all sections.");
+        log.info("Fetching all sections.");
 
         List<SectionResponseDTO> sections = sectionRepository.findAll()
                 .stream()
                 .map(this::convert)
                 .collect(Collectors.toList());
 
-        logger.info("Fetched {} sections.", sections.size());
+        log.info("Fetched {} sections.", sections.size());
 
         return sections;
     }
 
     public SectionResponseDTO getById(Long id) {
 
-        logger.info("Fetching section with ID: {}", id);
+        log.info("Fetching section with ID: {}", id);
 
         Section entity = sectionRepository.findById(id)
                 .orElseThrow(() -> {
-                    logger.warn("Section not found with ID: {}", id);
+                    log.warn("Section not found with ID: {}", id);
                     return new RuntimeException("Section not found");
                 });
 
-        logger.info("Section fetched successfully with ID: {}", id);
+        log.info("Section fetched successfully with ID: {}", id);
 
         return convert(entity);
     }
     public String update(Long id, SectionRequestDTO request) {
 
-        logger.info("Updating section with ID: {}", id);
+        log.info("Updating section with ID: {}", id);
 
         Section entity = sectionRepository.findById(id)
                 .orElseThrow(() -> {
-                    logger.warn("Section not found with ID: {}", id);
+                    log.warn("Section not found with ID: {}", id);
                     return new RuntimeException("Section not found");
                 });
 
         College college = collegeRepository.findById(request.getCollegeId())
                 .orElseThrow(() -> {
 
-                    logger.warn(
+                    log.warn(
                             "College not found with ID: {}",
                             request.getCollegeId()
                     );
@@ -198,7 +198,7 @@ public class SectionService {
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> {
 
-                    logger.warn(
+                    log.warn(
                             "Branch not found with ID: {}",
                             request.getBranchId()
                     );
@@ -208,7 +208,7 @@ public class SectionService {
 
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> {
-                    logger.warn("Course not found with ID: {}", request.getCourseId());
+                    log.warn("Course not found with ID: {}", request.getCourseId());
                     return new RuntimeException("Course not found");
                 });
 
@@ -219,7 +219,7 @@ public class SectionService {
                     request.getSectionName(),
                     request.getCourseId())) {
 
-                logger.warn(
+                log.warn(
                         "Section {} already exists for course {}",
                         request.getSectionName(),
                         request.getCourseId()
@@ -242,24 +242,24 @@ public class SectionService {
 
         sectionRepository.save(entity);
 
-        logger.info("Section updated successfully with ID: {}", id);
+        log.info("Section updated successfully with ID: {}", id);
 
         return "Section updated successfully";
     }
 
     public String delete(Long id) {
 
-        logger.info("Deleting section with ID: {}", id);
+        log.info("Deleting section with ID: {}", id);
 
         Section entity = sectionRepository.findById(id)
                 .orElseThrow(() -> {
-                    logger.warn("Section not found with ID: {}", id);
+                    log.warn("Section not found with ID: {}", id);
                     return new RuntimeException("Section not found");
                 });
 
         sectionRepository.delete(entity);
 
-        logger.info("Section deleted successfully with ID: {}", id);
+        log.info("Section deleted successfully with ID: {}", id);
 
         return "Section deleted successfully";
     }

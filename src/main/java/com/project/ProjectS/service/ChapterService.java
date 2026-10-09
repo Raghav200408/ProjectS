@@ -26,7 +26,7 @@ public class ChapterService {
     }
 
 
-    private static final Logger logger =
+    private static final Logger log =
             LogManager.getLogger(ChapterService.class);
     private final ChapterRepository chapterRepository;
     private final CourseRepository courseRepository;
@@ -34,11 +34,11 @@ public class ChapterService {
 
     public String create(ChapterRequestDTO request) {
 
-        logger.info("Creating chapter with name: {}", request.getName());
+        log.info("Creating chapter with name: {}", request.getName());
 
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> {
-                    logger.warn("Course not found with ID: {}", request.getCourseId());
+                    log.warn("Course not found with ID: {}", request.getCourseId());
                     return new RuntimeException("Course not found");
                 });
 
@@ -63,53 +63,53 @@ public class ChapterService {
 
         chapterRepository.save(entity);
 
-        logger.info("Chapter created successfully with name: {}", request.getName());
+        log.info("Chapter created successfully with name: {}", request.getName());
 
         return "Chapter created successfully";
     }
 
     public List<ChapterResponseDTO> getAll() {
 
-        logger.info("Fetching all chapters.");
+        log.info("Fetching all chapters.");
 
         List<ChapterResponseDTO> chapters = chapterRepository.findAll()
                 .stream()
                 .map(this::convert)
                 .collect(Collectors.toList());
 
-        logger.info("Fetched {} chapters.", chapters.size());
+        log.info("Fetched {} chapters.", chapters.size());
 
         return chapters;
     }
 
     public ChapterResponseDTO getById(Long id) {
 
-        logger.info("Fetching chapter with ID: {}", id);
+        log.info("Fetching chapter with ID: {}", id);
 
         Chapter entity = chapterRepository.findById(id)
                 .orElseThrow(() -> {
-                    logger.warn("Chapter not found with ID: {}", id);
+                    log.warn("Chapter not found with ID: {}", id);
                     return new RuntimeException("Chapter not found");
                 });
 
-        logger.info("Chapter fetched successfully with ID: {}", id);
+        log.info("Chapter fetched successfully with ID: {}", id);
 
         return convert(entity);
     }
 
     public String update(Long id, ChapterRequestDTO request) {
 
-        logger.info("Updating chapter with ID: {}", id);
+        log.info("Updating chapter with ID: {}", id);
 
         Chapter entity = chapterRepository.findById(id)
                 .orElseThrow(() -> {
-                    logger.warn("Chapter not found with ID: {}", id);
+                    log.warn("Chapter not found with ID: {}", id);
                     return new RuntimeException("Chapter not found");
                 });
 
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> {
-                    logger.warn("Course not found with ID: {}", request.getCourseId());
+                    log.warn("Course not found with ID: {}", request.getCourseId());
                     return new RuntimeException("Course not found");
                 });
 
@@ -124,24 +124,24 @@ public class ChapterService {
 
         chapterRepository.save(entity);
 
-        logger.info("Chapter updated successfully with ID: {}", id);
+        log.info("Chapter updated successfully with ID: {}", id);
 
         return "Chapter updated successfully";
     }
 
     public String delete(Long id) {
 
-        logger.info("Deleting chapter with ID: {}", id);
+        log.info("Deleting chapter with ID: {}", id);
 
         Chapter entity = chapterRepository.findById(id)
                 .orElseThrow(() -> {
-                    logger.warn("Chapter not found with ID: {}", id);
+                    log.warn("Chapter not found with ID: {}", id);
                     return new RuntimeException("Chapter not found");
                 });
 
         chapterRepository.delete(entity);
 
-        logger.info("Chapter deleted successfully with ID: {}", id);
+        log.info("Chapter deleted successfully with ID: {}", id);
 
         return "Chapter deleted successfully";
     }

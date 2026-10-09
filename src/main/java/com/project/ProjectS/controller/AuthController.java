@@ -29,6 +29,10 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private static final Logger log = LogManager.getLogger(AuthController.class);
 
+    public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository, JwtUtil jwtUtil) {
+        this(authenticationManager, userRepository, jwtUtil, new AuditLogger());
+    }
+
     @Autowired
     public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository, JwtUtil jwtUtil, AuditLogger auditLogger) {
         this.authenticationManager = authenticationManager;

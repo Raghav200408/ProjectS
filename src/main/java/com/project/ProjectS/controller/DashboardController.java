@@ -23,18 +23,18 @@ public class DashboardController {
     }
 
 
-    private static final Logger logger =
+    private static final Logger log =
             LogManager.getLogger(DashboardController.class);
     private final DashboardService service;
 
     @GetMapping
     public ResponseEntity<DashboardResponseDTO> getDashboard(Authentication authentication) {
 
-        logger.info("Received request to fetch dashboard details.");
+        log.info("Received request to fetch dashboard details.");
 
         DashboardResponseDTO response = service.getDashboard(authentication);
 
-        logger.info("Dashboard details fetched successfully.");
+        log.info("Dashboard details fetched successfully.");
 
         return ResponseEntity.ok(response);
     }

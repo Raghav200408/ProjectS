@@ -32,7 +32,7 @@ public class SectionController {
     }
 
 
-    private static final Logger logger =
+    private static final Logger log =
             LogManager.getLogger(SectionController.class);
     private final SectionService service;
     private final ExcelUploadService excelUploadService;
@@ -44,11 +44,11 @@ public class SectionController {
     public ResponseEntity<String> create(
             @Valid @RequestBody SectionRequestDTO request) {
 
-        logger.info("Received request to create section.");
+        log.info("Received request to create section.");
 
         String response = service.create(request);
 
-        logger.info("Create section request completed successfully.");
+        log.info("Create section request completed successfully.");
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
@@ -56,11 +56,11 @@ public class SectionController {
     @GetMapping
     public List<SectionResponseDTO> getAll() {
 
-        logger.info("Received request to fetch all sections.");
+        log.info("Received request to fetch all sections.");
 
         List<SectionResponseDTO> sections = service.getAll();
 
-        logger.info("Fetched {} sections successfully.", sections.size());
+        log.info("Fetched {} sections successfully.", sections.size());
 
         return sections;
     }
@@ -68,11 +68,11 @@ public class SectionController {
     @GetMapping("/{id}")
     public SectionResponseDTO getById(@PathVariable Long id) {
 
-        logger.info("Received request to fetch section with ID: {}", id);
+        log.info("Received request to fetch section with ID: {}", id);
 
         SectionResponseDTO section = service.getById(id);
 
-        logger.info("Section fetched successfully with ID: {}", id);
+        log.info("Section fetched successfully with ID: {}", id);
 
         return section;
     }
@@ -82,11 +82,11 @@ public class SectionController {
             @PathVariable Long id,
             @Valid @RequestBody SectionRequestDTO request) {
 
-        logger.info("Received request to update section with ID: {}", id);
+        log.info("Received request to update section with ID: {}", id);
 
         String response = service.update(id, request);
 
-        logger.info("Section updated successfully with ID: {}", id);
+        log.info("Section updated successfully with ID: {}", id);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -94,11 +94,11 @@ public class SectionController {
     @DeleteMapping("/{id}")
     public String delete(@PathVariable Long id) {
 
-        logger.info("Received request to delete section with ID: {}", id);
+        log.info("Received request to delete section with ID: {}", id);
 
         String response = service.delete(id);
 
-        logger.info("Section deleted successfully with ID: {}", id);
+        log.info("Section deleted successfully with ID: {}", id);
 
         return response;
     }
@@ -108,7 +108,7 @@ public class SectionController {
             @RequestParam("file") MultipartFile file) {
 
 
-        logger.info("Received request to upload section Excel file.");
+        log.info("Received request to upload section Excel file.");
 
 
         try {
@@ -127,7 +127,7 @@ public class SectionController {
 
 
 
-            logger.info(
+            log.info(
                     "Section Excel upload completed successfully."
             );
 
@@ -141,7 +141,7 @@ public class SectionController {
         catch(Exception e){
 
 
-            logger.error(
+            log.error(
                     "Section Excel upload failed",
                     e
             );
