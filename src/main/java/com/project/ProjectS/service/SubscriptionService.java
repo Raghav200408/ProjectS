@@ -11,7 +11,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class SubscriptionService {
+public class  SubscriptionService {
     private final SubscriptionPlanRepository plans;
     private final PlanCourseRepository planCourses;
     private final UserSubscriptionRepository subscriptions;

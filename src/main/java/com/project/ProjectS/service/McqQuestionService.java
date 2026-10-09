@@ -344,6 +344,8 @@ public class McqQuestionService {
                         );
 
 
+        QuestionService.validateEditedType(question, request.getQuestionTypeId());
+
         McqQuestion mcqQuestion =
                 mcqQuestionRepository.findById(questionId)
                         .orElseThrow(() ->
