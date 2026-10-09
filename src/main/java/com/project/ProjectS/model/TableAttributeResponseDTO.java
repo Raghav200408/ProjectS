@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 @Setter
 public class TableAttributeResponseDTO {
     private Long attributeId;
+    private Long headerId;
     private String name;
 
     private String rowStatus;
