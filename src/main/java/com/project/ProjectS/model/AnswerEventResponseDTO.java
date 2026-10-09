@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 public class AnswerEventResponseDTO {
 
     private Long answerEventId;
+    private Long optionId;
 
     private Long userId;
     private String username;
