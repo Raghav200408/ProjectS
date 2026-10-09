@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 @Service
 public class BranchService {
 
-    private static final Logger logger =
+    private static final Logger log =
             LogManager.getLogger(BranchService.class);
 
     private final BranchRepository branchRepository;
@@ -34,12 +34,12 @@ public class BranchService {
 
     public String create(BranchRequestDTO request) {
 
-        logger.info("Creating branch: {}", request.getBranchName());
+        log.info("Creating branch: {}", request.getBranchName());
 
 
         College college = collegeRepository.findById(request.getCollegeId())
                 .orElseThrow(() -> {
-                    logger.error("College not found with ID: {}", request.getCollegeId());
+                    log.error("College not found with ID: {}", request.getCollegeId());
                     return new RuntimeException("College not found");
                 });
 
@@ -49,7 +49,7 @@ public class BranchService {
                 request.getBranchName(),
                 college)) {
 
-            logger.warn(
+            log.warn(
                     "Branch already exists: {} under college: {}",
                     request.getBranchName(),
                     college.getInstituteName()
@@ -78,7 +78,7 @@ public class BranchService {
         branchRepository.save(branch);
 
 
-        logger.info(
+        log.info(
                 "Branch created successfully: {}",
                 request.getBranchName()
         );
@@ -89,46 +89,46 @@ public class BranchService {
 
     public List<BranchResponseDTO> getAll() {
 
-        logger.info("Fetching all branches.");
+        log.info("Fetching all branches.");
 
         List<BranchResponseDTO> branches = branchRepository.findAll()
                 .stream()
                 .map(this::convert)
                 .collect(Collectors.toList());
 
-        logger.info("Fetched {} branches.", branches.size());
+        log.info("Fetched {} branches.", branches.size());
 
         return branches;
     }
 
     public Branch getById(Long id) {
 
-        logger.info("Fetching branch with ID: {}", id);
+        log.info("Fetching branch with ID: {}", id);
 
         Branch branch = branchRepository.findById(id)
                 .orElseThrow(() -> {
-                    logger.warn("Branch not found with ID: {}", id);
+                    log.warn("Branch not found with ID: {}", id);
                     return new RuntimeException("Branch not found");
                 });
 
-        logger.info("Branch fetched successfully with ID: {}", id);
+        log.info("Branch fetched successfully with ID: {}", id);
 
         return branch;
     }
 
     public String update(Long id, BranchRequestDTO request) {
 
-        logger.info("Updating branch with ID: {}", id);
+        log.info("Updating branch with ID: {}", id);
 
         Branch entity = branchRepository.findById(id)
                 .orElseThrow(() -> {
-                    logger.warn("Branch not found with ID: {}", id);
+                    log.warn("Branch not found with ID: {}", id);
                     return new RuntimeException("Branch not found");
                 });
 
         College college = collegeRepository.findById(request.getCollegeId())
                 .orElseThrow(() -> {
-                    logger.warn("College not found with ID: {}", request.getCollegeId());
+                    log.warn("College not found with ID: {}", request.getCollegeId());
                     return new RuntimeException("College not found");
                 });
 
@@ -144,24 +144,24 @@ public class BranchService {
         );
         branchRepository.save(entity);
 
-        logger.info("Branch updated successfully with ID: {}", id);
+        log.info("Branch updated successfully with ID: {}", id);
 
         return "Branch updated successfully";
     }
 
     public String delete(Long id) {
 
-        logger.info("Deleting branch with ID: {}", id);
+        log.info("Deleting branch with ID: {}", id);
 
         Branch entity = branchRepository.findById(id)
                 .orElseThrow(() -> {
-                    logger.warn("Branch not found with ID: {}", id);
+                    log.warn("Branch not found with ID: {}", id);
                     return new RuntimeException("Branch not found");
                 });
 
         branchRepository.delete(entity);
 
-        logger.info("Branch deleted successfully with ID: {}", id);
+        log.info("Branch deleted successfully with ID: {}", id);
 
         return "Branch deleted successfully";
     }

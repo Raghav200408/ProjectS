@@ -29,7 +29,7 @@ public class ChapterController {
     }
 
 
-    private static final Logger logger =
+    private static final Logger log =
             LogManager.getLogger(ChapterController.class);
     private final ChapterService service;
     private final ChapterExcelProcessor chapterExcelProcessor;
@@ -39,11 +39,11 @@ public class ChapterController {
     public ResponseEntity<String> create(
             @Valid @RequestBody ChapterRequestDTO request) {
 
-        logger.info("Received request to create chapter.");
+        log.info("Received request to create chapter.");
 
         String response = service.create(request);
 
-        logger.info("Create chapter request completed successfully.");
+        log.info("Create chapter request completed successfully.");
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
@@ -51,11 +51,11 @@ public class ChapterController {
     @GetMapping
     public List<ChapterResponseDTO> getAll() {
 
-        logger.info("Received request to fetch all chapters.");
+        log.info("Received request to fetch all chapters.");
 
         List<ChapterResponseDTO> chapters = service.getAll();
 
-        logger.info("Fetched {} chapters successfully.", chapters.size());
+        log.info("Fetched {} chapters successfully.", chapters.size());
 
         return chapters;
     }
@@ -63,11 +63,11 @@ public class ChapterController {
     @GetMapping("/{id}")
     public ChapterResponseDTO getById(@PathVariable Long id) {
 
-        logger.info("Received request to fetch chapter with ID: {}", id);
+        log.info("Received request to fetch chapter with ID: {}", id);
 
         ChapterResponseDTO chapter = service.getById(id);
 
-        logger.info("Chapter fetched successfully with ID: {}", id);
+        log.info("Chapter fetched successfully with ID: {}", id);
 
         return chapter;
     }
@@ -77,11 +77,11 @@ public class ChapterController {
             @PathVariable Long id,
             @Valid @RequestBody ChapterRequestDTO request) {
 
-        logger.info("Received request to update chapter with ID: {}", id);
+        log.info("Received request to update chapter with ID: {}", id);
 
         String response = service.update(id, request);
 
-        logger.info("Chapter updated successfully with ID: {}", id);
+        log.info("Chapter updated successfully with ID: {}", id);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -89,11 +89,11 @@ public class ChapterController {
     @DeleteMapping("/{id}")
     public String delete(@PathVariable Long id) {
 
-        logger.info("Received request to delete chapter with ID: {}", id);
+        log.info("Received request to delete chapter with ID: {}", id);
 
         String response = service.delete(id);
 
-        logger.info("Chapter deleted successfully with ID: {}", id);
+        log.info("Chapter deleted successfully with ID: {}", id);
 
         return response;
     }
@@ -102,7 +102,7 @@ public class ChapterController {
             @RequestParam("file") MultipartFile file) {
 
 
-        logger.info("Received request to upload chapter Excel file.");
+        log.info("Received request to upload chapter Excel file.");
 
 
         try {
@@ -117,7 +117,7 @@ public class ChapterController {
 
 
 
-            logger.info(
+            log.info(
                     "Chapter Excel uploaded successfully."
             );
 
@@ -131,7 +131,7 @@ public class ChapterController {
         } catch (Exception e) {
 
 
-            logger.error(
+            log.error(
                     "Chapter Excel upload failed",
                     e
             );

@@ -35,7 +35,7 @@ public class CollegeController {
     }
 
 
-    private static final Logger logger =
+    private static final Logger log =
             LogManager.getLogger(CollegeController.class);
     private final CollegeExcelMapper collegeMapper;
     private final CollegeService service;
@@ -46,34 +46,34 @@ public class CollegeController {
     @PostMapping
     public ResponseEntity<String> create(@Valid @RequestBody CollegeRequestDTO request) {
 
-        logger.info("Received request to create college.");
+        log.info("Received request to create college.");
 
         String response = service.create(request);
 
 
-        logger.info("Create college request completed successfully.");
+        log.info("Create college request completed successfully.");
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @GetMapping
     public List<CollegeResponseDTO> getAll() {
 
-        logger.info("Received request to fetch all colleges.");
+        log.info("Received request to fetch all colleges.");
 
         List<CollegeResponseDTO> colleges = service.getAll();
 
-        logger.info("Fetched {} colleges successfully.", colleges.size());
+        log.info("Fetched {} colleges successfully.", colleges.size());
         return colleges;
     }
 
     @GetMapping("/{id}")
     public College getById(@PathVariable Long id) {
 
-        logger.info("Received request to fetch college with ID: {}", id);
+        log.info("Received request to fetch college with ID: {}", id);
 
         College college = service.getById(id);
 
-        logger.info("College fetched successfully with ID: {}", id);
+        log.info("College fetched successfully with ID: {}", id);
         return service.getById(id);
     }
 
@@ -81,10 +81,10 @@ public class CollegeController {
     public ResponseEntity<String> update(@PathVariable Long id,
                                          @Valid @RequestBody CollegeRequestDTO request) {
 
-        logger.info("Received request to update college with ID: {}", id);
+        log.info("Received request to update college with ID: {}", id);
         String response = service.update(id, request);
 
-        logger.info("College updated successfully with ID: {}", id);
+        log.info("College updated successfully with ID: {}", id);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -92,11 +92,11 @@ public class CollegeController {
     public String delete(@PathVariable Long id) {
 
 
-        logger.info("Received request to delete college with ID: {}", id);
+        log.info("Received request to delete college with ID: {}", id);
 
         String response = service.delete(id);
 
-        logger.info("College deleted successfully with ID: {}", id);
+        log.info("College deleted successfully with ID: {}", id);
 
         return response;
     }
