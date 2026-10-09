@@ -77,6 +77,7 @@ public class TableAttributeService {
             dto.setCreatedAt(entity.getCreatedAt());
             dto.setUpdatedAt(entity.getUpdatedAt());
             dto.setTableHeaderName(entity.getTableHeader().getName());
+            dto.setHeaderId(entity.getTableHeader().getHeaderId());
             dto.setAmount1(entity.getAmount1());
             dto.setAmount2(entity.getAmount2());
 
@@ -106,6 +107,7 @@ public class TableAttributeService {
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
         dto.setTableHeaderName(entity.getTableHeader().getName());
+        dto.setHeaderId(entity.getTableHeader().getHeaderId());
         dto.setAmount1(entity.getAmount1());
         dto.setAmount2(entity.getAmount2());
 
@@ -180,6 +182,7 @@ public class TableAttributeService {
             dto.setTableHeaderName(
                     entity.getTableHeader().getName()
             );
+            dto.setHeaderId(entity.getTableHeader().getHeaderId());
 
             dto.setAmount1(entity.getAmount1());
             dto.setAmount2(entity.getAmount2());

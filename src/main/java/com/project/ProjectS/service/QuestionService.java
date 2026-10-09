@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,6 +24,70 @@ import java.util.stream.Collectors;
 @Transactional
 public class QuestionService {
     private static final Logger log = LogManager.getLogger(QuestionService.class);
+
+    static QuestionAttribute resolveUpdatedAttribute(List<QuestionAttribute> existing,
+            QuestionAttributeRequestDTO request, java.util.Set<Long> retainedIds) {
+        if (request.getQuestionAttributeId() != null) {
+            QuestionAttribute row = existing.stream()
+                    .filter(item -> request.getQuestionAttributeId().equals(item.getQuestionAttributeId()))
+                    .findFirst().orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Question attribute does not belong to this question"));
+            if (!retainedIds.add(row.getQuestionAttributeId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duplicate question attribute ID");
+            }
+            return row;
+        }
+        // Older clients may omit row IDs; reuse only an unambiguous identity.
+        List<QuestionAttribute> candidates = existing.stream()
+                .filter(row -> !retainedIds.contains(row.getQuestionAttributeId()))
+                .filter(row -> row.getAttribute() != null && row.getHeader() != null)
+                .filter(row -> java.util.Objects.equals(row.getAttribute().getAttributeId(), request.getAttributeId())
+                        && java.util.Objects.equals(row.getHeader().getHeaderId(), request.getHeaderId()))
+                .collect(Collectors.toList());
+        if (candidates.size() == 1) {
+            QuestionAttribute row = candidates.get(0);
+            retainedIds.add(row.getQuestionAttributeId());
+            return row;
+        }
+        if (candidates.size() > 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Ambiguous attributes: send questionAttributeId for each existing row");
+        }
+        return new QuestionAttribute();
+    }
+
+    static void validateEditedType(Question question, Long requestedTypeId) {
+        if (question.getQuestionType() == null ||
+                !java.util.Objects.equals(question.getQuestionType().getQuestionTypeId(), requestedTypeId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Question type cannot be changed during editing");
+        }
+    }
+
+    static void validateGenericUpdate(Question question, QuestionRequestDTO request) {
+        validateEditedType(question, request.getQuestionTypeId());
+        String type = String.valueOf(question.getQuestionType().getQuestionType()).toUpperCase()
+                .replaceAll("[\\s_-]", "");
+        if ((type.contains("FILL") && type.contains("BLANK")) || type.contains("CHOICE")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Use the type-specific question update endpoint");
+        }
+    }
+
+    // Journal/dropdown targets may intentionally use other headers. Trial-balance
+    // attributes must retain the header under which the attribute was defined.
+    static void validateAttributeHeader(Question question, TableHeader header, TableAttribute attribute) {
+        String type = question.getQuestionType() == null ? "" :
+                question.getQuestionType().getQuestionType();
+        if (type == null || !type.replaceAll("[\\s_-]", "").equalsIgnoreCase("DRAGANDDROP")) {
+            return;
+        }
+        TableHeader expected = attribute.getTableHeader();
+        if (expected == null || expected.getHeaderId() == null ||
+                !expected.getHeaderId().equals(header.getHeaderId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Header does not match attribute: " + attribute.getName());
+        }
+    }
 
     private final QuestionRepository questionRepository;
 
@@ -367,6 +433,7 @@ public class QuestionService {
                 );
 
 
+                validateAttributeHeader(savedQuestion, header, attribute);
                 questionAttribute.setHeader(header);
 
                 questionAttribute.setAttribute(attribute);
@@ -845,6 +912,8 @@ public class QuestionService {
                         );
 
 
+        validateGenericUpdate(question, request);
+
         Course course =
                 courseRepository
                         .findById(
@@ -936,13 +1005,9 @@ public class QuestionService {
         // DELETE OLD QUESTION ATTRIBUTES
         // =========================================================
 
-        questionAttributeRepository.flush();
-
-
-        questionAttributeRepository
-                .deleteByQuestion_QuestionId(
-                        questionId
-                );
+        List<QuestionAttribute> existingAttributes =
+                questionAttributeRepository.findByQuestion_QuestionId(questionId);
+        java.util.Set<Long> retainedAttributeIds = new java.util.HashSet<>();
 
 
         // =========================================================
@@ -1005,15 +1070,12 @@ public class QuestionService {
                                 );
 
 
-                QuestionAttribute questionAttribute =
-                        new QuestionAttribute();
+                QuestionAttribute questionAttribute = resolveUpdatedAttribute(
+                        existingAttributes, attributeRequest, retainedAttributeIds);
+                questionAttribute.setQuestion(savedQuestion);
 
 
-                questionAttribute.setQuestion(
-                        savedQuestion
-                );
-
-
+                validateAttributeHeader(savedQuestion, header, attribute);
                 questionAttribute.setHeader(header);
 
                 questionAttribute.setAttribute(attribute);
@@ -1055,6 +1117,10 @@ public class QuestionService {
         // =========================================================
         // SAVE MATCHING PAIRS
         // =========================================================
+
+        questionAttributeRepository.deleteAll(existingAttributes.stream()
+                .filter(row -> !retainedAttributeIds.contains(row.getQuestionAttributeId()))
+                .collect(Collectors.toList()));
 
         List<QuestionMatchingPair> savedPairs =
                 new ArrayList<>();
@@ -1487,6 +1553,11 @@ public class QuestionService {
                                 .getAttribute()
                                 .getName()
                 );
+                TableHeader attributeHeader = questionAttribute.getAttribute().getTableHeader();
+                if (attributeHeader != null) {
+                    attributeResponse.setAttributeHeaderId(attributeHeader.getHeaderId());
+                    attributeResponse.setAttributeHeaderName(attributeHeader.getName());
+                }
             }
 
 

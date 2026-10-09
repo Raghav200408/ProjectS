@@ -3,7 +3,8 @@ package com.project.ProjectS.service;
 import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.repository.*;
-import com.project.ProjectS.processor.MatchingQuestionExcelProcessor;
+import com.project.ProjectS.processor
+        .MatchingQuestionExcelProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -322,6 +323,8 @@ public class MatchingQuestionService {
                                         "Question not found"
                                 ));
 
+
+        QuestionService.validateEditedType(question, request.getQuestionTypeId());
 
         Course course =
                 courseRepository.findById(request.getCourseId())

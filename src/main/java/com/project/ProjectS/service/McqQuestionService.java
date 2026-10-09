@@ -347,6 +347,8 @@ public class McqQuestionService {
                         );
 
 
+        QuestionService.validateEditedType(question, request.getQuestionTypeId());
+
         McqQuestion mcqQuestion =
                 mcqQuestionRepository.findById(questionId)
                         .orElseThrow(() ->
@@ -840,7 +842,7 @@ public class McqQuestionService {
             );
 
             answerEvent.setDescription(
-                    "MCQ attempt"
+                    "MCQ attempt | selectedOptionIds=" + selectedIds.stream().sorted().toList()
             );
 
             answerEvent.setActiveRow(true);

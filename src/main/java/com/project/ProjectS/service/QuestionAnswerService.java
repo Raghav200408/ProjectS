@@ -4,6 +4,7 @@ package com.project.ProjectS.service;
 import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.QuestionAnswerRequestDTO;
 import com.project.ProjectS.model.QuestionAnswerResponseDTO;
+import com.project.ProjectS.model.RuleConditionDTO;
 import com.project.ProjectS.repository.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,13 +22,33 @@ public class QuestionAnswerService {
     private static final Logger log = LogManager.getLogger(QuestionAnswerService.class);
 
     @Autowired
-    public QuestionAnswerService(QuestionAnswerRepository questionAnswerRepository, UserRepository userRepository, QuestionRepository questionRepository, TableNameRepository tableNameRepository, TableHeaderRepository tableHeaderRepository, TableAttributeRepository tableAttributeRepository) {
+    public QuestionAnswerService(QuestionAnswerRepository questionAnswerRepository, UserRepository userRepository, QuestionRepository questionRepository, TableNameRepository tableNameRepository, TableHeaderRepository tableHeaderRepository, TableAttributeRepository tableAttributeRepository,
+            QuestionAttributeRepository questionAttributeRepository, RuleEngineService ruleEngineService,
+            AnswerEventRepository answerEventRepository) {
         this.questionAnswerRepository = questionAnswerRepository;
         this.userRepository = userRepository;
         this.questionRepository = questionRepository;
         this.tableNameRepository = tableNameRepository;
         this.tableHeaderRepository = tableHeaderRepository;
         this.tableAttributeRepository = tableAttributeRepository;
+        this.questionAttributeRepository = questionAttributeRepository;
+        this.ruleEngineService = ruleEngineService;
+        this.answerEventRepository = answerEventRepository;
+    }
+
+    public QuestionAnswerService(QuestionAnswerRepository questionAnswerRepository, UserRepository userRepository,
+            QuestionRepository questionRepository, TableNameRepository tableNameRepository,
+            TableHeaderRepository tableHeaderRepository, TableAttributeRepository tableAttributeRepository,
+            QuestionAttributeRepository questionAttributeRepository, RuleEngineService ruleEngineService) {
+        this(questionAnswerRepository, userRepository, questionRepository, tableNameRepository,
+                tableHeaderRepository, tableAttributeRepository, questionAttributeRepository, ruleEngineService, null);
+    }
+
+    public QuestionAnswerService(QuestionAnswerRepository questionAnswerRepository, UserRepository userRepository,
+            QuestionRepository questionRepository, TableNameRepository tableNameRepository,
+            TableHeaderRepository tableHeaderRepository, TableAttributeRepository tableAttributeRepository) {
+        this(questionAnswerRepository, userRepository, questionRepository, tableNameRepository,
+                tableHeaderRepository, tableAttributeRepository, null, null);
     }
 
     private final QuestionAnswerRepository questionAnswerRepository;
@@ -36,6 +57,9 @@ public class QuestionAnswerService {
     private final TableNameRepository tableNameRepository;
     private final TableHeaderRepository tableHeaderRepository;
     private final TableAttributeRepository tableAttributeRepository;
+    private final QuestionAttributeRepository questionAttributeRepository;
+    private final RuleEngineService ruleEngineService;
+    private final AnswerEventRepository answerEventRepository;
 
     public Long getAuthenticatedUserId(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
@@ -74,6 +98,35 @@ public class QuestionAnswerService {
                                 + request.getQuestionId()
                 )
         );
+        if (RuleEngineService.isFinalAccountsDragDrop(question)) {
+            user = lockFinalAccountsUser(request.getUserId());
+            QuestionAttribute row = questionAttributeRepository.findByQuestion_QuestionId(request.getQuestionId())
+                    .stream().filter(qa -> request.getQuestionAttributeId() != null
+                            && request.getQuestionAttributeId().equals(qa.getQuestionAttributeId())
+                            && qa.getAttribute() != null
+                            && qa.getAttribute().getAttributeId().equals(request.getAttributeId())
+                            && !Boolean.FALSE.equals(qa.getActiveRow()))
+                    .findFirst().orElseThrow(() -> new IllegalArgumentException("A valid question row is required"));
+            if (!ruleEngineService.validatesFinalAccountsPlacement(question, row, request.getTableNameId(),
+                    request.getHeaderId(), request.getArithmetic(), request.getAmount(), request.getConditionId())) {
+                throw new IllegalArgumentException("The placement or amount does not match this Final Accounts row");
+            }
+            // Saving is per effect. Treat a repeated request as a retry so a restored proforma cannot double-count it.
+            QuestionAnswer existing = questionAnswerRepository
+                    .findByUser_UserIdAndQuestion_QuestionIdAndActiveRowTrue(request.getUserId(), request.getQuestionId())
+                    .stream().filter(answer -> request.getQuestionAttributeId().equals(answer.getQuestionAttributeId())
+                            && java.util.Objects.equals(request.getConditionId(), answer.getConditionId())
+                            && answer.getTableName() != null && answer.getHeader() != null
+                            && request.getTableNameId().equals(answer.getTableName().getTableNameId())
+                            && request.getHeaderId().equals(answer.getHeader().getHeaderId())
+                            && answer.getArithmetic() != null
+                            && request.getArithmetic().trim().equalsIgnoreCase(answer.getArithmetic().trim())
+                            && answer.getAmount() != null && request.getAmount().compareTo(answer.getAmount()) == 0)
+                    .findFirst().orElse(null);
+            if (existing != null) {
+                return convertToResponse(existing);
+            }
+        }
         TableName tableName = null;
         if (request.getTableNameId() != null) {
 
@@ -141,6 +194,7 @@ public class QuestionAnswerService {
         answer.setHeader(header);
 
         answer.setAttribute(attribute);
+        answer.setQuestionAttributeId(request.getQuestionAttributeId());
 
         answer.setPairAttribute(pairAttribute);
 
@@ -225,6 +279,11 @@ public class QuestionAnswerService {
             Long userId,
             Long questionId) {
 
+        Question question = questionRepository.findById(questionId).orElse(null);
+        if (RuleEngineService.isFinalAccountsDragDrop(question)) {
+            lockFinalAccountsUser(userId);
+        }
+
         List<QuestionAnswer> answers =
                 questionAnswerRepository
                         .findByUser_UserIdAndQuestion_QuestionIdAndActiveRowTrue(
@@ -238,7 +297,35 @@ public class QuestionAnswerService {
 
         questionAnswerRepository.saveAll(answers);
 
+        // A fresh Final Accounts attempt must not inherit an AUTOFILL lock
+        // from the answers just reset. Both updates use this transaction,
+        // including when autofill succeeded but no placement was saved.
+        if (RuleEngineService.isFinalAccountsDragDrop(question)) {
+            answerEventRepository.deactivatePracticeAutofill(userId, questionId);
+        }
+
         return "Answers reset successfully";
+    }
+
+    public User lockFinalAccountsUser(Long userId) {
+        return userRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    }
+
+    public boolean hasFinalAccountsPlacement(Long userId, Question question, QuestionAttribute row,
+            RuleConditionDTO condition) {
+        long occurrences = questionAttributeRepository.findByQuestion_QuestionId(question.getQuestionId()).stream()
+                .filter(qa -> qa.getAttribute() != null && !Boolean.FALSE.equals(qa.getActiveRow())
+                        && qa.getAttribute().getAttributeId().equals(row.getAttribute().getAttributeId()))
+                .count();
+        return questionAnswerRepository.findByUser_UserIdAndQuestion_QuestionIdAndActiveRowTrue(userId, question.getQuestionId())
+                .stream().anyMatch(answer -> answer.getAttribute() != null
+                        && answer.getAttribute().getAttributeId().equals(row.getAttribute().getAttributeId())
+                        && (row.getQuestionAttributeId().equals(answer.getQuestionAttributeId())
+                            || (answer.getQuestionAttributeId() == null && occurrences == 1))
+                        && answer.getTableName() != null && answer.getHeader() != null
+                        && RuleEngineService.matchesPlacement(condition, row, answer.getTableName().getTableNameId(),
+                                answer.getHeader().getHeaderId(), answer.getArithmetic(), answer.getAmount()));
     }
 
     private QuestionAnswerResponseDTO convertToResponse(
@@ -251,6 +338,7 @@ public class QuestionAnswerService {
         response.setAnswerId(
                 answer.getAnswerId()
         );
+        response.setQuestionAttributeId(answer.getQuestionAttributeId());
 
 
         if (answer.getUser() != null) {

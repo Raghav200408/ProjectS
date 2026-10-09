@@ -1,5 +1,9 @@
 package com.project.ProjectS.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.project.ProjectS.entity.AnswerEvent;
 import com.project.ProjectS.entity.Exam;
 import com.project.ProjectS.entity.McqOption;
@@ -49,6 +53,9 @@ import java.util.stream.Stream;
 @Service
 public class ExamScoringService {
     private static final Logger log = LogManager.getLogger(ExamScoringService.class);
+
+    private static final ObjectMapper ANSWER_JSON = new ObjectMapper()
+            .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
 
     /**
      * Marks awarded and the maximum that could have been awarded, plus the
@@ -125,6 +132,16 @@ public class ExamScoringService {
                                     questionId.equals(answer.getQuestionId()))
                             .findFirst()
                             .orElse(null);
+
+            Question storedQuestion = questionRepository.findById(questionId).orElse(null);
+            if (RuleEngineService.isFinalAccountsDragDrop(storedQuestion)) {
+                QuestionScore finalAccountsScore = scoreFinalAccounts(storedQuestion,
+                        submittedQuestion == null ? List.of() : submittedQuestion.getAnswers());
+                totalMarks += finalAccountsScore.earnedMarks();
+                maximumMarks += finalAccountsScore.maxMarks();
+                questionScores.add(finalAccountsScore);
+                continue;
+            }
 
             if (submittedQuestion == null) {
                 continue;
@@ -214,6 +231,138 @@ public class ExamScoringService {
         }
 
         return new Score(totalMarks, maximumMarks, questionScores);
+    }
+
+    /**
+     * How many marks one question is worth, independent of any attempt:
+     * 1 for an MCQ (single or multiple choice), or the number of distinct
+     * accounting attributes for every other question type. The same formula
+     * {@link #score} applies inline for its own maximumMarks - this is a
+     * separate, standalone copy for ExamService.addQuestionsToExam to store
+     * on exam_questions when a question is added to an exam. score() itself
+     * is not changed.
+     */
+    public double computeQuestionMaxMarks(Long questionId) {
+
+        Question question = questionRepository.findById(questionId).orElse(null);
+
+        if (question == null) {
+            return 0;
+        }
+
+        String questionType = normalizeQuestionType(
+                question.getQuestionType() != null
+                        ? question.getQuestionType().getQuestionType()
+                        : null);
+
+        boolean isMcq = "SINGLE_CHOICE".equals(questionType)
+                || "MULTIPLE_CHOICE".equals(questionType);
+
+        if (isMcq) {
+            return 1;
+        }
+
+        return questionAttributeRepository.findByQuestion_QuestionId(questionId)
+                .stream()
+                .filter(qa -> qa.getAttribute() != null)
+                .map(qa -> qa.getAttribute().getAttributeId())
+                .distinct()
+                .count();
+    }
+
+    private QuestionScore scoreFinalAccounts(Question question, List<ExamAnswerDTO> submitted) {
+        List<QuestionAttribute> rows = questionAttributeRepository.findByQuestion_QuestionId(question.getQuestionId())
+                .stream().filter(qa -> qa.getAttribute() != null && !Boolean.FALSE.equals(qa.getActiveRow())).toList();
+        Map<Long, List<ExamAnswerDTO>> byRow = new HashMap<>();
+        boolean unknownRow = false;
+        for (ExamAnswerDTO answer : submitted == null ? List.<ExamAnswerDTO>of() : submitted) {
+            QuestionAttribute row = findFinalAccountsRow(rows, answer);
+            if (row == null) {
+                unknownRow = true;
+            } else {
+                byRow.computeIfAbsent(row.getQuestionAttributeId(), ignored -> new ArrayList<>()).add(answer);
+            }
+        }
+        double earned = 0;
+        for (QuestionAttribute row : rows) {
+            if (completeFinalAccountsRow(question, row, byRow.get(row.getQuestionAttributeId()))) {
+                earned++;
+            }
+        }
+        return new QuestionScore(question.getQuestionId(), !unknownRow && !rows.isEmpty() && earned == rows.size(),
+                unknownRow ? 0 : earned, rows.size());
+    }
+
+    private QuestionAttribute findFinalAccountsRow(List<QuestionAttribute> rows, ExamAnswerDTO answer) {
+        if (answer == null || answer.getAnsweredData() == null) {
+            return null;
+        }
+        Map<String, Object> data = answer.getAnsweredData();
+        Long attributeId = getLongValue(data.get("attributeId"));
+        Long rowId = getLongValue(data.get("questionAttributeId"));
+        List<QuestionAttribute> matching = rows.stream()
+                .filter(qa -> qa.getAttribute() != null
+                        && Objects.equals(attributeId, qa.getAttribute().getAttributeId())
+                        && !Boolean.FALSE.equals(qa.getActiveRow())
+                        && (rowId == null || Objects.equals(rowId, qa.getQuestionAttributeId())))
+                .toList();
+        // Old submissions without row IDs are only unambiguous for one occurrence of an account.
+        return matching.size() == 1 ? matching.get(0) : null;
+    }
+
+    private boolean completeFinalAccountsRow(Question question, QuestionAttribute row, List<ExamAnswerDTO> answers) {
+        if (answers == null || answers.isEmpty()) {
+            return false;
+        }
+        List<RuleEngineResponse> rules = ruleEngineService.getRuleEngineByAttributeId(
+                row.getAttribute().getAttributeId(), question.getChapter().getChapterId());
+        if (rules == null) {
+            return false;
+        }
+        for (RuleEngineResponse rule : rules) {
+            List<RuleConditionDTO> conditions = RuleEngineService.conditions(rule);
+            if (conditions.isEmpty() || conditions.size() != answers.size()) {
+                continue;
+            }
+            Set<Integer> matched = new HashSet<>();
+            boolean complete = true;
+            for (RuleConditionDTO condition : conditions) {
+                int match = -1;
+                for (int index = 0; index < answers.size(); index++) {
+                    if (!matched.contains(index) && matchesFinalAccountsCondition(answers.get(index), condition, row)) {
+                        match = index;
+                        break;
+                    }
+                }
+                if (match < 0) {
+                    complete = false;
+                    break;
+                }
+                matched.add(match);
+            }
+            if (complete) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean matchesFinalAccountsCondition(ExamAnswerDTO answer, RuleConditionDTO condition, QuestionAttribute row) {
+        if (answer == null || answer.getAnsweredData() == null) {
+            return false;
+        }
+        Map<String, Object> data = answer.getAnsweredData();
+        Long tableId = getLongValue(data.get("tableNameId"));
+        Long headerId = getLongValue(data.get("headerId"));
+        if (tableId == null && data.get("tableName") != null) {
+            tableId = ruleEngineService.resolveFinalAccountsTableId(data.get("tableName").toString());
+        }
+        if (headerId == null && data.get("headerName") != null) {
+            headerId = ruleEngineService.resolveFinalAccountsHeaderId(data.get("headerName").toString());
+        }
+        return RuleEngineService.matchesPlacement(condition, row, tableId, headerId,
+                data.get("arithmetic") == null ? null : data.get("arithmetic").toString(),
+                getBigDecimalValue(data.get("amount")));
     }
 
     private boolean checkMcqAnswer(
@@ -606,8 +755,10 @@ public class ExamScoringService {
         }
 
         Map<Long, Boolean> correctByQuestionId = new HashMap<>();
+        Map<Long, Double> marksByQuestionId = new HashMap<>();
         for (QuestionScore questionScore : questionScores) {
             correctByQuestionId.put(questionScore.questionId(), questionScore.correct());
+            marksByQuestionId.put(questionScore.questionId(), questionScore.earnedMarks());
         }
 
         List<ExamQuestionAnswerDTO> answers =
@@ -627,6 +778,10 @@ public class ExamScoringService {
             }
 
             Boolean questionCorrect = correctByQuestionId.get(submittedQuestion.getQuestionId());
+            Double questionMarks = marksByQuestionId.get(submittedQuestion.getQuestionId());
+            BigDecimal questionMarksDecimal = questionMarks == null
+                    ? null
+                    : BigDecimal.valueOf(questionMarks);
 
             List<QuestionAttribute> questionAttributes =
                     questionAttributeRepository.findByQuestion_QuestionId(
@@ -635,6 +790,43 @@ public class ExamScoringService {
             // Caches the Rule Engine lookup per attribute for this question,
             // since several submitted lines can share the same attribute.
             Map<Long, List<RuleEngineResponse>> rulesByAttributeId = new HashMap<>();
+
+            if (RuleEngineService.isFinalAccountsDragDrop(question)) {
+                Map<Long, List<ExamAnswerDTO>> byRow = new HashMap<>();
+                for (ExamAnswerDTO line : submittedQuestion.getAnswers()) {
+                    QuestionAttribute row = findFinalAccountsRow(questionAttributes, line);
+                    if (row != null) {
+                        byRow.computeIfAbsent(row.getQuestionAttributeId(), ignored -> new ArrayList<>()).add(line);
+                    }
+                }
+                for (ExamAnswerDTO line : submittedQuestion.getAnswers()) {
+                    if (line == null || line.getAnsweredData() == null) {
+                        continue;
+                    }
+                    Map<String, Object> data = line.getAnsweredData();
+                    QuestionAttribute row = findFinalAccountsRow(questionAttributes, line);
+                    AnswerEvent event = new AnswerEvent();
+                    event.setUser(user);
+                    event.setQuestion(question);
+                    event.setAttribute(row == null ? null : row.getAttribute());
+                    event.setQuestionAttributeId(row == null ? null : row.getQuestionAttributeId());
+                    event.setEventType("EXAM_SUBMIT");
+                    event.setDescription(Objects.toString(data.get("info"), ""));
+                    try {
+                        // Keep human descriptions compatible; retain the actual row and selected amount separately.
+                        event.setUserAnswer(ANSWER_JSON.writeValueAsString(data));
+                    } catch (Exception exception) {
+                        throw new IllegalArgumentException("Cannot save Final Accounts answer", exception);
+                    }
+                    event.setIsCorrect(row != null && completeFinalAccountsRow(question, row,
+                            byRow.get(row.getQuestionAttributeId())));
+                    event.setMarks(questionMarksDecimal);
+                    event.setExam(exam);
+                    event.setMockExam(mockExam);
+                    answerEventRepository.save(event);
+                }
+                continue;
+            }
 
             for (ExamAnswerDTO answerLine : submittedQuestion.getAnswers()) {
 
@@ -688,6 +880,12 @@ public class ExamScoringService {
                     event.setEventType("EXAM_SUBMIT");
                     event.setDescription(info.toString());
                     event.setIsCorrect(lineCorrect);
+                    // The whole question's earned marks, repeated on every
+                    // row for it - same convention as questionCorrect below.
+                    // Lets a reader find how many marks a student earned on
+                    // one question with user_id + question_id + exam_id,
+                    // without recomputing it from is_correct.
+                    event.setMarks(questionMarksDecimal);
                     event.setExam(exam);
                     event.setMockExam(mockExam);
 
@@ -703,6 +901,7 @@ public class ExamScoringService {
                     event.setOptionId(optionId);
                     event.setEventType("EXAM_SUBMIT");
                     event.setIsCorrect(questionCorrect);
+                    event.setMarks(questionMarksDecimal);
                     event.setExam(exam);
                     event.setMockExam(mockExam);
 
@@ -841,6 +1040,43 @@ public class ExamScoringService {
                         .map(McqOption::getOptionId)
                         .toList();
 
+            } else if (RuleEngineService.isFinalAccountsDragDrop(questionEvents.get(0).getQuestion())) {
+
+                List<ExamAnswerDTO> preservedAnswers = new ArrayList<>();
+                for (AnswerEvent event : questionEvents) {
+                    if (event.getUserAnswer() == null || !event.getUserAnswer().trim().startsWith("{")) {
+                        ParsedAnswerInfo parsed = parseAnswerInfo(event.getDescription());
+                        List<QuestionAttribute> matchingRows = questionAttributeRepository.findByQuestion_QuestionId(questionId)
+                                .stream().filter(qa -> qa.getAttribute() != null && event.getAttribute() != null
+                                        && qa.getAttribute().getAttributeId().equals(event.getAttribute().getAttributeId()))
+                                .toList();
+                        if (parsed != null && matchingRows.size() == 1) {
+                            QuestionAttribute row = matchingRows.get(0);
+                            Map<String, Object> legacy = new HashMap<>();
+                            legacy.put("tableName", parsed.tableName());
+                            legacy.put("headerName", parsed.headerName());
+                            legacy.put("attributeId", row.getAttribute().getAttributeId());
+                            legacy.put("questionAttributeId", row.getQuestionAttributeId());
+                            legacy.put("arithmetic", parsed.arithmetic());
+                            legacy.put("amount", row.getAmount());
+                            legacy.put("status", Boolean.TRUE.equals(event.getIsCorrect()) ? "correct" : "wrong");
+                            ExamAnswerDTO answer = new ExamAnswerDTO();
+                            answer.setAnsweredData(legacy);
+                            preservedAnswers.add(answer);
+                        }
+                        continue;
+                    }
+                    try {
+                        Map<String, Object> data = ANSWER_JSON.readValue(event.getUserAnswer(), new TypeReference<>() {});
+                        data.put("status", Boolean.TRUE.equals(event.getIsCorrect()) ? "correct" : "wrong");
+                        ExamAnswerDTO answer = new ExamAnswerDTO();
+                        answer.setAnsweredData(data);
+                        preservedAnswers.add(answer);
+                    } catch (Exception exception) {
+                        // An old or incomplete description cannot safely reconstruct a submitted amount.
+                    }
+                }
+                answers = preservedAnswers;
             } else {
 
                 List<QuestionAttribute> questionAttributes =

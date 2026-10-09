@@ -11,12 +11,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Mock-exam module. Mirrors {@link ExamService} but for practice papers:
  * a mock exam is scoped only to a course + chapters (no college / branch /
- * section, no start / end window). The listing is deliberately role-agnostic
- * - every authenticated user sees every mock exam.
+ * section, no start / end window). The listing has no org scoping - every
+ * admin sees every mock exam - but a student or guest never sees one
+ * they've already submitted, the same rule real exams apply.
  */
 @Transactional
 @Service
@@ -82,6 +85,7 @@ public class MockExamService {
         mockExam.setMockExamName(request.getMockExamName());
         mockExam.setCourse(course);
         mockExam.setChapters(chapters);
+        mockExam.setDurationMinutes(request.getDurationMinutes());
         mockExam.setPassPercentage(request.getPassPercentage());
         mockExam.setActiveRow(true);
         mockExam.setRowStatus(1);
@@ -91,12 +95,33 @@ public class MockExamService {
 
 
     /**
-     * Every mock exam, for every authenticated caller - no role scoping.
+     * Every mock exam - except one a student/guest has already submitted,
+     * which drops off their own list exactly as a real exam does. An admin
+     * (or an unauthenticated/role-less caller) still sees everything, since
+     * they manage papers rather than attempt them.
      */
-    public List<MockExamResponseDTO> getAllMockExams() {
+    public List<MockExamResponseDTO> getAllMockExams(Authentication authentication) {
 
-        return mockExamRepository
-                .findAll()
+        List<MockExam> mockExams = mockExamRepository.findAll();
+
+        User user = getLoggedInUser(authentication);
+
+        if (user != null && authentication != null && isStudent(authentication)) {
+
+            Set<Long> attemptedMockExamIds =
+                    mockExamResultRepository
+                            .findByUser_UserIdOrderByCreatedAtDesc(user.getUserId())
+                            .stream()
+                            .map(result -> result.getMockExam().getMockExamId())
+                            .collect(Collectors.toSet());
+
+            mockExams = mockExams.stream()
+                    .filter(mockExam ->
+                            !attemptedMockExamIds.contains(mockExam.getMockExamId()))
+                    .toList();
+        }
+
+        return mockExams
                 .stream()
                 .map(this::convertToResponse)
                 .toList();
@@ -140,6 +165,7 @@ public class MockExamService {
         mockExam.setMockExamName(request.getMockExamName());
         mockExam.setCourse(course);
         mockExam.setChapters(chapters);
+        mockExam.setDurationMinutes(request.getDurationMinutes());
         mockExam.setPassPercentage(request.getPassPercentage());
 
         return convertToResponse(mockExamRepository.save(mockExam));
@@ -553,6 +579,7 @@ public class MockExamService {
                         .map(Chapter::getName)
                         .toList()
         );
+        response.setDurationMinutes(mockExam.getDurationMinutes());
         response.setPassPercentage(mockExam.getPassPercentage());
         response.setActiveRow(mockExam.getActiveRow());
         response.setRowStatus(mockExam.getRowStatus());

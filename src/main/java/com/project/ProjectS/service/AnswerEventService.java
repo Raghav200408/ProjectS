@@ -26,13 +26,24 @@ public class AnswerEventService {
             UserRepository userRepository,
             QuestionRepository questionRepository,
             TableAttributeRepository tableAttributeRepository,
-            QuestionFillBlankAnswerRepository fillBlankAnswerRepository) {
+            QuestionFillBlankAnswerRepository fillBlankAnswerRepository,
+            QuestionAttributeRepository questionAttributeRepository,
+            RuleEngineService ruleEngineService) {
 
         this.answerEventRepository = answerEventRepository;
         this.userRepository = userRepository;
         this.questionRepository = questionRepository;
         this.tableAttributeRepository = tableAttributeRepository;
         this.fillBlankAnswerRepository = fillBlankAnswerRepository;
+        this.questionAttributeRepository = questionAttributeRepository;
+        this.ruleEngineService = ruleEngineService;
+    }
+
+    public AnswerEventService(AnswerEventRepository answerEventRepository, UserRepository userRepository,
+            QuestionRepository questionRepository, TableAttributeRepository tableAttributeRepository,
+            QuestionFillBlankAnswerRepository fillBlankAnswerRepository) {
+        this(answerEventRepository, userRepository, questionRepository, tableAttributeRepository,
+                fillBlankAnswerRepository, null, null);
     }
 
     private final AnswerEventRepository answerEventRepository;
@@ -40,6 +51,8 @@ public class AnswerEventService {
     private final QuestionRepository questionRepository;
     private final TableAttributeRepository tableAttributeRepository;
     private final QuestionFillBlankAnswerRepository fillBlankAnswerRepository;
+    private final QuestionAttributeRepository questionAttributeRepository;
+    private final RuleEngineService ruleEngineService;
 
     public AnswerEventResponseDTO createEvent(
             AnswerEventRequestDTO request,
@@ -142,6 +155,25 @@ public class AnswerEventService {
          */
         Boolean finalIsCorrect = request.getIsCorrect();
 
+        boolean isFinalAccounts = RuleEngineService.isFinalAccountsDragDrop(question);
+        if (isFinalAccounts) {
+            QuestionAttribute row = questionAttributeRepository.findByQuestion_QuestionId(request.getQuestionId())
+                    .stream().filter(qa -> request.getQuestionAttributeId() != null
+                            && request.getQuestionAttributeId().equals(qa.getQuestionAttributeId())
+                            && qa.getAttribute() != null
+                            && qa.getAttribute().getAttributeId().equals(request.getAttributeId())
+                            && !Boolean.FALSE.equals(qa.getActiveRow()))
+                    .findFirst().orElseThrow(() -> new IllegalArgumentException("A valid question row is required"));
+            if ("ANSWER".equals(eventType)) {
+                Long tableId = request.getTableNameId() != null ? request.getTableNameId()
+                        : ruleEngineService.resolveFinalAccountsTableId(request.getTableName());
+                Long headerId = request.getHeaderId() != null ? request.getHeaderId()
+                        : ruleEngineService.resolveFinalAccountsHeaderId(request.getHeaderName());
+                finalIsCorrect = ruleEngineService.validatesFinalAccountsPlacement(question, row,
+                        tableId, headerId, request.getArithmetic(), request.getAmount(), request.getConditionId());
+            }
+        }
+
 
         switch (eventType) {
 
@@ -158,7 +190,12 @@ public class AnswerEventService {
                  *
                  * Attribute is not required.
                  */
-                if (isFillInTheBlank) {
+                if (isFinalAccounts) {
+                    autoFillUsed = answerEventRepository
+                            .existsByUser_UserIdAndQuestion_QuestionIdAndQuestionAttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+                                    request.getUserId(), request.getQuestionId(), request.getQuestionAttributeId(),
+                                    request.getAnswerPosition(), "AUTOFILL");
+                } else if (isFillInTheBlank) {
 
                     autoFillUsed =
                             answerEventRepository
@@ -205,7 +242,12 @@ public class AnswerEventService {
                 /*
                  * Fill in the Blank attempt count.
                  */
-                if (isFillInTheBlank) {
+                if (isFinalAccounts) {
+                    previousAttempts = answerEventRepository
+                            .countByUser_UserIdAndQuestion_QuestionIdAndQuestionAttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+                                    request.getUserId(), request.getQuestionId(), request.getQuestionAttributeId(),
+                                    request.getAnswerPosition(), "ANSWER");
+                } else if (isFillInTheBlank) {
 
                     previousAttempts =
                             answerEventRepository
@@ -288,7 +330,12 @@ public class AnswerEventService {
                 /*
                  * Fill in the Blank hint attempt count.
                  */
-                if (isFillInTheBlank) {
+                if (isFinalAccounts) {
+                    previousAttempts = answerEventRepository
+                            .countByUser_UserIdAndQuestion_QuestionIdAndQuestionAttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+                                    request.getUserId(), request.getQuestionId(), request.getQuestionAttributeId(),
+                                    request.getAnswerPosition(), "ANSWER");
+                } else if (isFillInTheBlank) {
 
                     previousAttempts =
                             answerEventRepository
@@ -354,6 +401,7 @@ public class AnswerEventService {
         event.setQuestion(question);
 
         event.setAttribute(attribute);
+        event.setQuestionAttributeId(isFinalAccounts ? request.getQuestionAttributeId() : null);
 
 
         event.setAnswerPosition(
@@ -562,6 +610,11 @@ public class AnswerEventService {
     }
 
 
+    public List<AnswerEventResponseDTO> getCurrentPracticeEvents(Long userId, Long questionId) {
+        return answerEventRepository.findCurrentPracticeEvents(userId, questionId)
+                .stream().map(this::convertToResponse).toList();
+    }
+
     public int resetEvents(
             Long userId,
             Long questionId) {
@@ -655,6 +708,8 @@ public class AnswerEventService {
         response.setAnswerEventId(
                 event.getAnswerEventId()
         );
+        response.setQuestionAttributeId(event.getQuestionAttributeId());
+        response.setOptionId(event.getOptionId());
 
 
         if (event.getUser() != null) {

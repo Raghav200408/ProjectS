@@ -370,6 +370,8 @@ public class FillInTheBlankQuestionService {
                                 ));
 
 
+        QuestionService.validateEditedType(question, request.getQuestionTypeId());
+
         Course course =
                 courseRepository.findById(request.getCourseId())
                         .orElseThrow(() ->

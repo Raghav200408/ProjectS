@@ -45,6 +45,14 @@ public class ExamRequestDTO {
     @Future(message = "End date and time must be in the future")
     private LocalDateTime endDate;
 
+    // Minutes a student gets once they start. Time left shown is
+    // min(durationMinutes, endDate - now), so a late start on a scheduled
+    // exam still can't run past endDate.
+    @NotNull(message = "Duration is required")
+    @Min(value = 1, message = "Duration must be at least 1 minute")
+    @Max(value = 1440, message = "Duration must be at most 24 hours")
+    private Integer durationMinutes;
+
     @NotNull(message = "Pass percentage is required")
     @Min(value = 0, message = "Pass percentage must be at least 0")
     @Max(value = 100, message = "Pass percentage must be at most 100")

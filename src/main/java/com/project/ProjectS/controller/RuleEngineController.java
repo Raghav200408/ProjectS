@@ -98,8 +98,9 @@ public class RuleEngineController {
 
     @GetMapping("/attribute/{attributeId}")
     public List<RuleEngineResponse> getRuleEngine(
-            @PathVariable Long attributeId) {
-        return service.getRuleEngineByAttributeId(attributeId);
+            @PathVariable Long attributeId,
+            @RequestParam(required = false) Long chapterId) {
+        return service.getRuleEngineByAttributeId(attributeId, chapterId);
     }
 }
 

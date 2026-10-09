@@ -13,6 +13,34 @@ import java.util.List;
 public interface AnswerEventRepository
         extends JpaRepository<AnswerEvent, Long> {
 
+    @Query("""
+            SELECT ae FROM AnswerEvent ae
+            WHERE ae.user.userId = :userId AND ae.question.questionId = :questionId
+              AND ae.activeRow = true AND ae.exam IS NULL AND ae.mockExam IS NULL
+            ORDER BY ae.answerEventId
+            """)
+    List<AnswerEvent> findCurrentPracticeEvents(@Param("userId") Long userId,
+            @Param("questionId") Long questionId);
+
+    long countByUser_UserIdAndQuestion_QuestionIdAndQuestionAttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+            Long userId, Long questionId, Long questionAttributeId, Integer answerPosition, String eventType);
+
+    boolean existsByUser_UserIdAndQuestion_QuestionIdAndQuestionAttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+            Long userId, Long questionId, Long questionAttributeId, Integer answerPosition, String eventType);
+
+    @Query("""
+            SELECT ae FROM AnswerEvent ae
+            WHERE ae.user.userId = :userId AND ae.question.questionId = :questionId
+              AND (ae.questionAttributeId = :rowId
+                   OR (ae.questionAttributeId IS NULL AND ae.attribute.attributeId = :attributeId))
+              AND ae.answerPosition = :position AND ae.eventType = 'AUTOFILL'
+              AND ae.activeRow = true AND ae.exam IS NULL AND ae.mockExam IS NULL
+            ORDER BY ae.answerEventId
+            """)
+    List<AnswerEvent> findPracticeAutofill(@Param("userId") Long userId,
+            @Param("questionId") Long questionId, @Param("rowId") Long rowId,
+            @Param("attributeId") Long attributeId, @Param("position") Integer position);
+
     // MCQ attempt count
     long countByUser_UserIdAndQuestion_QuestionIdAndEventTypeAndActiveRowTrue(
             Long userId,
@@ -82,6 +110,24 @@ public interface AnswerEventRepository
     // mock-exam attempts must never be blended into this.
     List<AnswerEvent> findByUser_UserIdAndExamIsNullAndMockExamIsNull(Long userId);
 
+    // Reset the current practice autofill lock without discarding scored
+    // attempts, hints, or events belonging to an exam or mock exam.
+    @Modifying(flushAutomatically = true)
+    @Query("""
+                UPDATE AnswerEvent ae
+                SET ae.activeRow = false
+                WHERE ae.user.userId = :userId
+                  AND ae.question.questionId = :questionId
+                  AND ae.eventType = 'AUTOFILL'
+                  AND ae.activeRow = true
+                  AND ae.exam IS NULL
+                  AND ae.mockExam IS NULL
+            """)
+    int deactivatePracticeAutofill(
+            @Param("userId") Long userId,
+            @Param("questionId") Long questionId
+    );
+
     @Modifying
     @Query("""
                 UPDATE AnswerEvent ae
@@ -89,6 +135,7 @@ public interface AnswerEventRepository
                 WHERE ae.user.userId = :userId
                   AND ae.question.questionId = :questionId
                   AND ae.activeRow = true
+                  AND ae.exam IS NULL AND ae.mockExam IS NULL
             """)
     int deactivateByUserAndQuestion(
             @Param("userId") Long userId,
