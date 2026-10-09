@@ -22,6 +22,8 @@ import com.project.ProjectS.repository.QuestionAttributeRepository;
 import com.project.ProjectS.repository.QuestionRepository;
 import com.project.ProjectS.repository.TableHeaderRepository;
 import com.project.ProjectS.repository.TableNameRepository;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -46,6 +48,7 @@ import java.util.stream.Stream;
  */
 @Service
 public class ExamScoringService {
+    private static final Logger log = LogManager.getLogger(ExamScoringService.class);
 
     /**
      * Marks awarded and the maximum that could have been awarded, plus the

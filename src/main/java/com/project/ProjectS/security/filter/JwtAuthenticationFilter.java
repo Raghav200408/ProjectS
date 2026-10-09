@@ -1,5 +1,6 @@
 package com.project.ProjectS.security.filter;
 
+import com.project.ProjectS.config.AuditLogger;
 import com.project.ProjectS.security.jwt.JwtUtil;
 import com.project.ProjectS.security.service.CustomUserDetailsService;
 
@@ -23,15 +24,17 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, CustomUserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, CustomUserDetailsService userDetailsService, AuditLogger auditLogger) {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
+        this.auditLogger = auditLogger;
     }
 
 
     private static final Logger logger = LogManager.getLogger(JwtAuthenticationFilter.class);
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
+    private final AuditLogger auditLogger;
 
     @Override
     protected void doFilterInternal(
@@ -49,6 +52,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
 
                     logger.debug("JWT NOT FOUND");
+            auditLogger.log("TOKEN_VALIDATION", request.getRemoteUser(), "REQUEST", null, "MISSING", request.getRequestURI());
 
             filterChain.doFilter(request, response);
             return;
@@ -61,6 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String email = jwtUtil.extractEmail(token);
 
                         logger.debug("JWT EMAIL: {}", email);
+            auditLogger.log("TOKEN_VALIDATION", email, "JWT", null, "ATTEMPT", request.getRequestURI());
 
             if (email != null &&
                     SecurityContextHolder.getContext()
@@ -96,15 +101,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             .setAuthentication(authentication);
 
                     logger.info("JWT AUTHENTICATION SUCCESS");
+                    auditLogger.log("TOKEN_VALIDATION", email, "JWT", null, "SUCCESS", request.getRequestURI());
                 } else {
 
                     logger.warn("JWT INVALID");
+                    auditLogger.log("TOKEN_VALIDATION", email, "JWT", null, "INVALID", request.getRequestURI());
                 }
             }
 
         } catch (Exception e) {
 
             logger.error("JWT AUTHENTICATION ERROR: {}", e.getMessage(), e);
+            auditLogger.log("TOKEN_VALIDATION", null, "JWT", null, "ERROR", e.getMessage());
 
                         SecurityContextHolder.clearContext();
         }

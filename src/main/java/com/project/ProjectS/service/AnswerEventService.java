@@ -5,6 +5,8 @@ import com.project.ProjectS.model.AnswerEventRequestDTO;
 import com.project.ProjectS.model.AnswerEventResponseDTO;
 import com.project.ProjectS.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.Authentication;
@@ -16,6 +18,7 @@ import java.util.Objects;
 @Service
 @Transactional
 public class AnswerEventService {
+    private static final Logger log = LogManager.getLogger(AnswerEventService.class);
 
     @Autowired
     public AnswerEventService(

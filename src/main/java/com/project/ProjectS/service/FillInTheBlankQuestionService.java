@@ -5,6 +5,8 @@ import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,7 @@ import java.util.Map;
 @Service
 @Transactional
 public class FillInTheBlankQuestionService {
+    private static final Logger log = LogManager.getLogger(FillInTheBlankQuestionService.class);
 
     @Autowired
     private QuestionRepository questionRepository;

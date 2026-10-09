@@ -4,12 +4,15 @@ import com.project.ProjectS.entity.TableHeader;
 import com.project.ProjectS.model.TableHeaderRequestDTO;
 import com.project.ProjectS.repository.TableHeaderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
 
 @Service
 public class TableHeaderService {
+    private static final Logger log = LogManager.getLogger(TableHeaderService.class);
     @Autowired
     public TableHeaderService(TableHeaderRepository repository) {
         this.repository = repository;

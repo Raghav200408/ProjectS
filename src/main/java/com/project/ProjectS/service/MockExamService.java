@@ -1,9 +1,12 @@
 package com.project.ProjectS.service;
 
+import com.project.ProjectS.config.AuditLogger;
 import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.repository.*;
 import org.springframework.security.core.Authentication;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +21,7 @@ import java.util.List;
 @Transactional
 @Service
 public class MockExamService {
+    private static final Logger log = LogManager.getLogger(MockExamService.class);
 
     private final MockExamRepository mockExamRepository;
     private final MockExamQuestionRepository mockExamQuestionRepository;
@@ -29,6 +33,7 @@ public class MockExamService {
     private final UserRepository userRepository;
     private final SubscriptionEntitlementService entitlementService;
     private final ExamScoringService examScoringService;
+    private final AuditLogger auditLogger;
 
     public MockExamService(
             MockExamRepository mockExamRepository,
@@ -40,7 +45,8 @@ public class MockExamService {
             QuestionService questionService,
             UserRepository userRepository,
             SubscriptionEntitlementService entitlementService,
-            ExamScoringService examScoringService) {
+            ExamScoringService examScoringService,
+            AuditLogger auditLogger) {
 
         this.mockExamRepository = mockExamRepository;
         this.mockExamQuestionRepository = mockExamQuestionRepository;
@@ -52,6 +58,7 @@ public class MockExamService {
         this.userRepository = userRepository;
         this.entitlementService = entitlementService;
         this.examScoringService = examScoringService;
+        this.auditLogger = auditLogger;
     }
 
 
@@ -323,6 +330,11 @@ public class MockExamService {
             Long mockExamId,
             MockExamSubmitRequestDTO request) {
 
+        log.info("Submitting mock exam: mockExamId={} userId={} answerCount={} timeTakenSeconds={}",
+                mockExamId, request.getUserId(), request.getAnswers() == null ? 0 : request.getAnswers().size(),
+                request.getTimeTakenSeconds());
+        auditLogger.log("MOCK_EXAM_SUBMISSION", userRepository.findById(request.getUserId()).map(User::getEmail).orElse(null), "MOCK_EXAM", mockExamId, "ATTEMPT", "answers=" + (request.getAnswers() == null ? 0 : request.getAnswers().size()));
+
         MockExam mockExam = mockExamRepository.findById(mockExamId)
                 .orElseThrow(() ->
                         new RuntimeException(
@@ -365,6 +377,11 @@ public class MockExamService {
         response.setUserId(user.getUserId());
         response.setTotalMarks(score.totalMarks());
         response.setPercentage(score.percentage());
+
+        log.info("Mock exam submitted successfully: mockExamId={} userId={} resultId={} totalMarks={} percentage={}",
+                mockExamId, user.getUserId(), result.getMockExamResultId(), score.totalMarks(), score.percentage());
+        auditLogger.log("MOCK_EXAM_SUBMISSION", user.getEmail(), "MOCK_EXAM", mockExamId, "SUCCESS",
+                "resultId=" + result.getMockExamResultId() + ", percentage=" + score.percentage() + ", totalMarks=" + score.totalMarks());
 
         return response;
     }

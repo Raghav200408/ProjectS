@@ -6,6 +6,8 @@ import com.project.ProjectS.model.ActivitySessionResponseDTO;
 import com.project.ProjectS.repository.UserActivitySessionRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -17,6 +19,7 @@ import java.util.UUID;
 
 @Service
 public class UserActivitySessionService {
+    private static final Logger log = LogManager.getLogger(UserActivitySessionService.class);
     public static final String ACTIVE = "ACTIVE";
     public static final String IDLE = "IDLE";
     public static final String CLOSED = "CLOSED";

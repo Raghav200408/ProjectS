@@ -1,8 +1,11 @@
 package com.project.ProjectS.service;
 
+import com.project.ProjectS.config.AuditLogger;
 import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.repository.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +18,7 @@ import com.project.ProjectS.security.service.CustomUserDetails;
 @Transactional
 @Service
 public class ExamService {
+    private static final Logger log = LogManager.getLogger(ExamService.class);
 
     private final ExamRepository examRepository;
     private final QuestionService questionService;
@@ -32,6 +36,7 @@ public class ExamService {
     private final SubscriptionEntitlementService entitlementService;
     private final ExamScoringService examScoringService;
     private final NotificationService notificationService;
+    private final AuditLogger auditLogger;
 
     public ExamService(
             ExamRepository examRepository,
@@ -49,7 +54,8 @@ public class ExamService {
             UserRepository userRepository,
             SubscriptionEntitlementService entitlementService,
             ExamScoringService examScoringService,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            AuditLogger auditLogger) {
 
         this.examRepository = examRepository;
         this.examQuestionRepository = examQuestionRepository;
@@ -67,11 +73,15 @@ public class ExamService {
         this.entitlementService = entitlementService;
         this.examScoringService = examScoringService;
         this.notificationService = notificationService;
+        this.auditLogger = auditLogger;
     }
 
 
     @Transactional
     public ExamResponseDTO createExam(ExamRequestDTO request) {
+        log.info("Creating exam: name={} collegeId={} branchId={} courseId={} sectionId={}",
+                request.getExamName(), request.getCollegeId(), request.getBranchId(),
+                request.getCourseId(), request.getSectionId());
 
         College college = collegeRepository
                 .findById(request.getCollegeId())
@@ -144,7 +154,7 @@ public class ExamService {
                 examRepository.save(exam);
 
         publishExamNotification(savedExam, "EXAM_ASSIGNED", "New exam assigned");
-
+        log.info("Exam created successfully: examId={} examName={}", savedExam.getExamId(), savedExam.getExamName());
 
         return convertToResponse(savedExam);
     }
@@ -160,6 +170,7 @@ public class ExamService {
      * The scope is applied by the repository query, not in memory.
      */
     public List<ExamResponseDTO> getAllExams(Authentication authentication) {
+        log.info("Fetching exams for authenticated user");
 
         User user = getLoggedInUser(authentication);
 
@@ -360,6 +371,11 @@ public class ExamService {
             Long examId,
             ExamSubmitRequestDTO request) {
 
+        log.info("Submitting exam: examId={} userId={} answerCount={} timeTakenSeconds={}",
+                examId, request.getUserId(), request.getAnswers() == null ? 0 : request.getAnswers().size(),
+                request.getTimeTakenSeconds());
+        auditLogger.log("EXAM_SUBMISSION", userRepository.findById(request.getUserId()).map(User::getEmail).orElse(null), "EXAM", examId, "ATTEMPT", "answers=" + (request.getAnswers() == null ? 0 : request.getAnswers().size()));
+
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() ->
                         new RuntimeException("Exam not found with id: " + examId)
@@ -405,6 +421,11 @@ public class ExamService {
         response.setUserId(user.getUserId());
         response.setTotalMarks(score.totalMarks());
         response.setPercentage(score.percentage());
+
+        log.info("Exam submitted successfully: examId={} userId={} resultId={} totalMarks={} percentage={}",
+                examId, user.getUserId(), result.getExamResultId(), score.totalMarks(), score.percentage());
+        auditLogger.log("EXAM_SUBMISSION", user.getEmail(), "EXAM", examId, "SUCCESS",
+                "resultId=" + result.getExamResultId() + ", percentage=" + score.percentage() + ", totalMarks=" + score.totalMarks());
 
         return response;
     }

@@ -4,6 +4,8 @@ import com.project.ProjectS.entity.Question;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.repository.McqQuestionRepository;
 import com.project.ProjectS.repository.QuestionRepository;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +15,7 @@ import java.util.List;
 
 @Service
 public class MockTestService {
+    private static final Logger log = LogManager.getLogger(MockTestService.class);
     private static final int DEFAULT_QUESTION_COUNT = 20;
     private final QuestionRepository questions;
     private final McqQuestionRepository mcqs;

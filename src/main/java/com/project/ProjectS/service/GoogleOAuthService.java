@@ -3,12 +3,15 @@ package com.project.ProjectS.service;
 import java.util.Map;
 
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import com.project.ProjectS.model.GoogleUserDTO;
 
 @Service
 public class GoogleOAuthService {
+    private static final Logger log = LogManager.getLogger(GoogleOAuthService.class);
 
     public GoogleUserDTO getGoogleUser(OAuth2User user) {
 

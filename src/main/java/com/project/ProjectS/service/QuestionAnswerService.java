@@ -5,6 +5,8 @@ import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.QuestionAnswerRequestDTO;
 import com.project.ProjectS.model.QuestionAnswerResponseDTO;
 import com.project.ProjectS.repository.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +18,8 @@ import java.util.List;
 @Service
 @Transactional
 public class QuestionAnswerService {
+    private static final Logger log = LogManager.getLogger(QuestionAnswerService.class);
+
     @Autowired
     public QuestionAnswerService(QuestionAnswerRepository questionAnswerRepository, UserRepository userRepository, QuestionRepository questionRepository, TableNameRepository tableNameRepository, TableHeaderRepository tableHeaderRepository, TableAttributeRepository tableAttributeRepository) {
         this.questionAnswerRepository = questionAnswerRepository;
@@ -45,11 +49,17 @@ public class QuestionAnswerService {
     public QuestionAnswerResponseDTO saveAnswer(
             QuestionAnswerRequestDTO request,
             Authentication authentication) {
+        log.info("Saving answer via authenticated user: userId={} questionId={}",
+                request != null ? request.getUserId() : null,
+                request != null ? request.getQuestionId() : null);
         request.setUserId(getAuthenticatedUserId(authentication));
         return saveAnswer(request);
     }
 
     public QuestionAnswerResponseDTO saveAnswer(QuestionAnswerRequestDTO request) {
+        log.info("Processing answer save request: userId={} questionId={} tableNameId={} headerId={} attributeId={} pairAttributeId={}",
+                request.getUserId(), request.getQuestionId(), request.getTableNameId(),
+                request.getHeaderId(), request.getAttributeId(), request.getPairAttributeId());
         User user = userRepository.findById(
                 request.getUserId()
         ).orElseThrow(() ->
@@ -154,6 +164,8 @@ public class QuestionAnswerService {
         QuestionAnswer savedAnswer =
                 questionAnswerRepository.save(answer);
 
+        log.info("Answer saved successfully: answerId={} userId={} questionId={}",
+                savedAnswer.getAnswerId(), user.getUserId(), question.getQuestionId());
 
         return convertToResponse(savedAnswer);
     }

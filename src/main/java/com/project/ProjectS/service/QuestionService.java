@@ -5,6 +5,8 @@ import com.project.ProjectS.model.*;
 import com.project.ProjectS.processor.FillInTheBlankQuestionExcelProcessor;
 import com.project.ProjectS.processor.QuestionExcelProcessor;
 import com.project.ProjectS.repository.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class QuestionService {
+    private static final Logger log = LogManager.getLogger(QuestionService.class);
 
     private final QuestionRepository questionRepository;
 
@@ -124,6 +127,9 @@ public class QuestionService {
 
     public QuestionResponseDTO createQuestion(
             QuestionRequestDTO request) {
+        log.info("Creating question: courseId={} chapterId={} subjectId={} topicId={} typeId={}",
+                request.getCourseId(), request.getChapterId(), request.getSubjectId(),
+                request.getTopicId(), request.getQuestionTypeId());
 
         Course course =
                 courseRepository
@@ -214,7 +220,8 @@ public class QuestionService {
                 questionRepository.save(
                         question
                 );
-
+        log.info("Question created successfully: questionId={} questionTypeId={}",
+                savedQuestion.getQuestionId(), savedQuestion.getQuestionType().getQuestionTypeId());
 
         // =========================================================
         // MATCHING PAIRS - MATCH THE FOLLOWING

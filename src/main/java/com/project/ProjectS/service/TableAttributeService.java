@@ -7,6 +7,8 @@ import com.project.ProjectS.model.TableAttributeResponseDTO;
 import com.project.ProjectS.repository.TableAttributeRepository;
 import com.project.ProjectS.repository.TableHeaderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import java.util.List;
 
 @Service
 public class TableAttributeService {
+    private static final Logger log = LogManager.getLogger(TableAttributeService.class);
     @Autowired
     public TableAttributeService(TableAttributeRepository attributeRepository, TableHeaderRepository headerRepository) {
         this.attributeRepository = attributeRepository;

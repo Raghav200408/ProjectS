@@ -15,6 +15,8 @@ import com.project.ProjectS.repository.TableAttributeRepository;
 import com.project.ProjectS.repository.TableHeaderRepository;
 import com.project.ProjectS.repository.TableNameRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class RuleEngineService {
+    private static final Logger log = LogManager.getLogger(RuleEngineService.class);
     @Autowired
     public RuleEngineService(RuleEngineRepository ruleEngineRepository, ChapterRepository chapterRepository, TableAttributeRepository tableAttributeRepository, TableNameRepository tableNameRepository, TableHeaderRepository tableHeaderRepository,RuleEngineMapper mapper) {
         this.ruleEngineRepository = ruleEngineRepository;
