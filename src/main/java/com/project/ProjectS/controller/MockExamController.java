@@ -35,10 +35,11 @@ public class MockExamController {
 
 
     @GetMapping
-    public ResponseEntity<List<MockExamResponseDTO>> getAllMockExams() {
+    public ResponseEntity<List<MockExamResponseDTO>> getAllMockExams(
+            Authentication authentication) {
 
         return ResponseEntity.ok(
-                mockExamService.getAllMockExams()
+                mockExamService.getAllMockExams(authentication)
         );
     }
 

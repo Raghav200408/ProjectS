@@ -22,6 +22,8 @@ public class MockExamResponseDTO {
 
     private List<String> chapterNames;
 
+    private Integer durationMinutes;
+
     private Integer passPercentage;
 
     private Boolean activeRow;

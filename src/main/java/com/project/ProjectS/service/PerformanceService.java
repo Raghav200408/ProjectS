@@ -154,7 +154,8 @@ public class PerformanceService {
 
         return buildPerformanceDashboard(
                 results,
-                examsConducted
+                examsConducted,
+                studentId != null
         );
     }
 
@@ -268,7 +269,8 @@ public class PerformanceService {
 
         return buildPerformanceDashboard(
                 results,
-                examsConducted
+                examsConducted,
+                studentId != null
         );
     }
 
@@ -362,7 +364,8 @@ public class PerformanceService {
 
         return buildPerformanceDashboard(
                 results,
-                examsConducted
+                examsConducted,
+                studentId != null
         );
     }
 
@@ -591,7 +594,8 @@ public class PerformanceService {
      */
     private PerformanceDashboardResponseDTO buildPerformanceDashboard(
             List<ExamResult> results,
-            int examsConducted) {
+            int examsConducted,
+            boolean isStudentScoped) {
 
         PerformanceDashboardResponseDTO response =
                 new PerformanceDashboardResponseDTO();
@@ -707,7 +711,7 @@ public class PerformanceService {
          * --------------------------------------------------------
          */
         response.setPerformanceTrend(
-                buildPerformanceTrend(results)
+                buildPerformanceTrend(results, isStudentScoped)
         );
 
 
@@ -934,7 +938,8 @@ public class PerformanceService {
      * ============================================================
      */
     private List<PerformanceTrendDTO> buildPerformanceTrend(
-            List<ExamResult> results) {
+            List<ExamResult> results,
+            boolean isStudentScoped) {
 
         Map<Long, List<ExamResult>> grouped =
                 results.stream()
@@ -979,10 +984,12 @@ public class PerformanceService {
                     first.getExam().getStartDate()
             );
 
-            // One attempt behind this bar - open the chapter breakdown /
-            // "view attempt" drill-down for it. More than one attempt here
-            // (several students, or retakes) has no single attempt to open.
-            if (examResults.size() == 1) {
+            // Only open the chapter breakdown / "view attempt" drill-down
+            // when the dashboard is actually scoped to one student. A bar
+            // in an aggregate (college/branch/course) view can happen to
+            // have just one matching result without the admin having
+            // picked that student, and must not leak their attempt.
+            if (isStudentScoped && examResults.size() == 1) {
                 dto.setResultId(first.getExamResultId());
             }
 

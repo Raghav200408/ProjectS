@@ -36,6 +36,11 @@ public class MockExam {
     @Column(name = "pass_percentage", nullable = false)
     private Integer passPercentage;
 
+    // How long a student gets once they press Start. A mock exam has no
+    // end_date (practice any time), so this is its only time bound.
+    @Column(name = "duration_minutes", nullable = false)
+    private Integer durationMinutes = 60;
+
     @Column(name = "active_row")
     private Boolean activeRow = true;
 
