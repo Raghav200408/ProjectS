@@ -7,6 +7,8 @@ import com.project.ProjectS.repository.NotificationRepository;
 import com.project.ProjectS.repository.UserRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -17,6 +19,7 @@ import java.util.Set;
 
 @Service
 public class NotificationService {
+    private static final Logger log = LogManager.getLogger(NotificationService.class);
     private static final Set<String> ALLOWED_EVENT_TYPES = Set.of(
             "EXAM_ASSIGNED", "EXAM_RESCHEDULED", "EXAM_CANCELLED", "EXAM_REMINDER",
             "RESULT_PUBLISHED", "SUBSCRIPTION_EXPIRING", "SUBSCRIPTION_EXPIRED",
@@ -63,6 +66,7 @@ public class NotificationService {
     /** Internal API for approved backend events; routine CRUD must keep using toasts. */
     @Transactional
     public Notification publish(Notification notification) {
+        log.info("Publishing notification: eventType={} recipientType={} recipientRole={}", notification.getEventType(), notification.getRecipientType(), notification.getRecipientRole());
         if (!ALLOWED_EVENT_TYPES.contains(notification.getEventType())) {
             throw new IllegalArgumentException("Unsupported notification event: " + notification.getEventType());
         }
@@ -75,7 +79,9 @@ public class NotificationService {
         List<Notification> copies = recipients.stream()
                 .map(user -> copyForRecipient(notification, user.getUserId()))
                 .toList();
-        return notificationRepository.saveAll(copies).get(0);
+        Notification saved = notificationRepository.saveAll(copies).get(0);
+        log.info("Notification published: notificationId={} recipients={}", saved.getNotificationId(), copies.size());
+        return saved;
     }
 
     private List<Notification> visible(User user, int limit) {

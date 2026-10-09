@@ -12,6 +12,8 @@ import com.project.ProjectS.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -35,6 +37,7 @@ import java.util.List;
 @Service
 @Transactional(readOnly = true)
 public class PracticePerformanceService {
+    private static final Logger log = LogManager.getLogger(PracticePerformanceService.class);
 
     private final PracticePerformanceRepository performanceRepository;
     private final UserRepository userRepository;

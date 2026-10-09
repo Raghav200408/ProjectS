@@ -26,6 +26,8 @@ import com.project.ProjectS.repository.QuestionAttributeRepository;
 import com.project.ProjectS.repository.QuestionRepository;
 import com.project.ProjectS.repository.TableHeaderRepository;
 import com.project.ProjectS.repository.TableNameRepository;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -50,6 +52,7 @@ import java.util.stream.Stream;
  */
 @Service
 public class ExamScoringService {
+    private static final Logger log = LogManager.getLogger(ExamScoringService.class);
 
     private static final ObjectMapper ANSWER_JSON = new ObjectMapper()
             .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
@@ -113,6 +116,9 @@ public class ExamScoringService {
     public Score score(
             List<Long> questionIds,
             List<ExamQuestionAnswerDTO> submittedAnswers) {
+        log.info("Scoring exam answers: questionCount={} submittedAnswerCount={}",
+                questionIds == null ? 0 : questionIds.size(),
+                submittedAnswers == null ? 0 : submittedAnswers.size());
 
         List<ExamQuestionAnswerDTO> answers =
                 submittedAnswers == null ? List.of() : submittedAnswers;

@@ -7,6 +7,8 @@ import com.project.ProjectS.repository.UserRepository;
 import com.project.ProjectS.security.jwt.JwtUtil;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,8 @@ import java.io.IOException;
 @Component
 public class CustomOAuth2SuccessHandler
 		extends SimpleUrlAuthenticationSuccessHandler {
+    private static final Logger log = LogManager.getLogger(CustomOAuth2SuccessHandler.class);
+
     @Autowired
     public CustomOAuth2SuccessHandler(UserRepository userRepository, RoleRepository roleRepository, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
@@ -41,6 +45,7 @@ public class CustomOAuth2SuccessHandler
 			HttpServletResponse response,
 			Authentication authentication)
 			throws IOException {
+        log.info("OAuth2 login success callback received for principal={}", authentication.getName());
 
 		OAuth2User oauthUser =
 				(OAuth2User) authentication.getPrincipal();
@@ -51,6 +56,7 @@ public class CustomOAuth2SuccessHandler
 		String picture = oauthUser.getAttribute("picture");
 
 		if (email == null || email.isBlank()) {
+            log.error("Google OAuth2 login missing email for user={}", name);
 			throw new RuntimeException(
 					"Email not received from Google"
 			);
@@ -61,6 +67,7 @@ public class CustomOAuth2SuccessHandler
 
 		// New Google user -> create as GUEST
 		if (user == null) {
+            log.info("Creating new Google user account for email={}", email);
 
 			Role guestRole = roleRepository
 					.findByRoleName("GUEST")
@@ -85,6 +92,7 @@ public class CustomOAuth2SuccessHandler
 			user = userRepository.save(user);
 
 		} else {
+            log.info("Updating existing Google user profile for email={}", email);
 
 			// Existing account logging in with Google
 			if (user.getGoogleId() == null) {
@@ -106,6 +114,8 @@ public class CustomOAuth2SuccessHandler
 						user.getEmail(),
 						"ROLE_" + roleName
 				);
+
+        log.info("Google OAuth2 success redirect created for userId={} email={} role={}", user.getUserId(), user.getEmail(), roleName);
 
 		response.sendRedirect(
 				frontendUrl.replaceAll("/+$", "") + "/oauth2/success?token="

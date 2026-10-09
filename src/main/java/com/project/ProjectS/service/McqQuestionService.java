@@ -18,6 +18,8 @@ import com.project.ProjectS.repository.TopicRepository;
 import com.project.ProjectS.repository.QuestionRepository;
 import com.project.ProjectS.repository.QuestionTypeRepository;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +46,7 @@ import java.util.Set;
 
 @Service
 public class McqQuestionService {
+    private static final Logger log = LogManager.getLogger(McqQuestionService.class);
 
     private final QuestionRepository questionRepository;
     private final CourseRepository courseRepository;

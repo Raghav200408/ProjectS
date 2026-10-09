@@ -4,6 +4,8 @@ import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.repository.*;
 import com.project.ProjectS.security.service.CustomUserDetails;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -17,6 +19,8 @@ import java.util.List;
 @Service
 @Transactional
 public class UserService {
+    private static final Logger log = LogManager.getLogger(UserService.class);
+
     @Autowired
     public UserService(UserRepository userRepository, RoleRepository roleRepository, CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository,SectionRepository sectionRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -38,6 +42,7 @@ public class UserService {
 
 
     public UserResponseDTO createSuperAdmin(SuperAdminRequestDTO request) {
+        log.info("Creating super admin: email={} name={}", request.getEmail(), request.getName());
 
         validateUser(request.getEmail(), request.getPhoneNumber());
 
@@ -63,6 +68,7 @@ public class UserService {
         user.setActiveRow(request.getActiveRow() == null || request.getActiveRow());
 
         User savedUser = userRepository.save(user);
+        log.info("Created super admin with userId={} email={}", savedUser.getUserId(), savedUser.getEmail());
 
         return convertToResponse(savedUser);
     }
@@ -70,6 +76,8 @@ public class UserService {
 
     public UserResponseDTO createBranchAdmin(
             BranchAdminRequestDTO request) {
+        log.info("Creating branch admin: email={} collegeId={} branchId={}",
+                request.getEmail(), request.getCollegeId(), request.getBranchId());
 
         assertCanAssignOrganization(request.getCollegeId(), request.getBranchId(), "BRANCH_ADMIN");
 
@@ -104,6 +112,7 @@ public class UserService {
         user.setActiveRow(request.getActiveRow() == null || request.getActiveRow());
 
         User savedUser = userRepository.save(user);
+        log.info("Created branch admin with userId={} email={}", savedUser.getUserId(), savedUser.getEmail());
 
         return convertToResponse(savedUser);
     }
@@ -113,6 +122,7 @@ public class UserService {
     // College Admin
     // ----------------------------
     public UserResponseDTO createCollegeAdmin(CollegeAdminRequestDTO request) {
+        log.info("Creating college admin: email={} collegeId={}", request.getEmail(), request.getCollegeId());
 
         validateUser(request.getEmail(), request.getPhoneNumber());
 
@@ -142,6 +152,7 @@ public class UserService {
         user.setActiveRow(request.getActiveRow() == null || request.getActiveRow());
 
         User savedUser = userRepository.save(user);
+        log.info("Created college admin with userId={} email={}", savedUser.getUserId(), savedUser.getEmail());
 
         return convertToResponse(savedUser);
     }

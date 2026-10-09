@@ -6,12 +6,15 @@ import com.project.ProjectS.model.SubjectRequestDTO;
 import com.project.ProjectS.model.SubjectResponseDTO;
 import com.project.ProjectS.repository.CourseRepository;
 import com.project.ProjectS.repository.SubjectRepository;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 public class SubjectService {
+    private static final Logger log = LogManager.getLogger(SubjectService.class);
 
     private final SubjectRepository subjectRepository;
     private final CourseRepository courseRepository;

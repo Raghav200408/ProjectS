@@ -5,6 +5,8 @@ import com.project.ProjectS.model.QuestionTypeRequestDTO;
 import com.project.ProjectS.model.QuestionTypeResponseDTO;
 import com.project.ProjectS.repository.QuestionTypeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -12,6 +14,7 @@ import java.util.List;
 
 @Service
 public class QuestionTypeService {
+    private static final Logger log = LogManager.getLogger(QuestionTypeService.class);
 
     private final QuestionTypeRepository repository;
 

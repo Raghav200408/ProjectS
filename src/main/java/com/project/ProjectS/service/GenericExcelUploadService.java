@@ -2,6 +2,8 @@ package com.project.ProjectS.service;
 
 import com.project.ProjectS.mapper.ExcelRowMapper;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +14,7 @@ import java.util.Map;
 
 @Service
 public class GenericExcelUploadService {
+    private static final Logger log = LogManager.getLogger(GenericExcelUploadService.class);
 
 
     @Transactional

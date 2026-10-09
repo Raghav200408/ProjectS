@@ -10,6 +10,8 @@ import com.project.ProjectS.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -21,6 +23,7 @@ import java.util.Objects;
 /** Projects an already saved practice event without creating a second event. */
 @Service
 public class PracticeEventResultService {
+    private static final Logger log = LogManager.getLogger(PracticeEventResultService.class);
     private final AnswerEventRepository events;
     private final QuestionAttributeRepository attributes;
     private final UserRepository users;

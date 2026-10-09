@@ -1,8 +1,11 @@
 package com.project.ProjectS.service;
 
+import com.project.ProjectS.config.AuditLogger;
 import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.repository.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,21 +14,25 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class  SubscriptionService {
+public class SubscriptionService {
+    private static final Logger log = LogManager.getLogger(SubscriptionService.class);
     private final SubscriptionPlanRepository plans;
     private final PlanCourseRepository planCourses;
     private final UserSubscriptionRepository subscriptions;
     private final CourseRepository courses;
     private final UserRepository users;
+    private final AuditLogger auditLogger;
 
     public SubscriptionService(SubscriptionPlanRepository plans, PlanCourseRepository planCourses,
                                 UserSubscriptionRepository subscriptions, CourseRepository courses,
-                                UserRepository users) {
+                                UserRepository users, AuditLogger auditLogger) {
         this.plans = plans; this.planCourses = planCourses; this.subscriptions = subscriptions;
         this.courses = courses; this.users = users;
+        this.auditLogger = auditLogger;
     }
 
     public List<SubscriptionPlanResponseDTO> activePlans(Long courseId) {
+        log.info("Fetching active plans for courseId={}", courseId);
         return planCourses.findByCourse_CourseIdAndPlan_ActiveTrue(courseId).stream()
                 .map(pc -> toPlan(pc.getPlan())).distinct().collect(Collectors.toList());
     }
@@ -36,11 +43,15 @@ public class  SubscriptionService {
 
     @Transactional
     public SubscriptionPlanResponseDTO create(SubscriptionPlanRequestDTO request) {
+        log.info("Creating subscription plan: name={} active={} freeTrial={}", request.getName(), request.isActive(), request.isFreeTrial());
         SubscriptionPlan plan = new SubscriptionPlan();
         copy(plan, request);
         plan = plans.save(plan);
         replaceCourses(plan, request.getCourseIds());
-        return toPlan(plan);
+        SubscriptionPlanResponseDTO response = toPlan(plan);
+        log.info("Subscription plan created: planId={}", response.getPlanId());
+        auditLogger.log("SUBSCRIPTION_PLAN_CHANGE", "admin", "PLAN", response.getPlanId(), "CREATED", "name=" + response.getName());
+        return response;
     }
 
     @Transactional
@@ -57,7 +68,10 @@ public class  SubscriptionService {
                 subscriptions.save(subscription);
             });
         }
-        return toPlan(plan);
+        SubscriptionPlanResponseDTO response = toPlan(plan);
+        log.info("Subscription plan updated: planId={}", response.getPlanId());
+        auditLogger.log("SUBSCRIPTION_PLAN_CHANGE", "admin", "PLAN", response.getPlanId(), "UPDATED", "name=" + response.getName());
+        return response;
     }
 
     public List<SubscriptionPlanResponseDTO> allPlans() {
@@ -93,6 +107,7 @@ public class  SubscriptionService {
 
     @Transactional
     public UserSubscriptionResponseDTO activate(SubscriptionActivationRequestDTO request) {
+        log.info("Activating subscription: userId={} courseId={} planId={} activationType={}", request.getUserId(), request.getCourseId(), request.getPlanId(), request.getActivationType());
         User user = users.findById(request.getUserId()).orElseThrow(() -> new NoSuchElementException("User not found"));
         Course course = courses.findById(request.getCourseId()).orElseThrow(() -> new NoSuchElementException("Course not found"));
         SubscriptionPlan plan = resolvePlan(request, course.getCourseId());
@@ -105,7 +120,11 @@ public class  SubscriptionService {
         subscription.setUser(user); subscription.setCourse(course); subscription.setPlan(plan);
         subscription.setExpiresAt(plan.getDurationDays() == null ? null :
                 LocalDateTime.now().plusDays(plan.getDurationDays()));
-        return toSubscription(subscriptions.save(subscription));
+        UserSubscriptionResponseDTO response = toSubscription(subscriptions.save(subscription));
+        log.info("Subscription activated successfully: subscriptionId={} userId={} courseId={}", response.getSubscriptionId(), response.getUserId(), response.getCourseId());
+        auditLogger.log("SUBSCRIPTION_CHANGE", user.getEmail(), "SUBSCRIPTION", response.getSubscriptionId(), "ACTIVATED",
+                "planId=" + response.getPlanId() + ", courseId=" + response.getCourseId());
+        return response;
     }
 
     @Transactional
@@ -174,6 +193,8 @@ public class  SubscriptionService {
         }
         subscription.setActive(false);
         subscriptions.save(subscription);
+        auditLogger.log("SUBSCRIPTION_CHANGE", subscription.getUser().getEmail(), "SUBSCRIPTION", subscriptionId, "DEACTIVATED",
+                "adminEmail=" + adminEmail + ", superAdmin=" + superAdmin);
     }
 
     private SubscriptionPlan resolvePlan(SubscriptionActivationRequestDTO request, Long courseId) {
