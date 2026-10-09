@@ -55,6 +55,12 @@ public class Exam {
     @Column(name = "end_date", nullable = false)
     private LocalDateTime endDate;
 
+    // How long a student gets once they press Start. The time actually left
+    // is min(durationMinutes, endDate - now) - the frontend Timer applies
+    // that formula once, at start.
+    @Column(name = "duration_minutes", nullable = false)
+    private Integer durationMinutes = 60;
+
     @Column(name = "pass_percentage", nullable = false)
     private Integer passPercentage;
 

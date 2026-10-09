@@ -133,6 +133,8 @@ public class ExamService {
 
         exam.setEndDate(request.getEndDate());
 
+        exam.setDurationMinutes(request.getDurationMinutes());
+
         exam.setPassPercentage(request.getPassPercentage());
 
         exam.setActiveRow(true);
@@ -312,6 +314,8 @@ public class ExamService {
         exam.setStartDate(request.getStartDate());
 
         exam.setEndDate(request.getEndDate());
+
+        exam.setDurationMinutes(request.getDurationMinutes());
 
         exam.setPassPercentage(request.getPassPercentage());
 
@@ -824,6 +828,11 @@ public class ExamService {
 
         response.setEndDate(
                 exam.getEndDate()
+        );
+
+
+        response.setDurationMinutes(
+                exam.getDurationMinutes()
         );
 
         response.setPassPercentage(
