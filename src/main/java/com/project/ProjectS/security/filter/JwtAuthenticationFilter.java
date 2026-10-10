@@ -19,20 +19,17 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    @Autowired
+public class JwtAuthenticationFilter implements Filter {
+    private static final Logger log = LogManager.getLogger(JwtAuthenticationFilter.class);
+
     public JwtAuthenticationFilter(JwtUtil jwtUtil, CustomUserDetailsService userDetailsService, AuditLogger auditLogger) {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
         this.auditLogger = auditLogger;
     }
-
 
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
@@ -40,7 +37,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        // noop; static logger is available
         log.debug("Initializing JwtAuthenticationFilter");
     }
 
@@ -53,7 +49,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             auditLogger.log("TOKEN_VALIDATION", request.getRemoteUser(), "REQUEST", null, "MISSING", request.getRequestURI());
-            filterChain.doFilter(request, response);
+            chain.doFilter(request, response);
             return;
         }
 
@@ -63,47 +59,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String email = jwtUtil.extractEmail(token);
             auditLogger.log("TOKEN_VALIDATION", email, "JWT", null, "ATTEMPT", request.getRequestURI());
 
-            if (email != null &&
-                   SecurityContextHolder.getContext()
-                           .getAuthentication() == null) {
-
-                UserDetails userDetails =
-                       userDetailsService.loadUserByUsername(email);
+            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
                 if (!userDetails.isEnabled()) {
-                   SecurityContextHolder.clearContext();
-                   response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "User account is inactive");
-                   return;
+                    SecurityContextHolder.clearContext();
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "User account is inactive");
+                    return;
                 }
 
                 if (jwtUtil.isTokenValid(token)) {
-                   UsernamePasswordAuthenticationToken authentication =
-                           new UsernamePasswordAuthenticationToken(
-                                   userDetails,
-                                   null,
-                                   userDetails.getAuthorities()
-                           );
-
-                   authentication.setDetails(
-                           new WebAuthenticationDetailsSource()
-                                   .buildDetails(request)
-                   );
-
-                   SecurityContextHolder
-                           .getContext()
-                           .setAuthentication(authentication);
-
-                   auditLogger.log("TOKEN_VALIDATION", email, "JWT", null, "SUCCESS", request.getRequestURI());
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    auditLogger.log("TOKEN_VALIDATION", email, "JWT", null, "SUCCESS", request.getRequestURI());
                 } else {
-                   auditLogger.log("TOKEN_VALIDATION", email, "JWT", null, "INVALID", request.getRequestURI());
+                    auditLogger.log("TOKEN_VALIDATION", email, "JWT", null, "INVALID", request.getRequestURI());
                 }
             }
-
         } catch (Exception e) {
             auditLogger.log("TOKEN_VALIDATION", null, "JWT", null, "ERROR", e.getMessage());
             SecurityContextHolder.clearContext();
         }
 
-        filterChain.doFilter(request, response);
+        chain.doFilter(request, response);
+    }
+
+    @Override
+    public void destroy() {
     }
 }

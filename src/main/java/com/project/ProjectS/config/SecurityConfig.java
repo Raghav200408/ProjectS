@@ -4,6 +4,7 @@ import com.project.ProjectS.config.AuditLogger;
 import com.project.ProjectS.security.filter.JwtAuthenticationFilter;
 import com.project.ProjectS.security.jwt.JwtUtil;
 import com.project.ProjectS.security.oauth2.CustomOAuth2SuccessHandler;
+import com.project.ProjectS.security.service.CustomUserDetailsService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.context.annotation.Bean;
