@@ -670,7 +670,6 @@ public class AnswerEventService {
                 .toList();
     }
 
-
     public List<AnswerEventResponseDTO>
     getMistakes(
             Long userId,
@@ -835,7 +834,6 @@ public class AnswerEventService {
         response.setActiveRow(
                 event.getActiveRow()
         );
-
 
         response.setCreatedAt(
                 event.getCreatedAt()

@@ -3,6 +3,8 @@ package com.project.ProjectS.service;
 import com.project.ProjectS.entity.User;
 import com.project.ProjectS.entity.UserActivitySession;
 import com.project.ProjectS.model.ActivitySessionResponseDTO;
+import com.project.ProjectS.model.DailyActivityTimeResponseDTO;
+import com.project.ProjectS.repository.UserActivityDailyTotalRepository;
 import com.project.ProjectS.repository.UserActivitySessionRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,9 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.Locale;
 
 @Service
 public class UserActivitySessionService {
@@ -28,11 +34,16 @@ public class UserActivitySessionService {
     private static final long MAX_HEARTBEAT_SECONDS = 45L;
     private static final Duration MISSED_HEARTBEAT = Duration.ofSeconds(90);
     private static final Duration AUTH_INACTIVITY_LIMIT = Duration.ofMinutes(30);
+    private static final int MAX_DAILY_TIME_RANGE_DAYS = 90;
 
     private final UserActivitySessionRepository repository;
+    private final UserActivityDailyTotalRepository dailyTotalRepository;
 
-    public UserActivitySessionService(UserActivitySessionRepository repository) {
+    public UserActivitySessionService(
+            UserActivitySessionRepository repository,
+            UserActivityDailyTotalRepository dailyTotalRepository) {
         this.repository = repository;
+        this.dailyTotalRepository = dailyTotalRepository;
     }
 
     @Transactional
@@ -123,6 +134,127 @@ public class UserActivitySessionService {
         return total;
     }
 
+    @Transactional(readOnly = true)
+    public List<DailyActivityTimeResponseDTO> dailyTime(User user, int days) {
+        return dailyTime(user, days, null, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DailyActivityTimeResponseDTO> dailyTime(
+            User user,
+            int days,
+            Long requestedCollegeId,
+            Long requestedBranchId,
+            Long studentId) {
+        if (days < 1 || days > MAX_DAILY_TIME_RANGE_DAYS) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Days must be between 1 and " + MAX_DAILY_TIME_RANGE_DAYS
+            );
+        }
+
+        String roleName = user.getRole() == null ? null : user.getRole().getRoleName();
+        String role = roleName == null ? "" : roleName.toUpperCase(Locale.ROOT);
+        Long collegeId = requestedCollegeId;
+        Long branchId = requestedBranchId;
+
+        switch (role) {
+            case "STUDENT" -> {
+                if (collegeId != null || branchId != null || studentId != null) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+                }
+                return personalDailyTime(user, days);
+            }
+            case "SUPER_ADMIN" -> {
+                // Super admins may choose any organization scope.
+            }
+            case "COLLEGE_ADMIN" -> {
+                Long assignedCollegeId = user.getCollege() == null
+                        ? null
+                        : user.getCollege().getCollegeId();
+                if (assignedCollegeId == null
+                        || (collegeId != null && !collegeId.equals(assignedCollegeId))) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+                }
+                collegeId = assignedCollegeId;
+            }
+            case "BRANCH_ADMIN" -> {
+                Long assignedBranchId = user.getBranch() == null
+                        ? null
+                        : user.getBranch().getBranchId();
+                Long assignedCollegeId = user.getBranch() == null
+                        || user.getBranch().getCollege() == null
+                        ? null
+                        : user.getBranch().getCollege().getCollegeId();
+                if (assignedBranchId == null
+                        || (branchId != null && !branchId.equals(assignedBranchId))
+                        || (requestedCollegeId != null
+                        && !requestedCollegeId.equals(assignedCollegeId))) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+                }
+                branchId = assignedBranchId;
+                collegeId = assignedCollegeId;
+            }
+            default -> throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+
+        return scopedDailyTime(days, collegeId, branchId, studentId);
+    }
+
+    private List<DailyActivityTimeResponseDTO> personalDailyTime(User user, int days) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate today = now.toLocalDate();
+        LocalDate startDate = today.minusDays(days - 1L);
+        Map<LocalDate, Long> totals = new LinkedHashMap<>();
+        for (int day = 0; day < days; day++) {
+            totals.put(startDate.plusDays(day), 0L);
+        }
+
+        dailyTotalRepository
+                .findByUser_UserIdAndActivityDateBetweenOrderByActivityDateAsc(
+                        user.getUserId(), startDate, today)
+                .forEach(daily -> totals.merge(
+                        daily.getActivityDate(), daily.getActiveSeconds(), Long::sum));
+
+        repository.findByUser_UserIdAndStatusIn(user.getUserId(), List.of(ACTIVE))
+                .forEach(session -> splitByDate(
+                        session.getLastHeartbeatAt(),
+                        pendingActiveSeconds(session, now)
+                ).forEach((date, seconds) -> totals.merge(date, seconds, Long::sum)));
+
+        return totals.entrySet().stream()
+                .map(entry -> new DailyActivityTimeResponseDTO(entry.getKey(), entry.getValue()))
+                .toList();
+    }
+
+    private List<DailyActivityTimeResponseDTO> scopedDailyTime(
+            int days,
+            Long collegeId,
+            Long branchId,
+            Long studentId) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate today = now.toLocalDate();
+        LocalDate startDate = today.minusDays(days - 1L);
+        Map<LocalDate, Long> totals = new LinkedHashMap<>();
+        for (int day = 0; day < days; day++) {
+            totals.put(startDate.plusDays(day), 0L);
+        }
+
+        dailyTotalRepository.sumForScope(startDate, today, collegeId, branchId, studentId)
+                .forEach(daily -> totals.merge(
+                        daily.getActivityDate(), daily.getActiveSeconds(), Long::sum));
+
+        repository.findActiveStudentSessionsForScope(collegeId, branchId, studentId)
+                .forEach(session -> splitByDate(
+                        session.getLastHeartbeatAt(),
+                        pendingActiveSeconds(session, now)
+                ).forEach((date, seconds) -> totals.merge(date, seconds, Long::sum)));
+
+        return totals.entrySet().stream()
+                .map(entry -> new DailyActivityTimeResponseDTO(entry.getKey(), entry.getValue()))
+                .toList();
+    }
+
     @Scheduled(fixedDelay = 60_000)
     @Transactional
     public void cleanStaleSessions() {
@@ -154,9 +286,29 @@ public class UserActivitySessionService {
 
     private void addActiveTime(UserActivitySession session, LocalDateTime now) {
         long elapsed = Math.max(0L, Duration.between(session.getLastHeartbeatAt(), now).getSeconds());
-        session.setTotalActiveSeconds(session.getTotalActiveSeconds()
-                + Math.min(elapsed, MAX_HEARTBEAT_SECONDS));
+        long activeSeconds = Math.min(elapsed, MAX_HEARTBEAT_SECONDS);
+        session.setTotalActiveSeconds(session.getTotalActiveSeconds() + activeSeconds);
+        splitByDate(session.getLastHeartbeatAt(), activeSeconds)
+                .forEach((date, seconds) -> dailyTotalRepository.addActiveSeconds(
+                        session.getUser().getUserId(), date, seconds));
         session.setLastHeartbeatAt(now);
+    }
+
+    static Map<LocalDate, Long> splitByDate(LocalDateTime intervalStart, long activeSeconds) {
+        Map<LocalDate, Long> totals = new LinkedHashMap<>();
+        LocalDateTime cursor = intervalStart;
+        long remaining = activeSeconds;
+        while (remaining > 0) {
+            LocalDateTime nextDay = cursor.toLocalDate().plusDays(1).atStartOfDay();
+            Duration untilNextDay = Duration.between(cursor, nextDay);
+            long secondsUntilNextDay =
+                    untilNextDay.getSeconds() + (untilNextDay.getNano() > 0 ? 1 : 0);
+            long secondsForDate = Math.min(remaining, secondsUntilNextDay);
+            totals.merge(cursor.toLocalDate(), secondsForDate, Long::sum);
+            cursor = cursor.plusSeconds(secondsForDate);
+            remaining -= secondsForDate;
+        }
+        return totals;
     }
 
     private long pendingActiveSeconds(UserActivitySession session, LocalDateTime now) {

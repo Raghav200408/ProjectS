@@ -2,6 +2,7 @@ package com.project.ProjectS.controller;
 
 import com.project.ProjectS.model.ActivitySessionRequestDTO;
 import com.project.ProjectS.model.ActivitySessionResponseDTO;
+import com.project.ProjectS.model.DailyActivityTimeResponseDTO;
 import com.project.ProjectS.security.service.CustomUserDetails;
 import com.project.ProjectS.service.UserActivitySessionService;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/activity-sessions")
@@ -58,5 +60,16 @@ public class UserActivitySessionController {
     public ResponseEntity<Map<String, Long>> totalTime(
             @AuthenticationPrincipal CustomUserDetails principal) {
         return ResponseEntity.ok(Map.of("totalActiveSeconds", service.totalTime(principal.getUser())));
+    }
+
+    @GetMapping("/daily-time")
+    public ResponseEntity<List<DailyActivityTimeResponseDTO>> dailyTime(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestParam(defaultValue = "7") int days,
+            @RequestParam(required = false) Long collegeId,
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Long studentId) {
+        return ResponseEntity.ok(service.dailyTime(
+                principal.getUser(), days, collegeId, branchId, studentId));
     }
 }

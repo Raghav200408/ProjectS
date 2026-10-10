@@ -116,6 +116,7 @@ public class AnswerEventController {
                         answerEventService.getAuthenticatedUserId(authentication))
         );
     }
+
     @GetMapping("/user/{userId}/marks")
     public ResponseEntity<BigDecimal> getOverallMarks(
             @PathVariable("userId") Long ignoredUserId,
