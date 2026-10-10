@@ -70,7 +70,6 @@ public class AnswerEvent {
     @Column(name = "active_row")
     private Boolean activeRow = true;
 
-
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
