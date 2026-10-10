@@ -329,14 +329,14 @@ public class RuleEngineService {
                 .stream().map(mapper::toResponse).toList();
     }
 
-    // Final Accounts is an existing drag-and-drop question, not a separate question type.
+    // Both independent UI types share the existing Final Accounts validation contract.
     public static boolean isFinalAccountsDragDrop(Question question) {
         if (question == null || question.getQuestionType() == null || question.getChapter() == null) {
             return false;
         }
         String type = normalize(question.getQuestionType().getQuestionType());
-        return "draganddrop".equals(type)
-                && normalize(question.getChapter().getName()).startsWith("finalaccounts");
+        return "draganddropwithadj".equals(type) || ("draganddrop".equals(type)
+                && normalize(question.getChapter().getName()).startsWith("finalaccounts"));
     }
 
     private static String normalize(String value) {

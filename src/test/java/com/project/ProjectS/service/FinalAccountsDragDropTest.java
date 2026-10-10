@@ -4,6 +4,8 @@ import com.project.ProjectS.entity.*;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.repository.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
@@ -23,9 +25,10 @@ class FinalAccountsDragDropTest {
     private final ExamScoringService scorer = new ExamScoringService(rows, mock(McqOptionRepository.class), rules,
             mock(TableNameRepository.class), mock(TableHeaderRepository.class), questions, events);
 
-    @Test
-    void finalAccountsRequiresEveryAdjustmentEffectOnce() {
-        Question question = question("Drag And Drop", "Final Accounts with Adjustments");
+    @ParameterizedTest
+    @ValueSource(strings = {"Drag And Drop", "dragAndDropWithAdj", "DRAG_AND_DROP_WITH_ADJ"})
+    void finalAccountsRequiresEveryAdjustmentEffectOnce(String type) {
+        Question question = question(type, "Final Accounts with Adjustments");
         QuestionAttribute row = row(question, 11L, 8L, "200", "70");
         configure(question, List.of(row), rule(condition(1L, 2L, "1"), condition(2L, 4L, "2")));
         ExamAnswerDTO trading = answer(11L, 8L, 1L, 2L, "200");
@@ -65,9 +68,10 @@ class FinalAccountsDragDropTest {
         assertFalse(empty.questionScores().get(0).correct());
     }
 
-    @Test
-    void reviewRetainsSecondAmountAndQuestionRowIdentity() {
-        Question question = question("Drag And Drop", "Final Accounts with Adjustments");
+    @ParameterizedTest
+    @ValueSource(strings = {"Drag And Drop", "dragAndDropWithAdj"})
+    void reviewRetainsSecondAmountAndQuestionRowIdentity(String type) {
+        Question question = question(type, "Final Accounts with Adjustments");
         configure(question, List.of(row(question, 11L, 8L, "200", "70")),
                 rule(condition(1L, 2L, "1"), condition(2L, 4L, "2")));
         ExamQuestionAnswerDTO submission = submission(answer(11L, 8L, 1L, 2L, "200"), answer(11L, 8L, 2L, 4L, "70"));
@@ -81,15 +85,17 @@ class FinalAccountsDragDropTest {
 
         ExamReviewQuestionDTO review = scorer.buildReviewFromAnswerInfo(5L, 10L, null).get(0);
         assertTrue(review.getCorrect());
+        assertEquals(type.equals("dragAndDropWithAdj") ? "DRAG_AND_DROP_WITH_ADJ" : "DRAG_AND_DROP", review.getQuestionType());
         assertEquals("70", review.getAnswers().get(1).getAnsweredData().get("amount").toString());
         assertEquals("11", review.getAnswers().get(1).getAnsweredData().get("questionAttributeId").toString());
         assertEquals(11L, saved.getAllValues().get(1).getQuestionAttributeId());
         assertTrue(saved.getAllValues().get(1).getDescription().startsWith("attempted to"));
     }
 
-    @Test
-    void practiceCorrectnessComesFromRuleValidationAndAttemptsUseQuestionRow() {
-        Question question = question("Drag And Drop", "Final Accounts without Adjustments");
+    @ParameterizedTest
+    @ValueSource(strings = {"Drag And Drop", "dragAndDropWithAdj"})
+    void practiceCorrectnessComesFromRuleValidationAndAttemptsUseQuestionRow(String type) {
+        Question question = question(type, "Final Accounts without Adjustments");
         QuestionAttribute row = row(question, 11L, 8L, "200", null);
         configure(question, List.of(row), rule(condition(1L, 2L, "1")));
         UserRepository users = mock(UserRepository.class);
@@ -137,6 +143,18 @@ class FinalAccountsDragDropTest {
         when(questions.findById(1L)).thenReturn(Optional.of(question));
         when(rows.findByQuestion_QuestionId(1L)).thenReturn(questionRows);
         when(rules.getRuleEngineByAttributeId(8L, 1L)).thenReturn(List.of(rule));
+    }
+
+    @Test
+    void adjustmentTypePreservesAttributeHeaderValidationAndUsesRulesInRenamedChapters() {
+        Question question = question("dragAndDropWithAdj", "Accounts assessment");
+        assertTrue(RuleEngineService.isFinalAccountsDragDrop(question));
+        TableHeader debit = new TableHeader(); debit.setHeaderId(10L);
+        TableHeader adjustment = new TableHeader(); adjustment.setHeaderId(11L);
+        TableAttribute attribute = new TableAttribute(); attribute.setName("Adjustment"); attribute.setTableHeader(adjustment);
+        assertDoesNotThrow(() -> QuestionService.validateAttributeHeader(question, adjustment, attribute));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> QuestionService.validateAttributeHeader(question, debit, attribute));
     }
 
     private ExamScoringService.Score score(ExamAnswerDTO... answers) {
