@@ -38,7 +38,7 @@ public class TopicService {
     private final SubjectRepository subjectRepository;
     private final TopicExcelProcessor topicExcelProcessor;
 
-    private static final Logger logger =
+    private static final Logger log =
             LogManager.getLogger(TopicService.class);
 
 
@@ -48,7 +48,7 @@ public class TopicService {
 
     public String create(TopicRequestDTO request) {
 
-        logger.info(
+        log.info(
                 "Creating topic with name: {}",
                 request.getName()
         );
@@ -57,7 +57,7 @@ public class TopicService {
                 request.getCourseId()
         ).orElseThrow(() -> {
 
-            logger.warn(
+            log.warn(
                     "Course not found with ID: {}",
                     request.getCourseId()
             );
@@ -72,7 +72,7 @@ public class TopicService {
                 request.getChapterId()
         ).orElseThrow(() -> {
 
-            logger.warn(
+            log.warn(
                     "Chapter not found with ID: {}",
                     request.getChapterId()
             );
@@ -97,7 +97,7 @@ public class TopicService {
                 request.getName()
         )) {
 
-            logger.warn(
+            log.warn(
                     "Topic already exists: {}",
                     request.getName()
             );
@@ -121,7 +121,7 @@ public class TopicService {
         repository.save(topic);
 
 
-        logger.info(
+        log.info(
                 "Topic created successfully with name: {}",
                 request.getName()
         );
@@ -299,7 +299,7 @@ public class TopicService {
             Long id,
             TopicRequestDTO request) {
 
-        logger.info(
+        log.info(
                 "Updating Topic with ID: {}",
                 id
         );
@@ -309,7 +309,7 @@ public class TopicService {
                 repository.findById(id)
                         .orElseThrow(() -> {
 
-                            logger.warn(
+                            log.warn(
                                     "Topic not found with ID: {}",
                                     id
                             );
@@ -325,7 +325,7 @@ public class TopicService {
                         request.getCourseId()
                 ).orElseThrow(() -> {
 
-                    logger.warn(
+                    log.warn(
                             "Course not found with ID: {}",
                             request.getCourseId()
                     );
@@ -341,7 +341,7 @@ public class TopicService {
                         request.getChapterId()
                 ).orElseThrow(() -> {
 
-                    logger.warn(
+                    log.warn(
                             "Chapter not found with ID: {}",
                             request.getChapterId()
                     );
@@ -387,7 +387,7 @@ public class TopicService {
         repository.save(topic);
 
 
-        logger.info(
+        log.info(
                 "Topic updated successfully with ID: {}",
                 id
         );
@@ -425,7 +425,7 @@ public class TopicService {
     public String uploadTopic(
             MultipartFile file) {
 
-        logger.info(
+        log.info(
                 "Starting Topic Excel upload process."
         );
 
@@ -447,7 +447,7 @@ public class TopicService {
             // converts MultipartFile -> List<Map<String,String>>
             // should call the processor.
 
-            logger.info(
+            log.info(
                     "Topic Excel file received: {}",
                     file.getOriginalFilename()
             );
@@ -474,7 +474,7 @@ public class TopicService {
 
         } catch (Exception e) {
 
-            logger.error(
+            log.error(
                     "Failed while uploading Topic Excel",
                     e
             );

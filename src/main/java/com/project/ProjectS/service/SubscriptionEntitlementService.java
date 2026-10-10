@@ -3,6 +3,8 @@ package com.project.ProjectS.service;
 import com.project.ProjectS.entity.UserSubscription;
 import com.project.ProjectS.repository.UserSubscriptionRepository;
 import com.project.ProjectS.repository.UserRepository;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,6 +12,7 @@ import java.time.LocalDateTime;
 
 @Service
 public class SubscriptionEntitlementService {
+    private static final Logger log = LogManager.getLogger(SubscriptionEntitlementService.class);
     private final UserSubscriptionRepository subscriptions;
     private final UserRepository users;
 

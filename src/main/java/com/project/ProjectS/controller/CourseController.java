@@ -34,7 +34,7 @@ public class CourseController {
     }
 
 
-    private static final Logger logger =
+    private static final Logger log =
             LogManager.getLogger(CourseController.class);
     private final CourseService service;
     private final CourseExcelProcessor courseExcelProcessor;
@@ -47,11 +47,11 @@ public class CourseController {
     public ResponseEntity<String> create(
             @Valid @RequestBody CourseRequestDTO request) {
 
-        logger.info("Received request to create course.");
+        log.info("Received request to create course.");
 
         String response = service.create(request);
 
-        logger.info("Create course request completed successfully.");
+        log.info("Create course request completed successfully.");
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
@@ -59,11 +59,11 @@ public class CourseController {
     @GetMapping
     public List<CourseResponseDTO> getAll() {
 
-        logger.info("Received request to fetch all courses.");
+        log.info("Received request to fetch all courses.");
 
         List<CourseResponseDTO> courses = service.getAll();
 
-        logger.info("Fetched {} courses successfully.", courses.size());
+        log.info("Fetched {} courses successfully.", courses.size());
 
         return courses;
     }
@@ -71,11 +71,11 @@ public class CourseController {
     @GetMapping("/{id}")
     public CourseResponseDTO getById(@PathVariable Long id) {
 
-        logger.info("Received request to fetch course with ID: {}", id);
+        log.info("Received request to fetch course with ID: {}", id);
 
         CourseResponseDTO course = service.getById(id);
 
-        logger.info("Course fetched successfully with ID: {}", id);
+        log.info("Course fetched successfully with ID: {}", id);
 
         return course;
     }
@@ -85,11 +85,11 @@ public class CourseController {
             @PathVariable Long id,
             @Valid @RequestBody CourseRequestDTO request) {
 
-        logger.info("Received request to update course with ID: {}", id);
+        log.info("Received request to update course with ID: {}", id);
 
         String response = service.update(id, request);
 
-        logger.info("Course updated successfully with ID: {}", id);
+        log.info("Course updated successfully with ID: {}", id);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -97,11 +97,11 @@ public class CourseController {
     @DeleteMapping("/{id}")
     public String delete(@PathVariable Long id) {
 
-        logger.info("Received request to delete course with ID: {}", id);
+        log.info("Received request to delete course with ID: {}", id);
 
         String response = service.delete(id);
 
-        logger.info("Course deleted successfully with ID: {}", id);
+        log.info("Course deleted successfully with ID: {}", id);
 
         return response;
     }

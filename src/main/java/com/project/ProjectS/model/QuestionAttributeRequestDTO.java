@@ -10,6 +10,7 @@ import java.time.LocalDate;
 @Setter
 public class QuestionAttributeRequestDTO {
 
+    private Long questionAttributeId;
     private Long headerId;
 
     private Long attributeId;

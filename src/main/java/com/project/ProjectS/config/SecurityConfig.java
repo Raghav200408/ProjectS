@@ -1,7 +1,12 @@
 package com.project.ProjectS.config;
 
+import com.project.ProjectS.config.AuditLogger;
 import com.project.ProjectS.security.filter.JwtAuthenticationFilter;
+import com.project.ProjectS.security.jwt.JwtUtil;
 import com.project.ProjectS.security.oauth2.CustomOAuth2SuccessHandler;
+import com.project.ProjectS.security.service.CustomUserDetailsService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -17,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  */
 @Configuration
 public class SecurityConfig {
+    private static final Logger log = LogManager.getLogger(SecurityConfig.class);
     private static final String SA = "SUPER_ADMIN";
     private static final String CA = "COLLEGE_ADMIN";
     private static final String BA = "BRANCH_ADMIN";
@@ -25,17 +31,24 @@ public class SecurityConfig {
     private static final String[] ALL = {SA, CA, BA, ST, GU};
     private static final String[] ADMINS = {SA, CA, BA};
 
-    private final JwtAuthenticationFilter jwtFilter;
     private final CustomOAuth2SuccessHandler oauthSuccessHandler;
+    private final JwtUtil jwtUtil;
+    private final CustomUserDetailsService userDetailsService;
+    private final AuditLogger auditLogger;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtFilter,
-                          CustomOAuth2SuccessHandler oauthSuccessHandler) {
-        this.jwtFilter = jwtFilter;
+    public SecurityConfig(CustomOAuth2SuccessHandler oauthSuccessHandler,
+                          JwtUtil jwtUtil,
+                          CustomUserDetailsService userDetailsService,
+                          AuditLogger auditLogger) {
         this.oauthSuccessHandler = oauthSuccessHandler;
+        this.jwtUtil = jwtUtil;
+        this.userDetailsService = userDetailsService;
+        this.auditLogger = auditLogger;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        log.info("Configuring Spring Security filter chain");
         http.csrf(csrf -> csrf.disable())
                 .exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
@@ -167,7 +180,10 @@ public class SecurityConfig {
                         .hasAnyRole(SA, CA, BA, ST)
                         .anyRequest().authenticated())
                 .oauth2Login(oauth -> oauth.successHandler(oauthSuccessHandler))
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(
+                        new JwtAuthenticationFilter(jwtUtil, userDetailsService, auditLogger),
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }

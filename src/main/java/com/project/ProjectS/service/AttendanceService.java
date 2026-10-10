@@ -8,6 +8,8 @@ import com.project.ProjectS.security.service.CustomUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,6 +17,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class AttendanceService {
+    private static final Logger log = LogManager.getLogger(AttendanceService.class);
     @Autowired
     public AttendanceService(AttendanceRepository attendanceRepository) {
         this.attendanceRepository = attendanceRepository;
@@ -25,6 +28,7 @@ public class AttendanceService {
     // Create Attendance
     public AttendanceResponseDTO createAttendance(
             AttendanceRequestDTO requestDTO) {
+        log.info("Creating attendance: studentId={} date={} section={}", requestDTO.getStudentId(), requestDTO.getAttendanceDate(), requestDTO.getSection());
 
         Attendance attendance = new Attendance();
 
@@ -43,6 +47,7 @@ public class AttendanceService {
 
         Attendance savedAttendance =
                 attendanceRepository.save(attendance);
+        log.info("Attendance created successfully: attendanceId={} studentId={}", savedAttendance.getAttendanceId(), savedAttendance.getStudentId());
 
         return convertToResponseDTO(savedAttendance);
     }

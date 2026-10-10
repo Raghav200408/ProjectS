@@ -4,6 +4,8 @@ import com.project.ProjectS.entity.Role;
 import com.project.ProjectS.model.RoleResponseDTO;
 import com.project.ProjectS.repository.RoleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -11,6 +13,7 @@ import java.util.List;
 
 @Service
 public class RoleService {
+    private static final Logger log = LogManager.getLogger(RoleService.class);
     @Autowired
     public RoleService(RoleRepository repository) {
         this.repository = repository;

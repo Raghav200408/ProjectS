@@ -16,6 +16,8 @@ import com.project.ProjectS.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -35,6 +37,7 @@ import java.util.Set;
  */
 @Service
 public class PracticeResultService {
+    private static final Logger log = LogManager.getLogger(PracticeResultService.class);
 
     private static final String TYPE_ATTRIBUTE = "ATTRIBUTE";
     private static final String TYPE_MCQ = "MCQ";
@@ -77,6 +80,7 @@ public class PracticeResultService {
     public PracticeResultResponseDTO recordAttributeResult(
             PracticeResultRequestDTO request,
             Authentication authentication) {
+        log.info("Recording practice result for questionId={} userId={} eventType={}", request != null ? request.getQuestionId() : null, request != null ? request.getUserId() : null, request != null ? request.getEventType() : null);
 
         User user = getLoggedInUser(authentication);
 

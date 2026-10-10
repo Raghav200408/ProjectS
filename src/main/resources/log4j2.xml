@@ -2,37 +2,50 @@
 <Configuration status="WARN">
 
     <Appenders>
-
-        <!-- Console Logs -->
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout
-                    pattern="%d{yyyy-MM-dd HH:mm:ss} %-5level [%t] %c{1} - %msg%n"/>
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5level [%t] %X{requestId} %logger{36} - %msg%n"/>
         </Console>
 
-        <!-- File Logs -->
+        <Console name="AuditConsole" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5level [AUDIT] [%t] %X{requestId} - %msg%n"/>
+        </Console>
+
         <RollingFile
                 name="File"
                 fileName="logs/application.log"
                 filePattern="logs/application-%d{yyyy-MM-dd}.log.gz">
-
-            <PatternLayout
-                    pattern="%d{yyyy-MM-dd HH:mm:ss} %-5level [%t] %c{1} - %msg%n"/>
-
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5level [%t] %X{requestId} %logger{36} - %msg%n"/>
             <Policies>
                 <TimeBasedTriggeringPolicy interval="1"/>
             </Policies>
-
         </RollingFile>
 
+        <RollingFile
+                name="AuditFile"
+                fileName="logs/audit.log"
+                filePattern="logs/audit-%d{yyyy-MM-dd}.log.gz">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5level [AUDIT] [%t] %X{requestId} - %msg%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+            </Policies>
+        </RollingFile>
     </Appenders>
 
     <Loggers>
+        <Logger name="com.project.ProjectS" level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
+        </Logger>
 
-        <Root level="info">
+        <Logger name="AUDIT" level="INFO" additivity="false">
+            <AppenderRef ref="AuditConsole"/>
+            <AppenderRef ref="AuditFile"/>
+        </Logger>
+
+        <Root level="INFO">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>
         </Root>
-
     </Loggers>
 
 </Configuration>

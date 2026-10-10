@@ -4,6 +4,8 @@ import com.project.ProjectS.entity.Question;
 import com.project.ProjectS.model.*;
 import com.project.ProjectS.repository.McqQuestionRepository;
 import com.project.ProjectS.repository.QuestionRepository;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +15,7 @@ import java.util.List;
 
 @Service
 public class MockTestService {
+    private static final Logger log = LogManager.getLogger(MockTestService.class);
     private static final int DEFAULT_QUESTION_COUNT = 20;
     private final QuestionRepository questions;
     private final McqQuestionRepository mcqs;
@@ -30,12 +33,18 @@ public class MockTestService {
 
     @Transactional
     public MockTestResponseDTO start(MockTestStartRequestDTO request, String email) {
+        log.info("Starting mock test for email={} courseId={} requestedQuestionCount={}",
+                email, request.getCourseId(), request.getQuestionCount());
+
         if (request.getCourseId() == null) {
+            log.warn("Mock test start rejected: missing courseId for email={}", email);
             throw new IllegalArgumentException("Course ID is required");
         }
         int requested = request.getQuestionCount() == null
                 ? DEFAULT_QUESTION_COUNT : request.getQuestionCount();
         if (requested <= 0) {
+            log.warn("Mock test start rejected: invalid question count={} for email={} courseId={}",
+                    request.getQuestionCount(), email, request.getCourseId());
             throw new IllegalArgumentException("Question count must be positive");
         }
 
@@ -47,6 +56,7 @@ public class MockTestService {
         Collections.shuffle(candidates);
         int count = Math.min(requested, candidates.size());
         if (count == 0) {
+            log.warn("Mock test start failed: no active MCQ questions for email={} courseId={}", email, request.getCourseId());
             throw new IllegalStateException("No active MCQ questions are available for this course");
         }
         Long userId = entitlementService.requireCourseAccess(email, request.getCourseId())
@@ -60,6 +70,8 @@ public class MockTestService {
                 .map(question -> mcqQuestionService.getMcqQuestionById(question.getQuestionId()))
                 .peek(question -> question.getOptions().forEach(option -> option.setIsCorrect(null)))
                 .toList());
+        log.info("Mock test started successfully: email={} courseId={} userId={} generatedQuestionCount={}",
+                email, request.getCourseId(), userId, count);
         return response;
     }
 }

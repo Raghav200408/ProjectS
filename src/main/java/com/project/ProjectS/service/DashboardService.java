@@ -6,6 +6,8 @@ import com.project.ProjectS.model.DashboardResponseDTO.PracticeDay;
 import com.project.ProjectS.repository.DashboardRepository;
 import com.project.ProjectS.repository.DashboardRepository.Scope;
 import com.project.ProjectS.repository.UserRepository;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -20,6 +22,8 @@ import java.util.stream.IntStream;
 
 @Service
 public class DashboardService {
+    private static final Logger log = LogManager.getLogger(DashboardService.class);
+
     private final DashboardRepository repository;
     private final UserRepository users;
     private final int dailyGoal;
@@ -29,16 +33,23 @@ public class DashboardService {
         this.repository = repository;
         this.users = users;
         this.dailyGoal = Math.max(1, dailyGoal);
+        log.info("DashboardService initialized with dailyGoal={}", this.dailyGoal);
     }
 
     @Transactional(readOnly = true)
     public DashboardResponseDTO getDashboard(Authentication authentication) {
+        log.info("Dashboard request received for principal={}", authentication == null ? null : authentication.getName());
         if (authentication == null || !authentication.isAuthenticated()) {
+            log.warn("Dashboard access denied: missing or unauthenticated principal");
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
         User user = users.findByEmail(authentication.getName())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+                .orElseThrow(() -> {
+                    log.warn("Dashboard access denied: user not found for email={}", authentication.getName());
+                    return new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+                });
         Scope scope = scopeFor(user);
+        log.info("Dashboard scope resolved for userId={} role={} scope={}", user.getUserId(), user.getRole() == null ? null : user.getRole().getRoleName(), scope);
         var now = OffsetDateTime.now(DashboardRepository.PRACTICE_ZONE);
         var result = new DashboardResponseDTO();
         repository.populateCounts(result, user.getUserId(), scope);
@@ -59,6 +70,8 @@ public class DashboardService {
         result.setDailyGoal(dailyGoal);
         result.setRecentActivities(repository.recentActivities(user.getUserId()));
         result.setRefreshedAt(now);
+        log.info("Dashboard built successfully for userId={} totalUnits={} attemptedUnits={} rank={} refreshedAt={}",
+                user.getUserId(), result.getTotalUnits(), result.getAttemptedUnits(), result.getRank(), now);
         return result;
     }
 

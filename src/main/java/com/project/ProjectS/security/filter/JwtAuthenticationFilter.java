@@ -1,75 +1,66 @@
 package com.project.ProjectS.security.filter;
 
+import com.project.ProjectS.config.AuditLogger;
 import com.project.ProjectS.security.jwt.JwtUtil;
 import com.project.ProjectS.security.service.CustomUserDetailsService;
 
+import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 
-@Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    @Autowired
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, CustomUserDetailsService userDetailsService) {
+public class JwtAuthenticationFilter implements Filter {
+    private static final Logger log = LogManager.getLogger(JwtAuthenticationFilter.class);
+
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, CustomUserDetailsService userDetailsService, AuditLogger auditLogger) {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
+        this.auditLogger = auditLogger;
     }
 
-
-    private static final Logger logger = LogManager.getLogger(JwtAuthenticationFilter.class);
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
+    private final AuditLogger auditLogger;
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain)
-            throws ServletException, IOException {
+    public void init(FilterConfig filterConfig) throws ServletException {
+        log.debug("Initializing JwtAuthenticationFilter");
+    }
+
+    @Override
+    public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
+        HttpServletRequest request = (HttpServletRequest) req;
+        HttpServletResponse response = (HttpServletResponse) res;
 
         String authHeader = request.getHeader("Authorization");
 
-                logger.debug("=================================");
-                logger.debug("REQUEST: {} {}", request.getMethod(), request.getRequestURI());
-
-
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-
-                    logger.debug("JWT NOT FOUND");
-
-            filterChain.doFilter(request, response);
+            auditLogger.log("TOKEN_VALIDATION", request.getRemoteUser(), "REQUEST", null, "MISSING", request.getRequestURI());
+            chain.doFilter(request, response);
             return;
         }
 
         String token = authHeader.substring(7);
 
         try {
-
             String email = jwtUtil.extractEmail(token);
+            auditLogger.log("TOKEN_VALIDATION", email, "JWT", null, "ATTEMPT", request.getRequestURI());
 
-                        logger.debug("JWT EMAIL: {}", email);
-
-            if (email != null &&
-                    SecurityContextHolder.getContext()
-                            .getAuthentication() == null) {
-
-                UserDetails userDetails =
-                        userDetailsService.loadUserByUsername(email);
-
-                logger.debug("AUTHORITIES: {}", userDetails.getAuthorities());
+            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
                 if (!userDetails.isEnabled()) {
                     SecurityContextHolder.clearContext();
@@ -78,39 +69,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
 
                 if (jwtUtil.isTokenValid(token)) {
-
                     UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(
-                                    userDetails,
-                                    null,
-                                    userDetails.getAuthorities()
-                            );
-
-                    authentication.setDetails(
-                            new WebAuthenticationDetailsSource()
-                                    .buildDetails(request)
-                    );
-
-                    SecurityContextHolder
-                            .getContext()
-                            .setAuthentication(authentication);
-
-                    logger.info("JWT AUTHENTICATION SUCCESS");
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    auditLogger.log("TOKEN_VALIDATION", email, "JWT", null, "SUCCESS", request.getRequestURI());
                 } else {
-
-                    logger.warn("JWT INVALID");
+                    auditLogger.log("TOKEN_VALIDATION", email, "JWT", null, "INVALID", request.getRequestURI());
                 }
             }
-
         } catch (Exception e) {
-
-            logger.error("JWT AUTHENTICATION ERROR: {}", e.getMessage(), e);
-
-                        SecurityContextHolder.clearContext();
+            auditLogger.log("TOKEN_VALIDATION", null, "JWT", null, "ERROR", e.getMessage());
+            SecurityContextHolder.clearContext();
         }
 
-        logger.debug("=================================");
+        chain.doFilter(request, response);
+    }
 
-        filterChain.doFilter(request, response);
+    @Override
+    public void destroy() {
     }
 }

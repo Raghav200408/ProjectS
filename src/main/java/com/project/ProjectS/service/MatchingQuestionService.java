@@ -6,6 +6,8 @@ import com.project.ProjectS.repository.*;
 import com.project.ProjectS.processor
         .MatchingQuestionExcelProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,6 +18,7 @@ import java.util.List;
 @Service
 @Transactional
 public class MatchingQuestionService {
+    private static final Logger log = LogManager.getLogger(MatchingQuestionService.class);
 
     @Autowired
     private QuestionRepository questionRepository;
@@ -320,6 +323,8 @@ public class MatchingQuestionService {
                                         "Question not found"
                                 ));
 
+
+        QuestionService.validateEditedType(question, request.getQuestionTypeId());
 
         Course course =
                 courseRepository.findById(request.getCourseId())
