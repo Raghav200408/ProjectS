@@ -22,4 +22,6 @@ public class QuestionAttributeRequestDTO {
     private BigDecimal amount2;
 
     private String note;
+
+    private Boolean adjustment;
 }

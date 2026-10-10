@@ -237,7 +237,10 @@ public class AnswerEventService {
                 }
 
 
-                if (autoFillUsed) {
+                // Final Accounts may be attempted again after assistance or a
+                // failed placement save. Keep rule validation and the active
+                // AUTOFILL marker, but never award marks for that retry.
+                if (autoFillUsed && !isFinalAccounts) {
 
                     throw new IllegalStateException(
                             "Answer already autofilled for answer position "
@@ -318,7 +321,7 @@ public class AnswerEventService {
                  * For Fill in the Blank it uses the calculated
                  * finalIsCorrect value.
                  */
-                if (Boolean.TRUE.equals(finalIsCorrect)) {
+                if (Boolean.TRUE.equals(finalIsCorrect) && !autoFillUsed) {
 
                     marks = calculateAnswerMarks(attemptNumber);
 

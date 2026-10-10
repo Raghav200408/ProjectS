@@ -28,5 +28,7 @@ public class QuestionAttributeResponseDTO {
 
     private String note;
 
+    private Boolean adjustment;
+
     private Boolean activeRow;
 }
