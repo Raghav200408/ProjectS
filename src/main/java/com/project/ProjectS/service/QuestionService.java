@@ -27,7 +27,8 @@ public class QuestionService {
     static void validateAttributeHeader(Question question, TableHeader header, TableAttribute attribute) {
         String type = question.getQuestionType() == null ? "" :
                 question.getQuestionType().getQuestionType();
-        if (type == null || !type.replaceAll("[\\s_-]", "").equalsIgnoreCase("DRAGANDDROP")) {
+        if (type == null || !(type.replaceAll("[\\s_-]", "").equalsIgnoreCase("DRAGANDDROP") ||
+                type.replaceAll("[\\s_-]", "").equalsIgnoreCase("DRAGANDDROPWITHADJ"))) {
             return;
         }
         TableHeader expected = attribute.getTableHeader();
@@ -402,6 +403,7 @@ public class QuestionService {
                 questionAttribute.setNote(
                         attributeRequest.getNote()
                 );
+                questionAttribute.setAdjustment(Boolean.TRUE.equals(attributeRequest.getAdjustment()));
 
 
                 QuestionAttribute savedAttribute =
@@ -1050,6 +1052,7 @@ public class QuestionService {
                 questionAttribute.setNote(
                         attributeRequest.getNote()
                 );
+                questionAttribute.setAdjustment(Boolean.TRUE.equals(attributeRequest.getAdjustment()));
 
 
                 QuestionAttribute savedAttribute =
@@ -1530,6 +1533,7 @@ public class QuestionService {
                     questionAttribute
                             .getNote()
             );
+            attributeResponse.setAdjustment(Boolean.TRUE.equals(questionAttribute.getAdjustment()));
 
 
             attributeResponse.setActiveRow(

@@ -57,6 +57,9 @@ public class QuestionAttribute {
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
+    @Column(name = "is_adjustment")
+    private Boolean adjustment = false;
+
 
     // Active Row
     @Column(name = "active_row")

@@ -5,11 +5,14 @@ import com.project.ProjectS.model.AnswerEventRequestDTO;
 import com.project.ProjectS.model.AnswerEventResponseDTO;
 import com.project.ProjectS.repository.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -79,22 +82,27 @@ class FinalAccountsAutofillResetTest {
         verifyNoInteractions(events);
     }
 
-    @Test
-    void sameCycleAutofillStillBlocksAnAnswerAtPositionOne() {
-        AnswerEventService eventService = configureAnswerEventService(new AtomicBoolean(true));
+    @ParameterizedTest
+    @ValueSource(strings = {"Drag And Drop", "dragAndDropWithAdj"})
+    void sameCycleAutofillAllowsAValidatedRetryWithoutMarks(String type) {
+        AnswerEventService eventService = configureAnswerEventService(new AtomicBoolean(true), type);
+        when(events.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> eventService.createEvent(answerRequest()));
+        AnswerEventResponseDTO response = assertDoesNotThrow(() -> eventService.createEvent(answerRequest()));
 
-        assertEquals("Answer already autofilled for answer position 1", exception.getMessage());
-        verify(events, never()).save(any());
+        assertTrue(response.getIsCorrect());
+        assertEquals("ANSWER", response.getEventType());
+        assertEquals(BigDecimal.ZERO, response.getMarks());
+        assertEquals(11L, response.getQuestionAttributeId());
+        verify(events).save(any(AnswerEvent.class));
         verify(events, never()).deactivatePracticeAutofill(anyLong(), anyLong());
     }
 
-    @Test
-    void resetThenAnswerAtPositionOneSucceeds() {
+    @ParameterizedTest
+    @ValueSource(strings = {"Drag And Drop", "dragAndDropWithAdj"})
+    void resetThenAnswerAtPositionOneSucceeds(String type) {
         AtomicBoolean autofillActive = new AtomicBoolean(true);
-        AnswerEventService eventService = configureAnswerEventService(autofillActive);
+        AnswerEventService eventService = configureAnswerEventService(autofillActive, type);
         when(answers.findByUser_UserIdAndQuestion_QuestionIdAndActiveRowTrue(5L, 1L))
                 .thenReturn(List.of());
         when(events.deactivatePracticeAutofill(5L, 1L)).thenAnswer(invocation -> {
@@ -116,10 +124,11 @@ class FinalAccountsAutofillResetTest {
         verify(events).save(any(AnswerEvent.class));
     }
 
-    @Test
-    void autofillAfterResetLocksTheNewCycleAgain() {
+    @ParameterizedTest
+    @ValueSource(strings = {"Drag And Drop", "dragAndDropWithAdj"})
+    void autofillAfterResetMakesNewCycleRetriesWorthZero(String type) {
         AtomicBoolean autofillActive = new AtomicBoolean(true);
-        AnswerEventService eventService = configureAnswerEventService(autofillActive);
+        AnswerEventService eventService = configureAnswerEventService(autofillActive, type);
         when(answers.findByUser_UserIdAndQuestion_QuestionIdAndActiveRowTrue(5L, 1L))
                 .thenReturn(List.of());
         when(events.deactivatePracticeAutofill(5L, 1L)).thenAnswer(invocation -> {
@@ -139,10 +148,38 @@ class FinalAccountsAutofillResetTest {
         autofill.setEventType("AUTOFILL");
         assertDoesNotThrow(() -> eventService.createEvent(autofill));
 
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> eventService.createEvent(answerRequest()));
-        assertEquals("Answer already autofilled for answer position 1", exception.getMessage());
-        verify(events, times(1)).save(any(AnswerEvent.class));
+        AnswerEventResponseDTO retry = assertDoesNotThrow(() -> eventService.createEvent(answerRequest()));
+        assertTrue(retry.getIsCorrect());
+        assertEquals(BigDecimal.ZERO, retry.getMarks());
+        verify(events, times(2)).save(any(AnswerEvent.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Drag And Drop", "dragAndDropWithAdj"})
+    void retryAfterAutofillStillRejectsAnIncorrectPlacement(String type) {
+        AnswerEventService eventService = configureAnswerEventService(new AtomicBoolean(true), type);
+        when(events.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        Question question = questions.findById(1L).orElseThrow();
+        QuestionAttribute row = rows.findByQuestion_QuestionId(1L).get(0);
+        when(rules.validatesFinalAccountsPlacement(question, row, 1L, 2L, "add", new BigDecimal("200"), 1L))
+                .thenReturn(false);
+
+        AnswerEventResponseDTO response = eventService.createEvent(answerRequest());
+
+        assertFalse(response.getIsCorrect());
+        assertEquals(BigDecimal.ZERO, response.getMarks());
+        verify(events, never()).deactivatePracticeAutofill(anyLong(), anyLong());
+    }
+
+    @Test
+    void unrelatedQuestionTypesKeepTheirExistingAutofillGuard() {
+        AnswerEventService eventService = configureAnswerEventService(new AtomicBoolean(true), "Drag And Drop");
+        configureQuestion("Drag And Drop", "Journal Entries");
+        when(events.existsByUser_UserIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+                5L, 1L, 8L, 1, "AUTOFILL")).thenReturn(true);
+
+        assertThrows(IllegalStateException.class, () -> eventService.createEvent(answerRequest()));
+        verify(events, never()).save(any());
     }
 
     @Test
@@ -163,6 +200,8 @@ class FinalAccountsAutofillResetTest {
     }
 
     private Question configureQuestion(String type, String chapterName) {
+        User lockedUser = new User(); lockedUser.setUserId(5L);
+        when(users.findByUserIdForUpdate(5L)).thenReturn(Optional.of(lockedUser));
         Question question = new Question();
         question.setQuestionId(1L);
         QuestionType questionType = new QuestionType(); questionType.setQuestionType(type);
@@ -173,8 +212,8 @@ class FinalAccountsAutofillResetTest {
         return question;
     }
 
-    private AnswerEventService configureAnswerEventService(AtomicBoolean autofillActive) {
-        Question question = configureQuestion("Drag And Drop", "Final Accounts without Adjustments");
+    private AnswerEventService configureAnswerEventService(AtomicBoolean autofillActive, String type) {
+        Question question = configureQuestion(type, "Final Accounts without Adjustments");
         User user = new User(); user.setUserId(5L);
         when(users.findById(5L)).thenReturn(Optional.of(user));
         TableAttribute attribute = new TableAttribute(); attribute.setAttributeId(8L); attribute.setName("Sales");
@@ -197,5 +236,39 @@ class FinalAccountsAutofillResetTest {
         request.setTableNameId(1L); request.setHeaderId(2L); request.setConditionId(1L);
         request.setAmount(new BigDecimal("200")); request.setArithmetic("add"); request.setIsCorrect(true);
         return request;
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Drag And Drop", "dragAndDropWithAdj"})
+    void practiceMarksFollowTheSameAttemptTableAndContributeToOverallScore(String type) {
+        AnswerEventService service = configureAnswerEventService(new AtomicBoolean(false), type);
+        List<AnswerEvent> savedEvents = new ArrayList<>();
+        when(events.save(any())).thenAnswer(invocation -> {
+            AnswerEvent event = invocation.getArgument(0);
+            savedEvents.add(event);
+            return event;
+        });
+        Question question = questions.findById(1L).orElseThrow();
+        QuestionAttribute row = rows.findByQuestion_QuestionId(1L).get(0);
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            when(events.countByUser_UserIdAndQuestion_QuestionIdAndQuestionAttributeIdAndAnswerPositionAndEventTypeAndActiveRowTrue(
+                    5L, 1L, 11L, 1, "ANSWER")).thenReturn((long) attempt - 1);
+            for (boolean correct : new boolean[]{false, true}) {
+                when(rules.validatesFinalAccountsPlacement(question, row, 1L, 2L, "add", new BigDecimal("200"), 1L))
+                        .thenReturn(correct);
+                AnswerEventResponseDTO response = service.createEvent(answerRequest());
+                BigDecimal expected = !correct || attempt >= 3 ? BigDecimal.ZERO
+                        : new BigDecimal(attempt == 1 ? "1.00" : "0.50");
+                assertEquals(expected, response.getMarks());
+                assertEquals(attempt, response.getAttemptNumber());
+            }
+        }
+        for (String assistance : List.of("HINT", "AUTOFILL")) {
+            AnswerEventRequestDTO request = answerRequest();
+            request.setEventType(assistance);
+            assertEquals(BigDecimal.ZERO, service.createEvent(request).getMarks());
+        }
+        when(events.findByUser_UserIdAndExamIsNullAndMockExamIsNull(5L)).thenReturn(savedEvents);
+        assertEquals(new BigDecimal("1.50"), service.getOverallMarks(5L));
     }
 }

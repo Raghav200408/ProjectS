@@ -3,39 +3,13 @@ package com.project.ProjectS.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import com.project.ProjectS.entity.AnswerEvent;
-import com.project.ProjectS.entity.Exam;
-import com.project.ProjectS.entity.McqOption;
-import com.project.ProjectS.entity.MockExam;
-import com.project.ProjectS.entity.Question;
-import com.project.ProjectS.entity.QuestionAttribute;
-import com.project.ProjectS.entity.TableAttribute;
-import com.project.ProjectS.entity.TableHeader;
-import com.project.ProjectS.entity.TableName;
-import com.project.ProjectS.entity.User;
-import com.project.ProjectS.model.AttributeReviewDetailDTO;
-import com.project.ProjectS.model.ExamAnswerDTO;
-import com.project.ProjectS.model.ExamQuestionAnswerDTO;
-import com.project.ProjectS.model.ExamReviewQuestionDTO;
-import com.project.ProjectS.model.RuleConditionDTO;
-import com.project.ProjectS.model.RuleEngineResponse;
-import com.project.ProjectS.repository.AnswerEventRepository;
-import com.project.ProjectS.repository.McqOptionRepository;
-import com.project.ProjectS.repository.QuestionAttributeRepository;
-import com.project.ProjectS.repository.QuestionRepository;
-import com.project.ProjectS.repository.TableHeaderRepository;
-import com.project.ProjectS.repository.TableNameRepository;
+import com.project.ProjectS.entity.*;
+import com.project.ProjectS.model.*;
+import com.project.ProjectS.repository.*;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -841,18 +815,18 @@ public class ExamScoringService {
                     TableAttribute attribute = attributeId == null
                             ? null
                             : questionAttributes.stream()
-                                    .map(QuestionAttribute::getAttribute)
-                                    .filter(a -> a != null && attributeId.equals(a.getAttributeId()))
-                                    .findFirst()
-                                    .orElse(null);
+                            .map(QuestionAttribute::getAttribute)
+                            .filter(a -> a != null && attributeId.equals(a.getAttributeId()))
+                            .findFirst()
+                            .orElse(null);
 
                     QuestionAttribute questionAttribute = attributeId == null
                             ? null
                             : questionAttributes.stream()
-                                    .filter(qa -> qa.getAttribute() != null
-                                            && attributeId.equals(qa.getAttribute().getAttributeId()))
-                                    .findFirst()
-                                    .orElse(null);
+                            .filter(qa -> qa.getAttribute() != null
+                                    && attributeId.equals(qa.getAttribute().getAttributeId()))
+                            .findFirst()
+                            .orElse(null);
 
                     // Each line is judged on its own here - not aggregated
                     // with its attribute's other lines, unlike the actual
@@ -954,6 +928,9 @@ public class ExamScoringService {
             return "JOURNAL";
         }
         if (token.contains("DRAG") && token.contains("DROP")) {
+            if (token.replaceAll("[\\s_-]", "").equals("DRAGANDDROPWITHADJ")) {
+                return "DRAG_AND_DROP_WITH_ADJ";
+            }
             return "DRAG_AND_DROP";
         }
         if (token.contains("DROP") && token.contains("DOWN")) {
@@ -985,9 +962,9 @@ public class ExamScoringService {
 
         List<AnswerEvent> events = examId != null
                 ? answerEventRepository.findByUser_UserIdAndExam_ExamIdAndEventType(
-                        userId, examId, "EXAM_SUBMIT")
+                userId, examId, "EXAM_SUBMIT")
                 : answerEventRepository.findByUser_UserIdAndMockExam_MockExamIdAndEventType(
-                        userId, mockExamId, "EXAM_SUBMIT");
+                userId, mockExamId, "EXAM_SUBMIT");
 
         Map<Long, List<AnswerEvent>> eventsByQuestion = events.stream()
                 .collect(Collectors.groupingBy(event -> event.getQuestion().getQuestionId()));
@@ -1064,7 +1041,8 @@ public class ExamScoringService {
                         continue;
                     }
                     try {
-                        Map<String, Object> data = ANSWER_JSON.readValue(event.getUserAnswer(), new TypeReference<>() {});
+                        Map<String, Object> data = ANSWER_JSON.readValue(event.getUserAnswer(), new TypeReference<>() {
+                        });
                         data.put("status", Boolean.TRUE.equals(event.getIsCorrect()) ? "correct" : "wrong");
                         ExamAnswerDTO answer = new ExamAnswerDTO();
                         answer.setAnsweredData(data);
@@ -1176,11 +1154,11 @@ public class ExamScoringService {
 
         List<AnswerEvent> wrongEvents = examId != null
                 ? answerEventRepository
-                        .findByUser_UserIdAndExam_ExamIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventTypeAndIsCorrectFalse(
-                                userId, examId, questionId, attributeId, "EXAM_SUBMIT")
+                .findByUser_UserIdAndExam_ExamIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventTypeAndIsCorrectFalse(
+                        userId, examId, questionId, attributeId, "EXAM_SUBMIT")
                 : answerEventRepository
-                        .findByUser_UserIdAndMockExam_MockExamIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventTypeAndIsCorrectFalse(
-                                userId, mockExamId, questionId, attributeId, "EXAM_SUBMIT");
+                .findByUser_UserIdAndMockExam_MockExamIdAndQuestion_QuestionIdAndAttribute_AttributeIdAndEventTypeAndIsCorrectFalse(
+                        userId, mockExamId, questionId, attributeId, "EXAM_SUBMIT");
 
         List<String> mistakes = wrongEvents.stream()
                 .map(AnswerEvent::getDescription)
@@ -1192,14 +1170,14 @@ public class ExamScoringService {
         List<String> hints = rules == null
                 ? List.of()
                 : rules.stream()
-                        .flatMap(rule -> Stream.of(
-                                rule.getCondition1(), rule.getCondition2(),
-                                rule.getCondition3(), rule.getCondition4()))
-                        .filter(Objects::nonNull)
-                        .map(RuleConditionDTO::getInformation)
-                        .filter(information -> information != null && !information.isBlank())
-                        .distinct()
-                        .toList();
+                .flatMap(rule -> Stream.of(
+                        rule.getCondition1(), rule.getCondition2(),
+                        rule.getCondition3(), rule.getCondition4()))
+                .filter(Objects::nonNull)
+                .map(RuleConditionDTO::getInformation)
+                .filter(information -> information != null && !information.isBlank())
+                .distinct()
+                .toList();
 
         AttributeReviewDetailDTO detail = new AttributeReviewDetailDTO();
         detail.setHints(hints);
