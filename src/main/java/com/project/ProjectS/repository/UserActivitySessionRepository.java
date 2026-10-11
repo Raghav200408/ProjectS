@@ -18,15 +18,33 @@ public interface UserActivitySessionRepository extends JpaRepository<UserActivit
     @Query("""
             select s from UserActivitySession s
             join s.user u
+            where u.role.roleName = 'STUDENT'
+              and (:collegeId is null or u.college.collegeId = :collegeId)
+              and (:branchId is null or u.branch.branchId = :branchId)
+              and (:sectionId is null or u.section.sectionId = :sectionId)
+              and (:studentId is null or u.userId = :studentId)
+            """)
+    List<UserActivitySession> findStudentSessionsForScope(
+            @Param("collegeId") Long collegeId,
+            @Param("branchId") Long branchId,
+            @Param("sectionId") Long sectionId,
+            @Param("studentId") Long studentId
+    );
+
+    @Query("""
+            select s from UserActivitySession s
+            join s.user u
             where s.status = 'ACTIVE'
               and u.role.roleName = 'STUDENT'
               and (:collegeId is null or u.college.collegeId = :collegeId)
               and (:branchId is null or u.branch.branchId = :branchId)
+              and (:sectionId is null or u.section.sectionId = :sectionId)
               and (:studentId is null or u.userId = :studentId)
             """)
     List<UserActivitySession> findActiveStudentSessionsForScope(
             @Param("collegeId") Long collegeId,
             @Param("branchId") Long branchId,
+            @Param("sectionId") Long sectionId,
             @Param("studentId") Long studentId
     );
 

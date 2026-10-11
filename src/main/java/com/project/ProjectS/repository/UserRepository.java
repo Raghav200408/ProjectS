@@ -2,6 +2,8 @@ package com.project.ProjectS.repository;
 
 import com.project.ProjectS.entity.User;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import jakarta.persistence.LockModeType;
@@ -53,6 +55,65 @@ public interface UserRepository extends JpaRepository<User, Long> {
     );
 
     boolean existsByPhoneNumberAndUserIdNot(String phoneNumber, Long userId);
+
+
+    @Query("""
+            select u from User u
+            where u.role.roleName = 'STUDENT'
+              and (u.activeRow = true or u.activeRow is null)
+              and u.lastLoginAt < :cutoff
+              and (:collegeId is null or u.college.collegeId = :collegeId)
+              and (:branchId is null or u.branch.branchId = :branchId)
+              and (:sectionId is null or u.section.sectionId = :sectionId)
+            """)
+    Page<User> findStudentsNotLoggedInSince(
+            @Param("cutoff") java.time.LocalDateTime cutoff,
+            @Param("collegeId") Long collegeId,
+            @Param("branchId") Long branchId,
+            @Param("sectionId") Long sectionId,
+            Pageable pageable);
+
+    @Query("""
+            select count(u.userId) from User u
+            where u.role.roleName = 'STUDENT'
+              and (u.activeRow = true or u.activeRow is null)
+              and u.lastLoginAt < :cutoff
+              and (:collegeId is null or u.college.collegeId = :collegeId)
+              and (:branchId is null or u.branch.branchId = :branchId)
+              and (:sectionId is null or u.section.sectionId = :sectionId)
+            """)
+    long countStudentsNotLoggedInSince(
+            @Param("cutoff") java.time.LocalDateTime cutoff,
+            @Param("collegeId") Long collegeId,
+            @Param("branchId") Long branchId,
+            @Param("sectionId") Long sectionId);
+
+    @Query("""
+            select count(u.userId) from User u
+            where u.role.roleName = 'STUDENT'
+              and (u.activeRow = true or u.activeRow is null)
+              and (:collegeId is null or u.college.collegeId = :collegeId)
+              and (:branchId is null or u.branch.branchId = :branchId)
+              and (:sectionId is null or u.section.sectionId = :sectionId)
+            """)
+    long countActiveStudentsInScope(
+            @Param("collegeId") Long collegeId,
+            @Param("branchId") Long branchId,
+            @Param("sectionId") Long sectionId);
+
+    @Query("""
+            select count(u.userId) from User u
+            where u.role.roleName = 'STUDENT'
+              and (u.activeRow = true or u.activeRow is null)
+              and u.lastLoginAt is null
+              and (:collegeId is null or u.college.collegeId = :collegeId)
+              and (:branchId is null or u.branch.branchId = :branchId)
+              and (:sectionId is null or u.section.sectionId = :sectionId)
+            """)
+    long countStudentsWithoutLoginRecord(
+            @Param("collegeId") Long collegeId,
+            @Param("branchId") Long branchId,
+            @Param("sectionId") Long sectionId);
 
     @Query("""
             select u from User u

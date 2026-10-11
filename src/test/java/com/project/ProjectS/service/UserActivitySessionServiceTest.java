@@ -81,15 +81,15 @@ class UserActivitySessionServiceTest {
     void superAdminCanQuerySelectedOrganizationScope() {
         User user = mock(User.class, RETURNS_DEEP_STUBS);
         when(user.getRole().getRoleName()).thenReturn("SUPER_ADMIN");
-        when(dailyTotals.sumForScope(any(LocalDate.class), any(LocalDate.class), eq(3L), eq(8L), eq(12L)))
+        when(dailyTotals.sumForScope(any(LocalDate.class), any(LocalDate.class), eq(3L), eq(8L), eq(12L),eq(12L)))
                 .thenReturn(List.of());
-        when(sessions.findActiveStudentSessionsForScope(3L, 8L, 12L)).thenReturn(List.of());
+        when(sessions.findActiveStudentSessionsForScope(3L, 8L, 12L,12L)).thenReturn(List.of());
 
         var result = service.dailyTime(user, 7, 3L, 8L, 12L);
 
         assertEquals(7, result.size());
-        verify(dailyTotals).sumForScope(any(LocalDate.class), any(LocalDate.class), eq(3L), eq(8L), eq(12L));
-        verify(sessions).findActiveStudentSessionsForScope(3L, 8L, 12L);
+        verify(dailyTotals).sumForScope(any(LocalDate.class), any(LocalDate.class), eq(3L), eq(8L), eq(12L),eq(12L));
+        verify(sessions).findActiveStudentSessionsForScope(3L, 8L, 12L,12L);
     }
 
     @Test

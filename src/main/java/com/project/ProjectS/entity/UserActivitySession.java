@@ -40,4 +40,22 @@ public class UserActivitySession {
 
     @Column(name = "total_active_seconds", nullable = false)
     private Long totalActiveSeconds = 0L;
+
+    @Column(name = "current_chapter_id")
+    private Long currentChapterId;
+
+    @Column(name = "current_chapter_name")
+    private String currentChapterName;
+
+    @Column(name = "current_topic_id")
+    private Long currentTopicId;
+
+    @Column(name = "current_topic_name")
+    private String currentTopicName;
+
+    @Column(name = "current_question_id")
+    private Long currentQuestionId;
+
+    @Column(name = "current_question_name")
+    private String currentQuestionName;
 }

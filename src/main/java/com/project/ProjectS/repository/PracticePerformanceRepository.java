@@ -73,6 +73,7 @@ public class PracticePerformanceRepository {
     public record Scope(
             Long collegeId,
             Long branchId,
+            Long sectionId,
             Long studentId,
             boolean includeAllRoles) {
     }
@@ -128,6 +129,9 @@ public class PracticePerformanceRepository {
         if (scope.branchId() != null) {
             sql.append("      AND u.branch_id = :branchId\n");
         }
+        if (scope.sectionId() != null) {
+            sql.append("      AND u.section_id = :sectionId\n");
+        }
         if (scope.studentId() != null) {
             sql.append("      AND u.user_id = :studentId\n");
         }
@@ -140,6 +144,7 @@ public class PracticePerformanceRepository {
         return new MapSqlParameterSource()
                 .addValue("collegeId", scope.collegeId())
                 .addValue("branchId", scope.branchId())
+                .addValue("sectionId", scope.sectionId())
                 .addValue("studentId", scope.studentId())
                 .addValue("courseId", filters.courseId())
                 .addValue("subjectId", filters.subjectId())
