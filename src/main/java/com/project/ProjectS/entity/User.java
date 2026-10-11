@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 @Entity
 @Getter
@@ -80,6 +81,12 @@ public class User {
     private Boolean activeRow = true;
 
 
+
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
+
+    @Column(name = "weekly_study_goal_hours", precision = 4, scale = 1)
+    private BigDecimal weeklyStudyGoalHours;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

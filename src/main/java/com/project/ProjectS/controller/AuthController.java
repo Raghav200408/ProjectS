@@ -95,6 +95,9 @@ public class AuthController {
                     return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");
                 });
 
+        user.setLastLoginAt(java.time.LocalDateTime.now());
+        userRepository.save(user);
+
         String roleName =
                 user.getRole().getRoleName();
 

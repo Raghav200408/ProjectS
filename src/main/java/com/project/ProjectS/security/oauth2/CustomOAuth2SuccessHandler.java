@@ -19,6 +19,7 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 @Component
 public class CustomOAuth2SuccessHandler
@@ -86,6 +87,7 @@ public class CustomOAuth2SuccessHandler
 			user.setProfilePicture(picture);
 
 			user.setLoginType("GOOGLE");
+            user.setLastLoginAt(LocalDateTime.now());
 
 			user.setRole(guestRole);
 
@@ -102,6 +104,7 @@ public class CustomOAuth2SuccessHandler
 			if (picture != null) {
 				user.setProfilePicture(picture);
 			}
+            user.setLastLoginAt(LocalDateTime.now());
 
 			userRepository.save(user);
 		}

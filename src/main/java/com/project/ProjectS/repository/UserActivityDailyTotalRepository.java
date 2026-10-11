@@ -29,8 +29,10 @@ public interface UserActivityDailyTotalRepository extends JpaRepository<UserActi
             join d.user u
             where d.activityDate between :startDate and :endDate
               and u.role.roleName = 'STUDENT'
+              and (u.activeRow = true or u.activeRow is null)
               and (:collegeId is null or u.college.collegeId = :collegeId)
               and (:branchId is null or u.branch.branchId = :branchId)
+              and (:sectionId is null or u.section.sectionId = :sectionId)
               and (:studentId is null or u.userId = :studentId)
             group by d.activityDate
             order by d.activityDate
@@ -40,7 +42,55 @@ public interface UserActivityDailyTotalRepository extends JpaRepository<UserActi
             @Param("endDate") LocalDate endDate,
             @Param("collegeId") Long collegeId,
             @Param("branchId") Long branchId,
-            @Param("studentId") Long studentId
+            @Param("studentId") Long studentId,
+            @Param("sectionId") Long sectionId
+    );
+
+    interface StudentDailyProjection {
+        LocalDate getActivityDate();
+        Long getUserId();
+        String getName();
+        Long getActiveSeconds();
+    }
+
+    @Query("""
+            select d.activityDate as activityDate,
+                   u.userId as userId,
+                   u.name as name,
+                   sum(d.activeSeconds) as activeSeconds
+            from UserActivityDailyTotal d
+            join d.user u
+            where d.activityDate between :startDate and :endDate
+              and d.activeSeconds > 0
+              and u.role.roleName = 'STUDENT'
+              and (u.activeRow = true or u.activeRow is null)
+              and (:collegeId is null or u.college.collegeId = :collegeId)
+              and (:branchId is null or u.branch.branchId = :branchId)
+              and (:sectionId is null or u.section.sectionId = :sectionId)
+            group by d.activityDate, u.userId, u.name
+            order by d.activityDate, u.userId
+            """)
+    List<StudentDailyProjection> findStudentActivityRowsForScope(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("collegeId") Long collegeId,
+            @Param("branchId") Long branchId,
+            @Param("sectionId") Long sectionId
+    );
+
+    @Query("""
+            select count(u.userId)
+            from User u
+            where u.role.roleName = 'STUDENT'
+              and (u.activeRow = true or u.activeRow is null)
+              and (:collegeId is null or u.college.collegeId = :collegeId)
+              and (:branchId is null or u.branch.branchId = :branchId)
+              and (:sectionId is null or u.section.sectionId = :sectionId)
+            """)
+    long countStudentsForScope(
+            @Param("collegeId") Long collegeId,
+            @Param("branchId") Long branchId,
+            @Param("sectionId") Long sectionId
     );
 
     @Modifying(flushAutomatically = true)

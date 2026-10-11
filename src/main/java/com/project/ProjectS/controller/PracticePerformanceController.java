@@ -45,12 +45,13 @@ public class PracticePerformanceController {
             @RequestParam(required = false) Long chapterId,
             @RequestParam(required = false) Long collegeId,
             @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Long sectionId,
             @RequestParam(required = false) Long studentId,
             Authentication authentication) {
 
         return ResponseEntity.ok(performanceService.getPerformance(
                 Level.COURSE, new Filters(courseId, subjectId, chapterId),
-                collegeId, branchId, studentId, authentication));
+                collegeId, branchId, sectionId, studentId, authentication));
     }
 
     @GetMapping("/subject")
@@ -60,12 +61,13 @@ public class PracticePerformanceController {
             @RequestParam(required = false) Long chapterId,
             @RequestParam(required = false) Long collegeId,
             @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Long sectionId,
             @RequestParam(required = false) Long studentId,
             Authentication authentication) {
 
         return ResponseEntity.ok(performanceService.getPerformance(
                 Level.SUBJECT, new Filters(courseId, subjectId, chapterId),
-                collegeId, branchId, studentId, authentication));
+                collegeId, branchId, sectionId, studentId, authentication));
     }
 
     @GetMapping("/chapter")
@@ -75,12 +77,13 @@ public class PracticePerformanceController {
             @RequestParam(required = false) Long chapterId,
             @RequestParam(required = false) Long collegeId,
             @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Long sectionId,
             @RequestParam(required = false) Long studentId,
             Authentication authentication) {
 
         return ResponseEntity.ok(performanceService.getPerformance(
                 Level.CHAPTER, new Filters(courseId, subjectId, chapterId),
-                collegeId, branchId, studentId, authentication));
+                collegeId, branchId, sectionId, studentId, authentication));
     }
 
     @GetMapping("/topic")
@@ -90,12 +93,13 @@ public class PracticePerformanceController {
             @RequestParam(required = false) Long chapterId,
             @RequestParam(required = false) Long collegeId,
             @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Long sectionId,
             @RequestParam(required = false) Long studentId,
             Authentication authentication) {
 
         return ResponseEntity.ok(performanceService.getPerformance(
                 Level.TOPIC, new Filters(courseId, subjectId, chapterId),
-                collegeId, branchId, studentId, authentication));
+                collegeId, branchId, sectionId, studentId, authentication));
     }
 
     @GetMapping("/mine/{level}")

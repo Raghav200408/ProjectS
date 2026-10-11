@@ -2,6 +2,9 @@ package com.project.ProjectS.controller;
 
 import com.project.ProjectS.model.ActivitySessionRequestDTO;
 import com.project.ProjectS.model.ActivitySessionResponseDTO;
+import com.project.ProjectS.model.ContentDailyActivityTimeResponseDTO;
+import com.project.ProjectS.model.StudentEngagementTrendsDTO;
+import com.project.ProjectS.model.PeriodComparisonDTO;
 import com.project.ProjectS.model.DailyActivityTimeResponseDTO;
 import com.project.ProjectS.security.service.CustomUserDetails;
 import com.project.ProjectS.service.UserActivitySessionService;
@@ -32,7 +35,7 @@ public class UserActivitySessionController {
     public ResponseEntity<ActivitySessionResponseDTO> heartbeat(
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody ActivitySessionRequestDTO request) {
-        return ResponseEntity.ok(service.heartbeat(principal.getUser(), request.sessionKey()));
+        return ResponseEntity.ok(service.heartbeat(principal.getUser(), request));
     }
 
     @PostMapping("/idle")
@@ -58,8 +61,12 @@ public class UserActivitySessionController {
 
     @GetMapping("/total-time")
     public ResponseEntity<Map<String, Long>> totalTime(
-            @AuthenticationPrincipal CustomUserDetails principal) {
-        return ResponseEntity.ok(Map.of("totalActiveSeconds", service.totalTime(principal.getUser())));
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestParam(required = false) Long collegeId,
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Long sectionId) {
+        return ResponseEntity.ok(Map.of("totalActiveSeconds",
+                service.totalTime(principal.getUser(), collegeId, branchId, sectionId)));
     }
 
     @GetMapping("/daily-time")
@@ -68,8 +75,43 @@ public class UserActivitySessionController {
             @RequestParam(defaultValue = "7") int days,
             @RequestParam(required = false) Long collegeId,
             @RequestParam(required = false) Long branchId,
-            @RequestParam(required = false) Long studentId) {
+            @RequestParam(required = false) Long studentId,
+            @RequestParam(required = false) Long sectionId) {
         return ResponseEntity.ok(service.dailyTime(
-                principal.getUser(), days, collegeId, branchId, studentId));
+                principal.getUser(), days, collegeId, branchId, studentId, sectionId));
+    }
+
+    @GetMapping("/period-comparison")
+    public ResponseEntity<PeriodComparisonDTO> periodComparison(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestParam(defaultValue = "7") int days,
+            @RequestParam(required = false) Long collegeId,
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Long sectionId) {
+        return ResponseEntity.ok(service.periodComparison(
+                principal.getUser(), days, collegeId, branchId, sectionId));
+    }
+
+    @GetMapping("/student-engagement-trends")
+    public ResponseEntity<StudentEngagementTrendsDTO> studentEngagementTrends(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestParam(defaultValue = "7") int days,
+            @RequestParam(required = false) Long collegeId,
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Long sectionId) {
+        return ResponseEntity.ok(service.studentEngagementTrends(
+                principal.getUser(), days, collegeId, branchId, sectionId));
+    }
+
+    @GetMapping("/content-daily-time")
+    public ResponseEntity<List<ContentDailyActivityTimeResponseDTO>> contentDailyTime(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestParam(defaultValue = "7") int days,
+            @RequestParam String level,
+            @RequestParam(required = false) Long collegeId,
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Long sectionId) {
+        return ResponseEntity.ok(service.contentDailyTime(
+                principal.getUser(), days, level, collegeId, branchId, sectionId));
     }
 }
