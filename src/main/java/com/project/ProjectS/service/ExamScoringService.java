@@ -950,6 +950,10 @@ public class ExamScoringService {
         if (token.isEmpty()) {
             return null;
         }
+        // Preserve the adjustment type before the general drag-and-drop match.
+        if ("DRAGANDDROPWITHADJ".equals(token.replace("_", ""))) {
+            return "DRAG_AND_DROP_WITH_ADJ";
+        }
         if (token.contains("JOURNAL")) {
             return "JOURNAL";
         }

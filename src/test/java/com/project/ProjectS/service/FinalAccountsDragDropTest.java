@@ -69,7 +69,8 @@ class FinalAccountsDragDropTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"Drag And Drop", "dragAndDropWithAdj"})
+    @ValueSource(strings = {"Drag And Drop", "dragAndDropWithAdj", "DRAG_AND_DROP_WITH_ADJ",
+            "Drag And Drop With Adj", "drag-and-drop-with-adj"})
     void reviewRetainsSecondAmountAndQuestionRowIdentity(String type) {
         Question question = question(type, "Final Accounts with Adjustments");
         configure(question, List.of(row(question, 11L, 8L, "200", "70")),
@@ -85,7 +86,7 @@ class FinalAccountsDragDropTest {
 
         ExamReviewQuestionDTO review = scorer.buildReviewFromAnswerInfo(5L, 10L, null).get(0);
         assertTrue(review.getCorrect());
-        assertEquals(type.equals("dragAndDropWithAdj") ? "DRAG_AND_DROP_WITH_ADJ" : "DRAG_AND_DROP", review.getQuestionType());
+        assertEquals(type.equals("Drag And Drop") ? "DRAG_AND_DROP" : "DRAG_AND_DROP_WITH_ADJ", review.getQuestionType());
         assertEquals("70", review.getAnswers().get(1).getAnsweredData().get("amount").toString());
         assertEquals("11", review.getAnswers().get(1).getAnsweredData().get("questionAttributeId").toString());
         assertEquals(11L, saved.getAllValues().get(1).getQuestionAttributeId());
