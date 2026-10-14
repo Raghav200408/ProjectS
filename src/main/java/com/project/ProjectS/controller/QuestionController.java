@@ -85,6 +85,13 @@ public class QuestionController {
         return ResponseEntity.ok(response);
     }
 
+    @PatchMapping("/{questionId}/active")
+    public ResponseEntity<Void> setQuestionActive(
+            @PathVariable Long questionId, @RequestParam boolean active) {
+        questionService.setQuestionActive(questionId, active);
+        return ResponseEntity.noContent().build();
+    }
+
     // DELETE QUESTION
     @DeleteMapping("/{questionId}")
     public ResponseEntity<String> deleteQuestion(
