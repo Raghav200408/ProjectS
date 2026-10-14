@@ -188,6 +188,13 @@ public class QuestionService {
     }
 
 
+    public void setQuestionActive(Long questionId, boolean active) {
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found"));
+        question.setActiveRow(active);
+        questionRepository.save(question);
+    }
+
     // =========================================================
     // CREATE QUESTION
     // =========================================================
