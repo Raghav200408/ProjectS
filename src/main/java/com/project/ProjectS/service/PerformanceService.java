@@ -1052,6 +1052,11 @@ public class PerformanceService {
             dto.setUserId(student.getUserId());
             dto.setStudentName(student.getName());
 
+            if (student.getCourse() != null) {
+                dto.setCourseId(student.getCourse().getCourseId());
+                dto.setCourseName(student.getCourse().getName());
+            }
+
             /*
              * ============================================================
              * COLLEGE
