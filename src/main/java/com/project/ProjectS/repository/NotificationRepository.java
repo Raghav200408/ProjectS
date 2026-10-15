@@ -10,11 +10,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
+    boolean existsByRecipientUserIdAndEventTypeAndActionUrl(Long userId, String eventType, String actionUrl);
     @Query("""
             select n from Notification n
             where n.recipientUserId = :userId
               and (n.expiresAt is null or n.expiresAt > :now)
-            order by n.createdAt desc
+            order by n.createdAt desc, n.notificationId desc
             """)
     List<Notification> findForUser(@Param("userId") Long userId,
                                    @Param("now") LocalDateTime now,
