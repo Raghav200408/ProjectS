@@ -8,6 +8,12 @@ import java.util.*;
 import java.time.LocalDateTime;
 
 public interface UserSubscriptionRepository extends JpaRepository<UserSubscription, Long> {
+    @Query("select s.subscriptionId from UserSubscription s where s.active = true and s.expiresAt <= :until")
+    List<Long> findNotificationCandidates(@Param("until") LocalDateTime until);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select s from UserSubscription s where s.subscriptionId = :id")
+    Optional<UserSubscription> findForNotification(@Param("id") Long id);
     Optional<UserSubscription> findFirstByUser_UserIdAndCourse_CourseIdAndActiveTrue(Long userId, Long courseId);
     List<UserSubscription> findByUser_UserIdAndActiveTrue(Long userId);
 

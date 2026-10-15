@@ -117,14 +117,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("""
             select u from User u
+            left join u.role r
+            left join u.college college
+            left join u.branch branch
+            left join u.course course
+            left join u.section section
             where u.activeRow = true and (
                 :recipientType = 'ALL'
                 or (:recipientType = 'USER' and u.userId = :recipientUserId)
-                or (:recipientType = 'ROLE' and u.role.roleName = :recipientRole)
-                or (:recipientType = 'COLLEGE' and u.college.collegeId = :collegeId)
-                or (:recipientType = 'BRANCH' and u.branch.branchId = :branchId)
-                or (:recipientType = 'COURSE' and u.course.courseId = :courseId)
-                or (:recipientType = 'SECTION' and u.section.sectionId = :sectionId)
+                or (:recipientType = 'ROLE' and r.roleName = :recipientRole)
+                or (:recipientType = 'COLLEGE' and college.collegeId = :collegeId)
+                or (:recipientType = 'BRANCH' and branch.branchId = :branchId)
+                or (:recipientType = 'COURSE' and course.courseId = :courseId)
+                or (:recipientType = 'SECTION' and section.sectionId = :sectionId)
             )
             """)
     List<User> findNotificationRecipients(
