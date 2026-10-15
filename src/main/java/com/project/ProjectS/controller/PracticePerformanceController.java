@@ -1,6 +1,9 @@
 package com.project.ProjectS.controller;
 
 import com.project.ProjectS.model.PracticePerformanceResponseDTO;
+import com.project.ProjectS.model.HierarchyProgressItemDTO;
+import com.project.ProjectS.model.QuestionAnswerStatusDTO;
+import java.util.List;
 import com.project.ProjectS.repository.PracticePerformanceRepository.Filters;
 import com.project.ProjectS.repository.PracticePerformanceRepository.Level;
 import com.project.ProjectS.service.PracticePerformanceService;
@@ -122,6 +125,29 @@ public class PracticePerformanceController {
                 parsedLevel,
                 new Filters(courseId, subjectId, chapterId),
                 authentication));
+    }
+
+    @GetMapping("/completion/{level}")
+    public ResponseEntity<List<HierarchyProgressItemDTO>> completion(
+            @PathVariable String level,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false) Long chapterId,
+            Authentication authentication) {
+        final Level parsedLevel;
+        try {
+            parsedLevel = Level.valueOf(level.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported practice hierarchy level");
+        }
+        return ResponseEntity.ok(performanceService.getMyQuestionCompletion(parsedLevel,
+                new Filters(courseId, subjectId, chapterId), authentication));
+    }
+
+    @GetMapping("/question-statuses")
+    public ResponseEntity<List<QuestionAnswerStatusDTO>> questionStatuses(
+            @RequestParam(required = false) Long topicId, Authentication authentication) {
+        return ResponseEntity.ok(performanceService.getMyQuestionStatuses(topicId, authentication));
     }
 
     // No global exception handler exists, so report the reason for a
