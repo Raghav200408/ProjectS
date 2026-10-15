@@ -3,6 +3,8 @@ package com.project.ProjectS.service;
 import com.project.ProjectS.entity.User;
 import com.project.ProjectS.model.PracticePerformanceItemDTO;
 import com.project.ProjectS.model.PracticePerformanceResponseDTO;
+import com.project.ProjectS.model.HierarchyProgressItemDTO;
+import com.project.ProjectS.model.QuestionAnswerStatusDTO;
 import com.project.ProjectS.repository.PracticePerformanceRepository;
 import com.project.ProjectS.repository.PracticePerformanceRepository.Filters;
 import com.project.ProjectS.repository.PracticePerformanceRepository.Level;
@@ -76,6 +78,22 @@ public class PracticePerformanceService {
         User user = getLoggedInUser(authentication);
         return buildResponse(level, filters,
                 new Scope(null, null, null, user.getUserId(), true));
+    }
+
+    public List<HierarchyProgressItemDTO> getMyQuestionCompletion(
+            Level level, Filters filters, Authentication authentication) {
+        Long userId = getLoggedInUser(authentication).getUserId();
+        return performanceRepository.findQuestionCompletion(level, filters, userId).stream()
+                .map(row -> new HierarchyProgressItemDTO(row.id(), row.totalQuestions(),
+                        row.completedQuestions(), percentage(row.completedQuestions(), row.totalQuestions())))
+                .toList();
+    }
+
+    public List<QuestionAnswerStatusDTO> getMyQuestionStatuses(Long topicId, Authentication authentication) {
+        Long userId = getLoggedInUser(authentication).getUserId();
+        return performanceRepository.findQuestionAnswerStatuses(userId, topicId).stream()
+                .map(row -> new QuestionAnswerStatusDTO(row.questionId(), row.status(),
+                        row.requiredAnswers(), row.savedAnswers())).toList();
     }
 
     private PracticePerformanceResponseDTO buildResponse(
