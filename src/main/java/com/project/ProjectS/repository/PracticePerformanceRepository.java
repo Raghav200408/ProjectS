@@ -586,7 +586,7 @@ public class PracticePerformanceRepository {
                 GROUP BY q.question_id ORDER BY q.question_id
                 """;
         return jdbc.query(sql, new MapSqlParameterSource().addValue("userId", userId)
-                        .addValue("requireCorrect", false).addValue("topicId", topicId, java.sql.Types.BIGINT),
+                        .addValue("requireCorrect", true).addValue("topicId", topicId, java.sql.Types.BIGINT),
                 (rs, row) -> new QuestionAnswerStatus(rs.getLong("question_id"),
                         rs.getLong("required_answers"), rs.getLong("saved_answers")));
     }

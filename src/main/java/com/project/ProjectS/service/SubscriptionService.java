@@ -214,6 +214,15 @@ public class SubscriptionService {
         return plans.findById(request.getPlanId()).orElseThrow(() -> new NoSuchElementException("Subscription plan not found"));
     }
     private void copy(SubscriptionPlan p, SubscriptionPlanRequestDTO r) {
+        if (r.getPrice() != null) {
+            var price = r.getPrice().stripTrailingZeros();
+            if (price.signum() < 0 || price.scale() > 2 || price.precision() - price.scale() > 10) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST,
+                        "Price must be non-negative, below 10,000,000,000 and have at most two decimal places");
+            }
+            p.setPrice(r.getPrice());
+        }
         p.setName(r.getName()); p.setDescription(r.getDescription()); p.setFreeTrial(r.isFreeTrial());
         p.setActive(r.isActive()); p.setDurationDays(r.getDurationDays());
         p.setPracticeQuestionLimit(r.getPracticeQuestionLimit()); p.setMockTestEnabled(r.isMockTestEnabled());
@@ -242,6 +251,7 @@ public class SubscriptionService {
     private SubscriptionPlanResponseDTO toPlan(SubscriptionPlan p) {
         SubscriptionPlanResponseDTO d = new SubscriptionPlanResponseDTO();
         d.setPlanId(p.getPlanId()); d.setName(p.getName()); d.setDescription(p.getDescription());
+        d.setPrice(p.getPrice());
         d.setFreeTrial(p.isFreeTrial()); d.setActive(p.isActive()); d.setDurationDays(p.getDurationDays());
         d.setPracticeQuestionLimit(p.getPracticeQuestionLimit()); d.setMockTestEnabled(p.isMockTestEnabled());
         d.setMockTestLimit(p.getMockTestLimit()); d.setExamEnabled(p.isExamEnabled()); d.setExamAttemptLimit(p.getExamAttemptLimit());

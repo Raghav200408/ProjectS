@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS public.subscription_plans (
     plan_id BIGSERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     description VARCHAR(255),
+    price NUMERIC(12,2) NOT NULL DEFAULT 0,
     free_trial BOOLEAN NOT NULL DEFAULT FALSE,
     active BOOLEAN NOT NULL DEFAULT TRUE,
     duration_days INTEGER NOT NULL,
@@ -39,6 +40,7 @@ CREATE TABLE IF NOT EXISTS public.user_subscriptions (
 
 -- Upgrade installations created by an earlier subscription prototype.
 ALTER TABLE public.subscription_plans
+    ADD COLUMN IF NOT EXISTS price NUMERIC(12,2) NOT NULL DEFAULT 0,
     ADD COLUMN IF NOT EXISTS description VARCHAR(255),
     ADD COLUMN IF NOT EXISTS free_trial BOOLEAN NOT NULL DEFAULT FALSE,
     ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE,
