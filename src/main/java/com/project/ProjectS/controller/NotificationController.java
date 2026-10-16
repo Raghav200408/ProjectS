@@ -1,6 +1,8 @@
 package com.project.ProjectS.controller;
 
 import com.project.ProjectS.model.NotificationResponseDTO;
+import com.project.ProjectS.model.AnnouncementRequestDTO;
+import jakarta.validation.Valid;
 import com.project.ProjectS.security.service.CustomUserDetails;
 import com.project.ProjectS.service.NotificationService;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,12 @@ public class NotificationController {
 
     public NotificationController(NotificationService service) {
         this.service = service;
+    }
+
+    @PostMapping("/announcements")
+    public Map<String, Integer> announce(@AuthenticationPrincipal CustomUserDetails principal,
+                                        @Valid @RequestBody AnnouncementRequestDTO request) {
+        return Map.of("recipientCount", service.announce(principal == null ? null : principal.getUser(), request));
     }
 
     @GetMapping("/mine")

@@ -3,6 +3,7 @@ package com.project.ProjectS.service;
 import com.project.ProjectS.entity.Notification;
 import com.project.ProjectS.entity.User;
 import com.project.ProjectS.model.NotificationResponseDTO;
+import com.project.ProjectS.model.AnnouncementRequestDTO;
 import com.project.ProjectS.repository.NotificationRepository;
 import com.project.ProjectS.repository.UserRepository;
 import org.springframework.data.domain.PageRequest;
@@ -46,6 +47,35 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public long unreadCount(User user) {
         return notificationRepository.countUnread(user.getUserId(), LocalDateTime.now());
+    }
+
+    @Transactional
+    public int announce(User actor, AnnouncementRequestDTO request) {
+        if (actor == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        // Recheck the persisted role; never trust a role supplied in the request or stale token.
+        User sender = userRepository.findById(actor.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        if (sender.getRole() == null || !"SUPER_ADMIN".equals(sender.getRole().getRoleName())
+                || Boolean.FALSE.equals(sender.getActiveRow())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only Super Admins can send announcements");
+        }
+        if (request == null || request.title() == null || request.message() == null
+                || request.title().isBlank() || request.message().isBlank()
+                || request.title().length() > 160 || request.message().length() > 500) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enter a title and message within the allowed lengths");
+        }
+        Notification source = new Notification();
+        source.setEventType("SYSTEM_ANNOUNCEMENT");
+        source.setTitle(request.title().strip());
+        source.setMessage(request.message().strip());
+        source.setSeverity("INFO");
+        source.setRecipientType("ALL");
+        List<User> recipients = userRepository.findNotificationRecipients("ALL", null, null, null, null, null, null);
+        if (recipients.isEmpty()) return 0;
+        notificationRepository.saveAll(recipients.stream()
+                .map(user -> copyForRecipient(source, user.getUserId())).toList());
+        log.info("Announcement published: senderUserId={} recipients={}", sender.getUserId(), recipients.size());
+        return recipients.size();
     }
 
     @Transactional
