@@ -1,6 +1,8 @@
 package com.project.ProjectS.controller;
 
 import com.project.ProjectS.model.PracticePerformanceResponseDTO;
+import com.project.ProjectS.model.PracticeTimelinePointDTO;
+import com.project.ProjectS.model.PracticeStudentSupportDTO;
 import com.project.ProjectS.model.HierarchyProgressItemDTO;
 import com.project.ProjectS.model.QuestionAnswerStatusDTO;
 import java.util.List;
@@ -102,6 +104,36 @@ public class PracticePerformanceController {
 
         return ResponseEntity.ok(performanceService.getPerformance(
                 Level.TOPIC, new Filters(courseId, subjectId, chapterId),
+                collegeId, branchId, sectionId, studentId, authentication));
+    }
+
+    @GetMapping("/students-needing-support")
+    public ResponseEntity<java.util.List<PracticeStudentSupportDTO>> studentsNeedingSupport(
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false) Long chapterId,
+            @RequestParam(required = false) Long collegeId,
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Long sectionId,
+            @RequestParam(required = false) Long studentId,
+            Authentication authentication) {
+        return ResponseEntity.ok(performanceService.getStudentsNeedingSupport(
+                new Filters(courseId, subjectId, chapterId),
+                collegeId, branchId, sectionId, studentId, authentication));
+    }
+
+    @GetMapping("/timeline")
+    public ResponseEntity<java.util.List<PracticeTimelinePointDTO>> timeline(
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false) Long chapterId,
+            @RequestParam(required = false) Long collegeId,
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Long sectionId,
+            @RequestParam(required = false) Long studentId,
+            Authentication authentication) {
+        return ResponseEntity.ok(performanceService.getTimeline(
+                new Filters(courseId, subjectId, chapterId),
                 collegeId, branchId, sectionId, studentId, authentication));
     }
 

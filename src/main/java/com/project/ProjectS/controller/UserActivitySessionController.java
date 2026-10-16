@@ -64,9 +64,10 @@ public class UserActivitySessionController {
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(required = false) Long collegeId,
             @RequestParam(required = false) Long branchId,
-            @RequestParam(required = false) Long sectionId) {
+            @RequestParam(required = false) Long sectionId,
+            @RequestParam(required = false) Long studentId) {
         return ResponseEntity.ok(Map.of("totalActiveSeconds",
-                service.totalTime(principal.getUser(), collegeId, branchId, sectionId)));
+                service.totalTime(principal.getUser(), collegeId, branchId, sectionId, studentId)));
     }
 
     @GetMapping("/daily-time")
@@ -87,9 +88,10 @@ public class UserActivitySessionController {
             @RequestParam(defaultValue = "7") int days,
             @RequestParam(required = false) Long collegeId,
             @RequestParam(required = false) Long branchId,
-            @RequestParam(required = false) Long sectionId) {
+            @RequestParam(required = false) Long sectionId,
+            @RequestParam(required = false) Long studentId) {
         return ResponseEntity.ok(service.periodComparison(
-                principal.getUser(), days, collegeId, branchId, sectionId));
+                principal.getUser(), days, collegeId, branchId, sectionId, studentId));
     }
 
     @GetMapping("/student-engagement-trends")
@@ -98,9 +100,10 @@ public class UserActivitySessionController {
             @RequestParam(defaultValue = "7") int days,
             @RequestParam(required = false) Long collegeId,
             @RequestParam(required = false) Long branchId,
-            @RequestParam(required = false) Long sectionId) {
+            @RequestParam(required = false) Long sectionId,
+            @RequestParam(required = false) Long studentId) {
         return ResponseEntity.ok(service.studentEngagementTrends(
-                principal.getUser(), days, collegeId, branchId, sectionId));
+                principal.getUser(), days, collegeId, branchId, sectionId, studentId));
     }
 
     @GetMapping("/content-daily-time")
@@ -110,8 +113,9 @@ public class UserActivitySessionController {
             @RequestParam String level,
             @RequestParam(required = false) Long collegeId,
             @RequestParam(required = false) Long branchId,
-            @RequestParam(required = false) Long sectionId) {
+            @RequestParam(required = false) Long sectionId,
+            @RequestParam(required = false) Long studentId) {
         return ResponseEntity.ok(service.contentDailyTime(
-                principal.getUser(), days, level, collegeId, branchId, sectionId));
+                principal.getUser(), days, level, collegeId, branchId, sectionId, studentId));
     }
 }

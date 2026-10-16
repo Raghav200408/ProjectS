@@ -185,17 +185,22 @@ public class UserActivitySessionService {
 
     @Transactional(readOnly = true)
     public long totalTime(User user, Long requestedCollegeId, Long requestedBranchId, Long sectionId) {
+        return totalTime(user, requestedCollegeId, requestedBranchId, sectionId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public long totalTime(User user, Long requestedCollegeId, Long requestedBranchId, Long sectionId, Long studentId) {
         String roleName = user.getRole() == null ? "" : user.getRole().getRoleName();
         if ("STUDENT".equalsIgnoreCase(roleName)) {
-            if (requestedCollegeId != null || requestedBranchId != null || sectionId != null) {
+            if (requestedCollegeId != null || requestedBranchId != null || sectionId != null || studentId != null) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN);
             }
             return totalTime(user);
         }
-        ActivityScope scope = resolveAdminScope(user, requestedCollegeId, requestedBranchId, null, sectionId);
+        ActivityScope scope = resolveAdminScope(user, requestedCollegeId, requestedBranchId, studentId, sectionId);
         LocalDateTime now = LocalDateTime.now();
         return repository.findStudentSessionsForScope(
-                        scope.collegeId(), scope.branchId(), scope.sectionId(), null)
+                        scope.collegeId(), scope.branchId(), scope.sectionId(), scope.studentId())
                 .stream()
                 .mapToLong(session -> session.getTotalActiveSeconds() + pendingActiveSeconds(session, now))
                 .sum();
@@ -210,6 +215,13 @@ public class UserActivitySessionService {
     public PeriodComparisonDTO periodComparison(
             User user, int days, Long requestedCollegeId,
             Long requestedBranchId, Long sectionId) {
+        return periodComparison(user, days, requestedCollegeId, requestedBranchId, sectionId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public PeriodComparisonDTO periodComparison(
+            User user, int days, Long requestedCollegeId,
+            Long requestedBranchId, Long sectionId, Long studentId) {
         if (days < 1 || days > MAX_DAILY_TIME_RANGE_DAYS) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Days must be between 1 and 90");
         }
@@ -240,14 +252,14 @@ public class UserActivitySessionService {
                                 if (!date.isBefore(currentStart) && !date.isAfter(today)) current.seconds += seconds;
                             }));
         } else {
-            ActivityScope scope = resolveAdminScope(user, requestedCollegeId, requestedBranchId, null, sectionId);
+            ActivityScope scope = resolveAdminScope(user, requestedCollegeId, requestedBranchId, studentId, sectionId);
             dailyTotalRepository.findStudentActivityRowsForScope(
-                            previousStart, today, scope.collegeId(), scope.branchId(), scope.sectionId())
+                            previousStart, today, scope.collegeId(), scope.branchId(), scope.sectionId(), scope.studentId())
                     .forEach(row -> addPeriodRow(row.getActivityDate(), row.getActiveSeconds(), row.getUserId(),
                             currentStart, current, previous, currentStudents, previousStudents));
             LocalDateTime now = LocalDateTime.now();
             repository.findActiveStudentSessionsForScope(
-                            scope.collegeId(), scope.branchId(), scope.sectionId(), null)
+                            scope.collegeId(), scope.branchId(), scope.sectionId(), scope.studentId())
                     .forEach(session -> {
                         Long id = session.getUser().getUserId();
                         splitByDate(session.getLastHeartbeatAt(), pendingActiveSeconds(session, now))
@@ -259,7 +271,7 @@ public class UserActivitySessionService {
                                 });
                     });
             studentCount = dailyTotalRepository.countStudentsForScope(
-                    scope.collegeId(), scope.branchId(), scope.sectionId());
+                    scope.collegeId(), scope.branchId(), scope.sectionId(), scope.studentId());
         }
         return new PeriodComparisonDTO(days, current.seconds, previous.seconds,
                 current.activeDays, previous.activeDays, currentStudents.size(),
@@ -293,6 +305,12 @@ public class UserActivitySessionService {
             Long requestedCollegeId,
             Long requestedBranchId,
             Long sectionId) {
+        return studentEngagementTrends(user, days, requestedCollegeId, requestedBranchId, sectionId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public StudentEngagementTrendsDTO studentEngagementTrends(
+            User user, int days, Long requestedCollegeId, Long requestedBranchId, Long sectionId, Long studentId) {
         if (days < 1 || days > MAX_DAILY_TIME_RANGE_DAYS) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -300,7 +318,7 @@ public class UserActivitySessionService {
             );
         }
         ActivityScope scope = resolveAdminScope(
-                user, requestedCollegeId, requestedBranchId, null, sectionId);
+                user, requestedCollegeId, requestedBranchId, studentId, sectionId);
         LocalDate today = LocalDate.now();
         LocalDate startDate = today.minusDays(days - 1L);
         Map<LocalDate, DailyEngagementAccumulator> daily = new LinkedHashMap<>();
@@ -310,7 +328,7 @@ public class UserActivitySessionService {
 
         Set<Long> activeStudentIds = new HashSet<>();
         dailyTotalRepository.findStudentActivityRowsForScope(
-                        startDate, today, scope.collegeId(), scope.branchId(), scope.sectionId())
+                        startDate, today, scope.collegeId(), scope.branchId(), scope.sectionId(), scope.studentId())
                 .forEach(row -> {
                     DailyEngagementAccumulator aggregate = daily.get(row.getActivityDate());
                     if (aggregate != null) {
@@ -322,17 +340,17 @@ public class UserActivitySessionService {
 
         LocalDateTime now = LocalDateTime.now();
         repository.findActiveStudentSessionsForScope(
-                        scope.collegeId(), scope.branchId(), scope.sectionId(), null)
+                        scope.collegeId(), scope.branchId(), scope.sectionId(), scope.studentId())
                 .forEach(session -> {
                     long pending = pendingActiveSeconds(session, now);
                     if (pending <= 0) return;
-                    Long studentId = session.getUser().getUserId();
+                    Long activeStudentId = session.getUser().getUserId();
                     splitByDate(session.getLastHeartbeatAt(), pending).forEach((date, seconds) -> {
                         DailyEngagementAccumulator aggregate = daily.get(date);
                         if (aggregate != null) {
                             aggregate.activeSeconds += seconds;
-                            aggregate.studentIds.add(studentId);
-                            activeStudentIds.add(studentId);
+                            aggregate.studentIds.add(activeStudentId);
+                            activeStudentIds.add(activeStudentId);
                         }
                     });
                 });
@@ -342,11 +360,11 @@ public class UserActivitySessionService {
                         entry.getKey(), entry.getValue().activeSeconds, entry.getValue().studentIds.size()))
                 .toList();
         long totalStudents = dailyTotalRepository.countStudentsForScope(
-                scope.collegeId(), scope.branchId(), scope.sectionId());
+                scope.collegeId(), scope.branchId(), scope.sectionId(), scope.studentId());
         LocalDate consistencyStart = today.minusDays(29);
         Map<Long, StudentConsistencyAccumulator> studentConsistency = new LinkedHashMap<>();
         dailyTotalRepository.findStudentActivityRowsForScope(
-                        consistencyStart, today, scope.collegeId(), scope.branchId(), scope.sectionId())
+                        consistencyStart, today, scope.collegeId(), scope.branchId(), scope.sectionId(), scope.studentId())
                 .forEach(row -> {
                     StudentConsistencyAccumulator summary = studentConsistency.computeIfAbsent(
                             row.getUserId(), ignored -> new StudentConsistencyAccumulator(row.getName()));
@@ -476,6 +494,13 @@ public class UserActivitySessionService {
             Long requestedCollegeId,
             Long requestedBranchId,
             Long sectionId) {
+        return contentDailyTime(user, days, requestedLevel, requestedCollegeId, requestedBranchId, sectionId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ContentDailyActivityTimeResponseDTO> contentDailyTime(
+            User user, int days, String requestedLevel, Long requestedCollegeId,
+            Long requestedBranchId, Long sectionId, Long studentId) {
         if (days < 1 || days > MAX_DAILY_TIME_RANGE_DAYS) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -505,9 +530,9 @@ public class UserActivitySessionService {
         }
 
         ActivityScope scope = resolveAdminScope(
-                user, requestedCollegeId, requestedBranchId, null, sectionId);
+                user, requestedCollegeId, requestedBranchId, studentId, sectionId);
         return contentDailyRepository.sumContentForScope(
-                        startDate, today, level, scope.collegeId(), scope.branchId(), scope.sectionId())
+                        startDate, today, level, scope.collegeId(), scope.branchId(), scope.sectionId(), scope.studentId())
                 .stream()
                 .map(item -> new ContentDailyActivityTimeResponseDTO(
                         item.getActivityDate(), item.getContentLevel(), item.getContentId(),
