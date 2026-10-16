@@ -2,6 +2,7 @@ package com.project.ProjectS.model;
 
 import lombok.Getter;
 import lombok.Setter;
+import java.util.List;
 
 @Getter
 @Setter
@@ -32,4 +33,8 @@ public class StudentPerformanceDTO {
     private Integer failedExams;
 
     private Double passRate;
+    private Double previousExamPercentage;
+    private Double latestExamPercentage;
+    private Double percentageChange;
+    private List<ChapterPerformanceDTO> chapterPerformance;
 }

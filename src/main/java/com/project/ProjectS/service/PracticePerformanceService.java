@@ -3,6 +3,8 @@ package com.project.ProjectS.service;
 import com.project.ProjectS.entity.User;
 import com.project.ProjectS.model.PracticePerformanceItemDTO;
 import com.project.ProjectS.model.PracticePerformanceResponseDTO;
+import com.project.ProjectS.model.PracticeTimelinePointDTO;
+import com.project.ProjectS.model.PracticeStudentSupportDTO;
 import com.project.ProjectS.repository.PracticePerformanceRepository;
 import com.project.ProjectS.repository.PracticePerformanceRepository.Filters;
 import com.project.ProjectS.repository.PracticePerformanceRepository.Level;
@@ -65,6 +67,48 @@ public class PracticePerformanceService {
                 collegeId, branchId, sectionId, studentId);
 
         return buildResponse(level, filters, scope);
+    }
+
+    public List<PracticeStudentSupportDTO> getStudentsNeedingSupport(
+            Filters filters,
+            Long collegeId,
+            Long branchId,
+            Long sectionId,
+            Long studentId,
+            Authentication authentication) {
+        Scope scope = resolveScope(
+                getLoggedInUser(authentication),
+                collegeId, branchId, sectionId, studentId);
+        return performanceRepository.findStudentsNeedingSupport(filters, scope).stream()
+                .map(row -> {
+                    PracticeStudentSupportDTO dto = new PracticeStudentSupportDTO();
+                    dto.setUserId(row.userId());
+                    dto.setStudentName(row.studentName());
+                    dto.setStudentCode(row.studentCode());
+                    dto.setSectionName(row.sectionName());
+                    dto.setTotalUnits(row.totalUnits());
+                    dto.setAttemptedUnits(row.attemptedUnits());
+                    dto.setCorrectUnits(row.correctUnits());
+                    dto.setAccuracyPercentage(row.accuracyPercentage());
+                    return dto;
+                })
+                .toList();
+    }
+
+    public List<PracticeTimelinePointDTO> getTimeline(
+            Filters filters,
+            Long collegeId,
+            Long branchId,
+            Long sectionId,
+            Long studentId,
+            Authentication authentication) {
+        Scope scope = resolveScope(
+                getLoggedInUser(authentication),
+                collegeId, branchId, sectionId, studentId);
+        return performanceRepository.findTimeline(filters, scope).stream()
+                .map(row -> new PracticeTimelinePointDTO(
+                        row.date(), row.answerCount(), row.correctCount()))
+                .toList();
     }
 
     /** Current user's progress, regardless of their application role. */
