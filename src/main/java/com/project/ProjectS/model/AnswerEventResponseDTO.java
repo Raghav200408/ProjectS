@@ -21,6 +21,9 @@ public class AnswerEventResponseDTO {
     private Long chapterId;
     private String chapterName;
 
+    private Long subjectId;
+    private String subjectName;
+
     private Long topicId;
     private String topicName;
 

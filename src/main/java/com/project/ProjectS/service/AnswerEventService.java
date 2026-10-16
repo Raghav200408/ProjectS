@@ -758,6 +758,7 @@ public class AnswerEventService {
                                 .getChapter()
                                 .getName()
                 );
+
             }
 
             if (event.getQuestion().getTopic() != null) {
@@ -772,6 +773,16 @@ public class AnswerEventService {
                         event.getQuestion()
                                 .getTopic()
                                 .getName()
+                );
+            }
+            // Populate subject information dynamically
+            if (event.getQuestion().getSubject() != null) {
+                response.setSubjectId(
+                        event.getQuestion().getSubject().getSubjectId()
+                );
+
+                response.setSubjectName(
+                        event.getQuestion().getSubject().getSubjectName()
                 );
             }
         }
