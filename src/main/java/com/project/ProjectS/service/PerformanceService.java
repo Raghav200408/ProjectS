@@ -158,7 +158,8 @@ public class PerformanceService {
         return buildPerformanceDashboard(
                 results,
                 examsConducted,
-                studentId != null
+                exams,
+                studentId
         );
     }
 
@@ -273,7 +274,8 @@ public class PerformanceService {
         return buildPerformanceDashboard(
                 results,
                 examsConducted,
-                studentId != null
+                exams,
+                studentId
         );
     }
 
@@ -368,7 +370,8 @@ public class PerformanceService {
         return buildPerformanceDashboard(
                 results,
                 examsConducted,
-                studentId != null
+                exams,
+                studentId
         );
     }
 
@@ -467,6 +470,7 @@ public class PerformanceService {
             response.setPassedExams(0);
             response.setFailedExams(0);
             response.setPassRate(0.0);
+            response.setChapterPerformance(new ArrayList<>());
 
             return response;
         }
@@ -488,6 +492,19 @@ public class PerformanceService {
 
         List<ExamResult> latestResults =
                 new ArrayList<>(latestResultByExam.values());
+
+        List<ExamResult> orderedLatestResults = latestResults.stream()
+                .sorted(Comparator.comparing(ExamResult::getCreatedAt, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .toList();
+
+        if (orderedLatestResults.size() >= 2) {
+            double previous = orderedLatestResults.get(orderedLatestResults.size() - 2).getPercentage();
+            double latest = orderedLatestResults.get(orderedLatestResults.size() - 1).getPercentage();
+            response.setPreviousExamPercentage(round(previous));
+            response.setLatestExamPercentage(round(latest));
+            response.setPercentageChange(round(latest - previous));
+        }
+        response.setChapterPerformance(buildStudentChapterPerformance(orderedLatestResults));
 
         /*
          * ============================================================
@@ -598,7 +615,8 @@ public class PerformanceService {
     private PerformanceDashboardResponseDTO buildPerformanceDashboard(
             List<ExamResult> results,
             int examsConducted,
-            boolean isStudentScoped) {
+            List<Exam> scopedExams,
+            Long studentId) {
 
         PerformanceDashboardResponseDTO response =
                 new PerformanceDashboardResponseDTO();
@@ -617,6 +635,8 @@ public class PerformanceService {
             response.setPerformanceTrend(new ArrayList<>());
             response.setTopPerformers(new ArrayList<>());
             response.setStudentsNeedingAttention(new ArrayList<>());
+            response.setScoreBands(buildScoreBands(new ArrayList<>()));
+            response.setExamParticipation(buildExamParticipation(scopedExams, results, studentId));
 
             return response;
         }
@@ -714,7 +734,7 @@ public class PerformanceService {
          * --------------------------------------------------------
          */
         response.setPerformanceTrend(
-                buildPerformanceTrend(results, isStudentScoped)
+                buildPerformanceTrend(results, studentId != null)
         );
 
 
@@ -726,10 +746,91 @@ public class PerformanceService {
         response.setStudentsNeedingAttention(
                 buildStudentPerformance(results, false)
         );
+        response.setScoreBands(buildScoreBands(results));
+        response.setExamParticipation(buildExamParticipation(scopedExams, results, studentId));
 
         return response;
     }
 
+
+    private List<ExamParticipationDTO> buildExamParticipation(
+            List<Exam> exams,
+            List<ExamResult> results,
+            Long selectedStudentId) {
+        List<ExamResult> safeResults = results == null ? List.of() : results;
+        List<Exam> safeExams = exams == null ? List.of() : exams;
+        Map<Long, java.util.Set<Long>> attemptedByExam = safeResults.stream()
+                .filter(result -> result.getExam() != null && result.getUser() != null)
+                .collect(Collectors.groupingBy(
+                        result -> result.getExam().getExamId(),
+                        Collectors.mapping(result -> result.getUser().getUserId(), Collectors.toSet())));
+        return safeExams.stream().map(exam -> {
+            int assigned = selectedStudentId != null
+                    ? 1
+                    : Math.toIntExact(userRepository.countActiveStudentsForExamScope(
+                            exam.getCollege() == null ? null : exam.getCollege().getCollegeId(),
+                            exam.getBranch() == null ? null : exam.getBranch().getBranchId(),
+                            exam.getSection() == null ? null : exam.getSection().getSectionId(),
+                            exam.getCourse() == null ? null : exam.getCourse().getCourseId()));
+            int attempted = attemptedByExam.getOrDefault(exam.getExamId(), java.util.Set.of()).size();
+            int missed = Math.max(0, assigned - attempted);
+            ExamParticipationDTO dto = new ExamParticipationDTO();
+            dto.setExamId(exam.getExamId());
+            dto.setExamName(exam.getExamName());
+            dto.setSectionName(exam.getSection() == null ? null : exam.getSection().getSectionName());
+            dto.setAssignedStudents(assigned);
+            dto.setAttemptedStudents(attempted);
+            dto.setNotAttemptedStudents(missed);
+            dto.setParticipationRate(assigned == 0 ? 0.0 : round(Math.min(attempted, assigned) * 100.0 / assigned));
+            return dto;
+        }).toList();
+    }
+
+    private List<ScoreBandDTO> buildScoreBands(List<ExamResult> results) {
+        return List.of(
+                new ScoreBandDTO("Below 40%", (int) results.stream().filter(r -> r.getPercentage() < 40).count()),
+                new ScoreBandDTO("40–59%", (int) results.stream().filter(r -> r.getPercentage() >= 40 && r.getPercentage() < 60).count()),
+                new ScoreBandDTO("60–79%", (int) results.stream().filter(r -> r.getPercentage() >= 60 && r.getPercentage() < 80).count()),
+                new ScoreBandDTO("80–100%", (int) results.stream().filter(r -> r.getPercentage() >= 80).count())
+        );
+    }
+
+    private List<ChapterPerformanceDTO> buildStudentChapterPerformance(List<ExamResult> results) {
+        Map<Long, ChapterPerformanceDTO> byChapter = new LinkedHashMap<>();
+        Map<Long, double[]> marksByChapter = new LinkedHashMap<>();
+        Map<Long, Integer> attemptsByChapter = new LinkedHashMap<>();
+        for (ExamResult result : results) {
+            Long examId = result.getExam().getExamId();
+            Map<Long, Double> earned = answerEventRepository
+                    .findByUser_UserIdAndExam_ExamIdAndEventType(
+                            result.getUser().getUserId(), examId, "EXAM_SUBMIT")
+                    .stream().filter(event -> event.getMarks() != null)
+                    .collect(Collectors.toMap(event -> event.getQuestion().getQuestionId(),
+                            event -> event.getMarks().doubleValue(), (first, second) -> first));
+            java.util.Set<Long> chaptersInThisExam = new java.util.HashSet<>();
+            for (ExamQuestion examQuestion : examQuestionRepository.findByExam_ExamId(examId)) {
+                Chapter chapter = examQuestion.getQuestion().getChapter();
+                if (chapter == null) continue;
+                double[] marks = marksByChapter.computeIfAbsent(chapter.getChapterId(), ignored -> new double[2]);
+                marks[0] += earned.getOrDefault(examQuestion.getQuestion().getQuestionId(), 0.0);
+                marks[1] += examQuestion.getMarks() == null ? 0.0 : examQuestion.getMarks();
+                chaptersInThisExam.add(chapter.getChapterId());
+                ChapterPerformanceDTO dto = byChapter.computeIfAbsent(chapter.getChapterId(), ignored -> {
+                    ChapterPerformanceDTO value = new ChapterPerformanceDTO();
+                    value.setChapterId(chapter.getChapterId());
+                    value.setChapterName(chapter.getName());
+                    return value;
+                });
+            }
+            chaptersInThisExam.forEach(id -> attemptsByChapter.merge(id, 1, Integer::sum));
+        }
+        byChapter.forEach((id, dto) -> {
+            double[] marks = marksByChapter.get(id);
+            dto.setAccuracyPercentage(marks[1] == 0 ? 0.0 : round(marks[0] / marks[1] * 100));
+            dto.setAttemptedExams(attemptsByChapter.getOrDefault(id, 0));
+        });
+        return new ArrayList<>(byChapter.values());
+    }
 
     /*
      * ============================================================

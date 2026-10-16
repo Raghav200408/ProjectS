@@ -25,4 +25,6 @@ public class PerformanceDashboardResponseDTO {
 
     private List<StudentPerformanceDTO> topPerformers;
     private List<StudentPerformanceDTO> studentsNeedingAttention;
+    private List<ScoreBandDTO> scoreBands;
+    private List<ExamParticipationDTO> examParticipation;
 }

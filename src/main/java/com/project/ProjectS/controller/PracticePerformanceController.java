@@ -1,6 +1,11 @@
 package com.project.ProjectS.controller;
 
 import com.project.ProjectS.model.PracticePerformanceResponseDTO;
+import com.project.ProjectS.model.PracticeTimelinePointDTO;
+import com.project.ProjectS.model.PracticeStudentSupportDTO;
+import com.project.ProjectS.model.HierarchyProgressItemDTO;
+import com.project.ProjectS.model.QuestionAnswerStatusDTO;
+import java.util.List;
 import com.project.ProjectS.repository.PracticePerformanceRepository.Filters;
 import com.project.ProjectS.repository.PracticePerformanceRepository.Level;
 import com.project.ProjectS.service.PracticePerformanceService;
@@ -102,6 +107,36 @@ public class PracticePerformanceController {
                 collegeId, branchId, sectionId, studentId, authentication));
     }
 
+    @GetMapping("/students-needing-support")
+    public ResponseEntity<java.util.List<PracticeStudentSupportDTO>> studentsNeedingSupport(
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false) Long chapterId,
+            @RequestParam(required = false) Long collegeId,
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Long sectionId,
+            @RequestParam(required = false) Long studentId,
+            Authentication authentication) {
+        return ResponseEntity.ok(performanceService.getStudentsNeedingSupport(
+                new Filters(courseId, subjectId, chapterId),
+                collegeId, branchId, sectionId, studentId, authentication));
+    }
+
+    @GetMapping("/timeline")
+    public ResponseEntity<java.util.List<PracticeTimelinePointDTO>> timeline(
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false) Long chapterId,
+            @RequestParam(required = false) Long collegeId,
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) Long sectionId,
+            @RequestParam(required = false) Long studentId,
+            Authentication authentication) {
+        return ResponseEntity.ok(performanceService.getTimeline(
+                new Filters(courseId, subjectId, chapterId),
+                collegeId, branchId, sectionId, studentId, authentication));
+    }
+
     @GetMapping("/mine/{level}")
     public ResponseEntity<PracticePerformanceResponseDTO> mine(
             @PathVariable String level,
@@ -122,6 +157,29 @@ public class PracticePerformanceController {
                 parsedLevel,
                 new Filters(courseId, subjectId, chapterId),
                 authentication));
+    }
+
+    @GetMapping("/completion/{level}")
+    public ResponseEntity<List<HierarchyProgressItemDTO>> completion(
+            @PathVariable String level,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false) Long chapterId,
+            Authentication authentication) {
+        final Level parsedLevel;
+        try {
+            parsedLevel = Level.valueOf(level.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported practice hierarchy level");
+        }
+        return ResponseEntity.ok(performanceService.getMyQuestionCompletion(parsedLevel,
+                new Filters(courseId, subjectId, chapterId), authentication));
+    }
+
+    @GetMapping("/question-statuses")
+    public ResponseEntity<List<QuestionAnswerStatusDTO>> questionStatuses(
+            @RequestParam(required = false) Long topicId, Authentication authentication) {
+        return ResponseEntity.ok(performanceService.getMyQuestionStatuses(topicId, authentication));
     }
 
     // No global exception handler exists, so report the reason for a

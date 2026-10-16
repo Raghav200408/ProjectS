@@ -63,6 +63,7 @@ public interface UserActivityContentDailyTotalRepository
               and (:collegeId is null or u.college.collegeId = :collegeId)
               and (:branchId is null or u.branch.branchId = :branchId)
               and (:sectionId is null or u.section.sectionId = :sectionId)
+              and (:studentId is null or u.userId = :studentId)
             group by d.activityDate, d.contentLevel, d.contentId, d.contentName
             order by d.activityDate asc, d.contentName asc
             """)
@@ -72,6 +73,7 @@ public interface UserActivityContentDailyTotalRepository
             @Param("contentLevel") String contentLevel,
             @Param("collegeId") Long collegeId,
             @Param("branchId") Long branchId,
-            @Param("sectionId") Long sectionId
+            @Param("sectionId") Long sectionId,
+            @Param("studentId") Long studentId
     );
 }

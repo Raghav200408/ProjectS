@@ -47,6 +47,7 @@ public class AuthController {
     private final AuditLogger auditLogger;
 
     @GetMapping("/me")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public ResponseEntity<UserProfileDTO> currentUser(Principal principal) {
         log.info("Fetching current user profile");
         if (principal == null) {
@@ -62,9 +63,7 @@ public class AuthController {
                 });
         log.info("Returning current user profile for userId={} email={}", user.getUserId(), user.getEmail());
         auditLogger.log("PROFILE_FETCH", user.getEmail(), "USER", user.getUserId(), "SUCCESS", "/api/auth/me");
-        return ResponseEntity.ok(new UserProfileDTO(
-                user.getUserId(), user.getName(), user.getEmail(),
-                user.getRole().getRoleName()));
+        return ResponseEntity.ok(UserProfileDTO.from(user));
     }
 
 

@@ -67,6 +67,7 @@ public interface UserActivityDailyTotalRepository extends JpaRepository<UserActi
               and (:collegeId is null or u.college.collegeId = :collegeId)
               and (:branchId is null or u.branch.branchId = :branchId)
               and (:sectionId is null or u.section.sectionId = :sectionId)
+              and (:studentId is null or u.userId = :studentId)
             group by d.activityDate, u.userId, u.name
             order by d.activityDate, u.userId
             """)
@@ -75,7 +76,8 @@ public interface UserActivityDailyTotalRepository extends JpaRepository<UserActi
             @Param("endDate") LocalDate endDate,
             @Param("collegeId") Long collegeId,
             @Param("branchId") Long branchId,
-            @Param("sectionId") Long sectionId
+            @Param("sectionId") Long sectionId,
+            @Param("studentId") Long studentId
     );
 
     @Query("""
@@ -86,11 +88,13 @@ public interface UserActivityDailyTotalRepository extends JpaRepository<UserActi
               and (:collegeId is null or u.college.collegeId = :collegeId)
               and (:branchId is null or u.branch.branchId = :branchId)
               and (:sectionId is null or u.section.sectionId = :sectionId)
+              and (:studentId is null or u.userId = :studentId)
             """)
     long countStudentsForScope(
             @Param("collegeId") Long collegeId,
             @Param("branchId") Long branchId,
-            @Param("sectionId") Long sectionId
+            @Param("sectionId") Long sectionId,
+            @Param("studentId") Long studentId
     );
 
     @Modifying(flushAutomatically = true)
