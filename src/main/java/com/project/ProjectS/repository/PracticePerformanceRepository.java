@@ -442,4 +442,152 @@ public class PracticePerformanceRepository {
                         rs.getLong("attempted_units"),
                         rs.getLong("correct_units")));
     }
+
+    public record QuestionCompletion(long id, long totalQuestions, long completedQuestions) {}
+
+    /** Current saved answers only: resetting practice must undo completion,
+     * without deleting the student's historical practice_results. */
+    private static String currentQuestionUnitsSql() {
+        return """
+                WITH active_questions AS (
+                    SELECT q.*, CASE
+                        WHEN EXISTS (SELECT 1 FROM mcq_questions m WHERE m.question_id = q.question_id AND m.active_row = true) THEN 'MCQ'
+                        WHEN EXISTS (SELECT 1 FROM question_matching_pairs m WHERE m.question_id = q.question_id) THEN 'MATCH'
+                        WHEN EXISTS (SELECT 1 FROM question_fill_blank_answers f WHERE f.question_id = q.question_id) THEN 'BLANK'
+                        ELSE 'ATTRIBUTE' END AS kind
+                    FROM questions q
+                    JOIN courses c ON c.course_id = q.course_id AND COALESCE(c.active_row, true)
+                    JOIN subject s ON s.subject_id = q.subject_id AND COALESCE(s.active_row, true)
+                    JOIN chapters ch ON ch.chapter_id = q.chapter_id AND COALESCE(ch.active_row, true)
+                    JOIN topic t ON t.topic_id = q.topic_id AND COALESCE(t.active_row, true)
+                    WHERE COALESCE(q.active_row, true)
+                ), attribute_units AS (
+                    SELECT DISTINCT q.question_id, qa.question_attribute_id, qa.attribute_id,
+                        pos.position, pos.table_id, pos.header_id,
+                        CASE WHEN lower(trim(pos.arithmetic)) = 'subtract' THEN 'less'
+                             ELSE lower(trim(pos.arithmetic)) END AS arithmetic,
+                        CASE WHEN lower(trim(COALESCE(pos.amount_position, '1'))) IN ('2','amount2')
+                             THEN qa.amount2 ELSE qa.amount END AS amount
+                    FROM active_questions q
+                    JOIN question_attributes qa ON qa.question_id = q.question_id AND COALESCE(qa.active_row, true)
+                    JOIN rule_engines re ON re.attribute_id = qa.attribute_id
+                        AND re.chapter_id = q.chapter_id AND re.active_row = true
+                    CROSS JOIN LATERAL (VALUES
+                        (1, re.table1_id, re.header1_id, re.arithmetic1, re.amount_position1),
+                        (2, re.table2_id, re.header2_id, re.arithmetic2, re.amount_position2),
+                        (3, re.table3_id, re.header3_id, re.arithmetic3, re.amount_position3),
+                        (4, re.table4_id, re.header4_id, re.arithmetic4, re.amount_position4)
+                    ) pos(position, table_id, header_id, arithmetic, amount_position)
+                    WHERE q.kind = 'ATTRIBUTE' AND pos.arithmetic IS NOT NULL
+                ), current_events AS (
+                    SELECT DISTINCT ON (ae.question_id, q.kind,
+                        CASE WHEN q.kind = 'MATCH' THEN COALESCE(
+                            substring(ae.description from 'matchIds=\\[([0-9]+),')::bigint, ae.answer_position)
+                             WHEN q.kind = 'BLANK' THEN ae.answer_position ELSE 0 END)
+                        ae.question_id, q.kind, ae.is_correct,
+                        CASE WHEN q.kind = 'MATCH' THEN COALESCE(
+                            substring(ae.description from 'matchIds=\\[([0-9]+),')::bigint, ae.answer_position)
+                             WHEN q.kind = 'BLANK' THEN ae.answer_position ELSE 0 END AS position
+                    FROM answer_events ae JOIN active_questions q ON q.question_id = ae.question_id
+                    WHERE ae.user_id = :userId AND ae.active_row = true
+                        AND ae.exam_id IS NULL AND ae.mock_exam_id IS NULL
+                        AND ((q.kind = 'MCQ' AND ae.event_type = 'MCQ_ANSWER')
+                          OR (q.kind = 'MATCH' AND ae.event_type = 'ANSWER' AND ae.arithmetic = 'MATCH')
+                          OR (q.kind = 'BLANK' AND ae.event_type = 'ANSWER' AND ae.arithmetic IN ('FILL_IN_THE_BLANK','FILL_IN_THE_BLANKS')))
+                    ORDER BY ae.question_id, q.kind,
+                        CASE WHEN q.kind = 'MATCH' THEN COALESCE(
+                            substring(ae.description from 'matchIds=\\[([0-9]+),')::bigint, ae.answer_position)
+                             WHEN q.kind = 'BLANK' THEN ae.answer_position ELSE 0 END,
+                        ae.answer_event_id DESC
+                ), units AS (
+                    SELECT u.question_id, EXISTS (
+                        SELECT 1 FROM question_answers a
+                        WHERE a.user_id = :userId AND a.question_id = u.question_id AND a.active_row = true
+                          AND (a.question_attribute_id = u.question_attribute_id OR
+                            (a.question_attribute_id IS NULL AND a.attribute_id = u.attribute_id AND
+                              (SELECT COUNT(*) FROM question_attributes qa
+                               WHERE qa.question_id = u.question_id AND qa.attribute_id = u.attribute_id
+                                 AND COALESCE(qa.active_row, true)) = 1))
+                          AND a.table_name_id = u.table_id AND a.header_id = u.header_id
+                          AND CASE WHEN lower(trim(a.arithmetic)) = 'subtract' THEN 'less'
+                                   ELSE lower(trim(a.arithmetic)) END = u.arithmetic
+                          AND a.amount = u.amount
+                          AND (a.condition_id IS NULL OR a.condition_id = u.position)
+                    ) AS completed FROM attribute_units u
+                    UNION ALL
+                    SELECT q.question_id, EXISTS (SELECT 1 FROM current_events e
+                        WHERE e.question_id = q.question_id AND e.kind = 'MCQ'
+                          AND (:requireCorrect = false OR e.is_correct = true))
+                    FROM active_questions q WHERE q.kind = 'MCQ'
+                    UNION ALL
+                    SELECT q.question_id, EXISTS (SELECT 1 FROM current_events e
+                        WHERE e.question_id = q.question_id AND e.kind = 'MATCH'
+                          AND e.position = m.pair_id AND (:requireCorrect = false OR e.is_correct = true))
+                    FROM active_questions q JOIN question_matching_pairs m ON m.question_id = q.question_id
+                    WHERE q.kind = 'MATCH'
+                ), blank_units AS (
+                    SELECT DISTINCT q.question_id, COALESCE(f.blank_number, 1) AS position
+                    FROM active_questions q JOIN question_fill_blank_answers f ON f.question_id = q.question_id
+                    WHERE q.kind = 'BLANK'
+                ), all_units AS (
+                    SELECT * FROM units
+                    UNION ALL
+                    SELECT qa.question_id, false
+                    FROM question_attributes qa JOIN active_questions q ON q.question_id = qa.question_id
+                    WHERE q.kind = 'ATTRIBUTE' AND COALESCE(qa.active_row, true)
+                      AND NOT EXISTS (SELECT 1 FROM attribute_units u
+                          WHERE u.question_attribute_id = qa.question_attribute_id)
+                    UNION ALL
+                    SELECT b.question_id, EXISTS (SELECT 1 FROM current_events e
+                        WHERE e.question_id = b.question_id AND e.kind = 'BLANK'
+                          AND e.position = b.position AND (:requireCorrect = false OR e.is_correct = true))
+                    FROM blank_units b
+                ), completed_questions AS (
+                    SELECT question_id FROM all_units GROUP BY question_id HAVING bool_and(completed)
+                )
+                """;
+    }
+
+    public List<QuestionCompletion> findQuestionCompletion(Level level, Filters filters, Long userId) {
+        String sql = currentQuestionUnitsSql() + """
+                SELECT e.%s AS id, COUNT(q.question_id) AS total_questions,
+                    COUNT(cq.question_id) AS completed_questions
+                FROM %s e
+                LEFT JOIN active_questions q ON q.%s = e.%s
+                LEFT JOIN completed_questions cq ON cq.question_id = q.question_id
+                WHERE COALESCE(e.active_row, true)
+                """.formatted(level.idColumn, level.table, level.questionColumn, level.idColumn);
+        if (filters.courseId() != null && level.courseColumn != null)
+            sql += " AND e." + level.courseColumn + " = :courseId";
+        if (filters.subjectId() != null && level.subjectColumn != null)
+            sql += " AND e." + level.subjectColumn + " = :subjectId";
+        if (filters.chapterId() != null && level.chapterColumn != null)
+            sql += " AND e." + level.chapterColumn + " = :chapterId";
+        sql += " GROUP BY e." + level.idColumn + " ORDER BY e." + level.idColumn;
+        MapSqlParameterSource parameters = params(new Scope(null, null, null, userId, true), filters)
+                .addValue("userId", userId).addValue("requireCorrect", true);
+        return jdbc.query(sql, parameters, (rs, row) -> new QuestionCompletion(
+                rs.getLong("id"), rs.getLong("total_questions"), rs.getLong("completed_questions")));
+    }
+
+    public record QuestionAnswerStatus(long questionId, long requiredAnswers, long savedAnswers) {
+        public String status() {
+            return requiredAnswers > 0 && savedAnswers >= requiredAnswers ? "ANSWERED"
+                    : savedAnswers > 0 ? "PARTIAL" : "UNANSWERED";
+        }
+    }
+
+    public List<QuestionAnswerStatus> findQuestionAnswerStatuses(Long userId, Long topicId) {
+        String sql = currentQuestionUnitsSql() + """
+                SELECT q.question_id, COUNT(u.question_id) AS required_answers,
+                    COUNT(u.question_id) FILTER (WHERE u.completed) AS saved_answers
+                FROM active_questions q LEFT JOIN all_units u ON u.question_id = q.question_id
+                WHERE (:topicId IS NULL OR q.topic_id = :topicId)
+                GROUP BY q.question_id ORDER BY q.question_id
+                """;
+        return jdbc.query(sql, new MapSqlParameterSource().addValue("userId", userId)
+                        .addValue("requireCorrect", false).addValue("topicId", topicId, java.sql.Types.BIGINT),
+                (rs, row) -> new QuestionAnswerStatus(rs.getLong("question_id"),
+                        rs.getLong("required_answers"), rs.getLong("saved_answers")));
+    }
 }
