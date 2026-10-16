@@ -1,5 +1,5 @@
 package com.project.ProjectS.model;
 
-/** Answered means saved, not necessarily correct; grading is reported separately. */
+/** ANSWERED means every required practice answer is correct; partial work remains pending. */
 public record QuestionAnswerStatusDTO(long questionId, String status,
         long requiredAnswers, long savedAnswers) {}
