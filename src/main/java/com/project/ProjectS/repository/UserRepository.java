@@ -95,6 +95,21 @@ public interface UserRepository extends JpaRepository<User, Long> {
               and (:collegeId is null or u.college.collegeId = :collegeId)
               and (:branchId is null or u.branch.branchId = :branchId)
               and (:sectionId is null or u.section.sectionId = :sectionId)
+              and (:courseId is null or u.course.courseId = :courseId)
+            """)
+    long countActiveStudentsForExamScope(
+            @Param("collegeId") Long collegeId,
+            @Param("branchId") Long branchId,
+            @Param("sectionId") Long sectionId,
+            @Param("courseId") Long courseId);
+
+    @Query("""
+            select count(u.userId) from User u
+            where u.role.roleName = 'STUDENT'
+              and (u.activeRow = true or u.activeRow is null)
+              and (:collegeId is null or u.college.collegeId = :collegeId)
+              and (:branchId is null or u.branch.branchId = :branchId)
+              and (:sectionId is null or u.section.sectionId = :sectionId)
             """)
     long countActiveStudentsInScope(
             @Param("collegeId") Long collegeId,
