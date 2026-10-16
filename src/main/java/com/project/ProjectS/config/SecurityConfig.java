@@ -61,6 +61,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/login", "/api/users/guest/register",
                                 "/oauth2/**", "/login/**", "/error").permitAll()
 
+                        .requestMatchers(HttpMethod.POST, "/api/notifications/announcements").hasRole(SA)
+
                         // Dashboard and settings.
                         .requestMatchers("/api/dashboard/**", "/api/settings/**").hasAnyRole(ALL)
 
