@@ -886,18 +886,71 @@ public class QuestionService {
                             );
 
 
-            responseList.add(
+            QuestionResponseDTO paperQuestion =
                     convertToResponse(
                             question,
                             attributes,
                             pairs,
                             blanks
-                    )
-            );
+                    );
+
+            hideTextAnswers(paperQuestion, question, pairs, blanks);
+
+            responseList.add(paperQuestion);
         }
 
 
         return responseList;
+    }
+
+    // The paper must not let a student work out a matching or
+    // fill-in-the-blank answer from the Network tab:
+    // - MATCHING: pairs keep columnA only. The column B texts go out
+    //   separately, shuffled, so nothing links a text to its pair. A text
+    //   that two pairs share stays twice: the practice view (reused in the
+    //   exam) puts one item in each Column B row.
+    // - FILL_IN_THE_BLANK: blanks is emptied. answerId, displayOrder and
+    //   blankNumber all give the answer away (the correct option is often
+    //   the first one of its blank). Only the blank count and a shuffled,
+    //   de-duplicated word bank go out.
+    // The correct answers reach the browser only in the review, after submit.
+    static void hideTextAnswers(
+            QuestionResponseDTO paperQuestion,
+            Question question,
+            List<QuestionMatchingPair> pairs,
+            List<QuestionFillBlankAnswer> blanks) {
+
+        if (pairs != null && !pairs.isEmpty()) {
+            List<String> options = new ArrayList<>(pairs.stream()
+                    .map(QuestionMatchingPair::getColumnB)
+                    .filter(text -> text != null && !text.isBlank())
+                    .map(String::trim)
+                    .toList());
+            java.util.Collections.shuffle(options);
+            paperQuestion.setMatchOptions(options);
+            paperQuestion.getPairs().forEach(pair -> pair.setColumnB(null));
+        }
+
+        if (blanks != null && !blanks.isEmpty()) {
+            int markers = ExamScoringService.countBlankMarkers(question.getQuestionText());
+            List<String> words = new ArrayList<>();
+            int highestBlank = 0;
+            for (QuestionFillBlankAnswer blank : blanks) {
+                Integer number = ExamScoringService.effectiveBlankNumber(blank.getBlankNumber(), markers);
+                if (number == null || blank.getAnswerText() == null || blank.getAnswerText().isBlank()) {
+                    continue;
+                }
+                highestBlank = Math.max(highestBlank, number);
+                String word = blank.getAnswerText().trim();
+                if (!words.contains(word)) {
+                    words.add(word);
+                }
+            }
+            java.util.Collections.shuffle(words);
+            paperQuestion.setWordBank(words);
+            paperQuestion.setBlankCount(Math.max(markers, highestBlank));
+            paperQuestion.setBlanks(List.of());
+        }
     }
 
 
