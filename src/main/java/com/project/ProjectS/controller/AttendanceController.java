@@ -60,10 +60,10 @@ public class AttendanceController {
 
     // Get All Attendance
     @GetMapping
-    public ResponseEntity<List<AttendanceResponseDTO>> getAllAttendance() {
+    public ResponseEntity<List<AttendanceResponseDTO>> getAllAttendance(Authentication authentication) {
 
         List<AttendanceResponseDTO> response =
-                attendanceService.getAllAttendance();
+                attendanceService.getAllAttendance(authentication);
 
         return ResponseEntity.ok(response);
     }
@@ -104,23 +104,23 @@ public class AttendanceController {
 
     @PostMapping("/upload")
     public ResponseEntity<String> uploadAttendance(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file, Authentication authentication) {
 
         try {
 
             List<Map<String, String>> excelData =
                     excelUploadService.readExcel(file);
 
-            genericExcelUploadService.process(
-                    excelData,
-                    attendanceMapper,
-                    attendanceRepository
-            );
+            attendanceService.uploadAttendance(excelData, authentication);
 
             return ResponseEntity.ok(
                     "Attendance Excel uploaded successfully"
             );
 
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
 
             return ResponseEntity

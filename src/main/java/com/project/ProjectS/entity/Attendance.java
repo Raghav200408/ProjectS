@@ -22,9 +22,6 @@ public class Attendance {
     @Column(name = "student_id", nullable = false)
     private String studentId;
 
-    @Column(name = "roll_no", nullable = false)
-    private String rollNo;
-
     @Column(name = "student_name", nullable = false)
     private String studentName;
 
