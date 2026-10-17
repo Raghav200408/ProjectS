@@ -10,6 +10,8 @@ import com.project.ProjectS.entity.McqOption;
 import com.project.ProjectS.entity.MockExam;
 import com.project.ProjectS.entity.Question;
 import com.project.ProjectS.entity.QuestionAttribute;
+import com.project.ProjectS.entity.QuestionFillBlankAnswer;
+import com.project.ProjectS.entity.QuestionMatchingPair;
 import com.project.ProjectS.entity.TableAttribute;
 import com.project.ProjectS.entity.TableHeader;
 import com.project.ProjectS.entity.TableName;
@@ -23,6 +25,8 @@ import com.project.ProjectS.model.RuleEngineResponse;
 import com.project.ProjectS.repository.AnswerEventRepository;
 import com.project.ProjectS.repository.McqOptionRepository;
 import com.project.ProjectS.repository.QuestionAttributeRepository;
+import com.project.ProjectS.repository.QuestionFillBlankAnswerRepository;
+import com.project.ProjectS.repository.QuestionMatchingPairRepository;
 import com.project.ProjectS.repository.QuestionRepository;
 import com.project.ProjectS.repository.TableHeaderRepository;
 import com.project.ProjectS.repository.TableNameRepository;
@@ -32,10 +36,13 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -87,6 +94,8 @@ public class ExamScoringService {
     private final TableHeaderRepository tableHeaderRepository;
     private final QuestionRepository questionRepository;
     private final AnswerEventRepository answerEventRepository;
+    private final QuestionMatchingPairRepository matchingPairRepository;
+    private final QuestionFillBlankAnswerRepository fillBlankAnswerRepository;
 
     public ExamScoringService(
             QuestionAttributeRepository questionAttributeRepository,
@@ -95,7 +104,9 @@ public class ExamScoringService {
             TableNameRepository tableNameRepository,
             TableHeaderRepository tableHeaderRepository,
             QuestionRepository questionRepository,
-            AnswerEventRepository answerEventRepository) {
+            AnswerEventRepository answerEventRepository,
+            QuestionMatchingPairRepository matchingPairRepository,
+            QuestionFillBlankAnswerRepository fillBlankAnswerRepository) {
 
         this.questionAttributeRepository = questionAttributeRepository;
         this.mcqOptionRepository = mcqOptionRepository;
@@ -104,6 +115,138 @@ public class ExamScoringService {
         this.tableHeaderRepository = tableHeaderRepository;
         this.questionRepository = questionRepository;
         this.answerEventRepository = answerEventRepository;
+        this.matchingPairRepository = matchingPairRepository;
+        this.fillBlankAnswerRepository = fillBlankAnswerRepository;
+    }
+
+    // =========================================================
+    // MATCH THE FOLLOWING / FILL IN THE BLANKS
+    // =========================================================
+
+    // The blank markers the practice FillInBlankQuestionView recognises in
+    // question text: "___", "[[blank 1]]" or "{{blank 1}}".
+    private static final Pattern BLANK_MARKER = Pattern.compile(
+            "(__+|\\[\\[blank(?:\\s*\\d+)?\\]\\]|\\{\\{blank(?:\\s*\\d+)?\\}\\})",
+            Pattern.CASE_INSENSITIVE);
+
+    public static boolean isMatching(String normalizedType) {
+        return "MATCHING".equals(normalizedType);
+    }
+
+    public static boolean isFillBlank(String normalizedType) {
+        return "FILL_IN_THE_BLANK".equals(normalizedType);
+    }
+
+    public static int countBlankMarkers(String questionText) {
+        if (questionText == null) {
+            return 0;
+        }
+        Matcher matcher = BLANK_MARKER.matcher(questionText);
+        int count = 0;
+        while (matcher.find()) {
+            count++;
+        }
+        return count;
+    }
+
+    /**
+     * The blank an option belongs to. An option with no blank number (old
+     * data) goes to blank 1 only when the sentence has exactly one blank;
+     * otherwise it belongs to no blank and the exam leaves it out.
+     */
+    public static Integer effectiveBlankNumber(Integer stored, int markerCount) {
+        if (stored != null && stored > 0) {
+            return stored;
+        }
+        return markerCount == 1 ? 1 : null;
+    }
+
+    // Trimmed and case-insensitive, the same comparison practice uses.
+    private static String answerKey(Object value) {
+        return value == null ? "" : value.toString().trim().toLowerCase(Locale.ROOT);
+    }
+
+    // Blank number -> the correct option texts, in blank order. A blank that
+    // has options but no correct one still appears (with an empty list), so
+    // it still counts towards the question's marks.
+    private Map<Integer, List<String>> correctBlankAnswers(Question question) {
+        int markers = countBlankMarkers(question.getQuestionText());
+        Map<Integer, List<String>> byBlank = new TreeMap<>();
+        for (QuestionFillBlankAnswer option : fillBlankAnswerRepository
+                .findByQuestionQuestionIdOrderByDisplayOrderAsc(question.getQuestionId())) {
+            Integer blank = effectiveBlankNumber(option.getBlankNumber(), markers);
+            if (blank == null) {
+                continue;
+            }
+            List<String> correct = byBlank.computeIfAbsent(blank, key -> new ArrayList<>());
+            if (Boolean.TRUE.equals(option.getIsCorrect()) && option.getAnswerText() != null) {
+                correct.add(option.getAnswerText().trim());
+            }
+        }
+        return byBlank;
+    }
+
+    // pairId -> the column B text that is the right answer for it.
+    private Map<Long, String> correctMatches(Long questionId) {
+        Map<Long, String> byPair = new LinkedHashMap<>();
+        for (QuestionMatchingPair pair : matchingPairRepository
+                .findByQuestion_QuestionIdOrderByDisplayOrderAsc(questionId)) {
+            byPair.put(pair.getPairId(), pair.getColumnB());
+        }
+        return byPair;
+    }
+
+    private boolean matchingLineCorrect(Map<Long, String> correct, Map<String, Object> data) {
+        Long pairId = getLongValue(data.get("pairId"));
+        Object text = data.get("answerText");
+        return pairId != null && text != null && correct.containsKey(pairId)
+                && answerKey(text).equals(answerKey(correct.get(pairId)));
+    }
+
+    private boolean blankLineCorrect(Map<Integer, List<String>> correct, Map<String, Object> data) {
+        Long blank = getLongValue(data.get("blankNumber"));
+        Object text = data.get("answerText");
+        if (blank == null || text == null) {
+            return false;
+        }
+        String key = answerKey(text);
+        return correct.getOrDefault(blank.intValue(), List.of()).stream()
+                .anyMatch(answer -> answerKey(answer).equals(key));
+    }
+
+    // 1 mark for each pair (or blank) the student got right. Only the first
+    // line for a pair (or blank) counts, so repeating a line earns nothing.
+    private QuestionScore scoreTextQuestion(Question question, String type, List<ExamAnswerDTO> submitted) {
+        Map<Long, String> matches = isMatching(type) ? correctMatches(question.getQuestionId()) : Map.of();
+        Map<Integer, List<String>> blanks = isMatching(type) ? Map.of() : correctBlankAnswers(question);
+        double max = isMatching(type) ? matches.size() : blanks.size();
+        String keyName = isMatching(type) ? "pairId" : "blankNumber";
+
+        Set<Long> seen = new HashSet<>();
+        double earned = 0;
+        for (ExamAnswerDTO line : submitted == null ? List.<ExamAnswerDTO>of() : submitted) {
+            if (line == null || line.getAnsweredData() == null) {
+                continue;
+            }
+            Map<String, Object> data = line.getAnsweredData();
+            Long key = getLongValue(data.get(keyName));
+            if (key == null || !seen.add(key)) {
+                continue;
+            }
+            boolean correct = isMatching(type)
+                    ? matchingLineCorrect(matches, data)
+                    : blankLineCorrect(blanks, data);
+            if (correct) {
+                earned += 1;
+            }
+        }
+        earned = Math.min(earned, max);
+        return new QuestionScore(question.getQuestionId(), max > 0 && earned == max, earned, max);
+    }
+
+    private String storedType(Question question) {
+        return normalizeQuestionType(question == null || question.getQuestionType() == null
+                ? null : question.getQuestionType().getQuestionType());
     }
 
     /**
@@ -141,6 +284,18 @@ public class ExamScoringService {
             }
 
             if (submittedQuestion == null) {
+                continue;
+            }
+
+            // Matching and fill-in-the-blank are judged by the stored type,
+            // never the one the browser sends.
+            String storedType = storedType(storedQuestion);
+            if (isMatching(storedType) || isFillBlank(storedType)) {
+                QuestionScore textScore = scoreTextQuestion(
+                        storedQuestion, storedType, submittedQuestion.getAnswers());
+                totalMarks += textScore.earnedMarks();
+                maximumMarks += textScore.maxMarks();
+                questionScores.add(textScore);
                 continue;
             }
 
@@ -257,6 +412,15 @@ public class ExamScoringService {
 
         if (isMcq) {
             return 1;
+        }
+
+        // 1 mark for each pair or blank.
+        if (isMatching(questionType)) {
+            return correctMatches(questionId).size();
+        }
+
+        if (isFillBlank(questionType)) {
+            return correctBlankAnswers(question).size();
         }
 
         return questionAttributeRepository.findByQuestion_QuestionId(questionId)
@@ -780,6 +944,13 @@ public class ExamScoringService {
                     ? null
                     : BigDecimal.valueOf(questionMarks);
 
+            String storedType = storedType(question);
+            if (isMatching(storedType) || isFillBlank(storedType)) {
+                persistTextAnswers(user, exam, mockExam, question, storedType,
+                        submittedQuestion.getAnswers(), questionMarksDecimal);
+                continue;
+            }
+
             List<QuestionAttribute> questionAttributes =
                     questionAttributeRepository.findByQuestion_QuestionId(
                             submittedQuestion.getQuestionId());
@@ -908,6 +1079,63 @@ public class ExamScoringService {
         }
     }
 
+    // One EXAM_SUBMIT row for each matched pair or filled blank. arithmetic
+    // and answerPosition follow the practice rows ("MATCH" + the pair's
+    // display order, "FILL_IN_THE_BLANK" + the blank number); userAnswer keeps
+    // the submitted line as JSON so the review can rebuild it exactly.
+    private void persistTextAnswers(User user, Exam exam, MockExam mockExam, Question question,
+                                    String type, List<ExamAnswerDTO> lines, BigDecimal marks) {
+        boolean matching = isMatching(type);
+        Map<Long, String> matches = matching ? correctMatches(question.getQuestionId()) : Map.of();
+        Map<Integer, List<String>> blanks = matching ? Map.of() : correctBlankAnswers(question);
+        Map<Long, QuestionMatchingPair> pairsById = new HashMap<>();
+        if (matching) {
+            matchingPairRepository.findByQuestion_QuestionIdOrderByDisplayOrderAsc(question.getQuestionId())
+                    .forEach(pair -> pairsById.put(pair.getPairId(), pair));
+        }
+
+        for (ExamAnswerDTO line : lines) {
+            if (line == null || line.getAnsweredData() == null) {
+                continue;
+            }
+            Map<String, Object> data = line.getAnsweredData();
+            Long key = getLongValue(data.get(matching ? "pairId" : "blankNumber"));
+            if (key == null) {
+                continue;
+            }
+            String text = Objects.toString(data.get("answerText"), "");
+            Map<String, Object> stored = new LinkedHashMap<>();
+            stored.put(matching ? "pairId" : "blankNumber", key);
+            stored.put("answerText", text);
+
+            AnswerEvent event = new AnswerEvent();
+            event.setUser(user);
+            event.setQuestion(question);
+            event.setEventType("EXAM_SUBMIT");
+            if (matching) {
+                QuestionMatchingPair pair = pairsById.get(key);
+                event.setArithmetic("MATCH");
+                event.setAnswerPosition(pair == null ? null : pair.getDisplayOrder());
+                event.setDescription("Matched " + (pair == null ? "?" : pair.getColumnA()) + " to " + text);
+                event.setIsCorrect(matchingLineCorrect(matches, data));
+            } else {
+                event.setArithmetic("FILL_IN_THE_BLANK");
+                event.setAnswerPosition(key.intValue());
+                event.setDescription("Blank " + key + " answer: " + text);
+                event.setIsCorrect(blankLineCorrect(blanks, data));
+            }
+            try {
+                event.setUserAnswer(ANSWER_JSON.writeValueAsString(stored));
+            } catch (Exception exception) {
+                throw new IllegalArgumentException("Cannot save the exam answer", exception);
+            }
+            event.setMarks(marks);
+            event.setExam(exam);
+            event.setMockExam(mockExam);
+            answerEventRepository.save(event);
+        }
+    }
+
     // Reverses persistAnswerInfo's exact wording - only ever parses what this
     // service itself wrote, so any drift between the two must be kept in
     // sync by hand.
@@ -953,6 +1181,13 @@ public class ExamScoringService {
         // Preserve the adjustment type before the general drag-and-drop match.
         if ("DRAGANDDROPWITHADJ".equals(token.replace("_", ""))) {
             return "DRAG_AND_DROP_WITH_ADJ";
+        }
+        // The table stores "FILL_IN_THE_BLANKS" and "MATCH_THE_FOLLOWING".
+        if (token.contains("FILL") && token.contains("BLANK")) {
+            return "FILL_IN_THE_BLANK";
+        }
+        if (token.startsWith("MATCH")) {
+            return "MATCHING";
         }
         if (token.contains("JOURNAL")) {
             return "JOURNAL";
@@ -1013,8 +1248,37 @@ public class ExamScoringService {
 
             List<ExamAnswerDTO> answers;
             List<Long> correctOptionIds = List.of();
+            Map<Long, String> reviewMatches = null;
+            Map<Integer, List<String>> reviewBlanks = null;
 
-            if (isMcq) {
+            if (isMatching(questionType) || isFillBlank(questionType)) {
+
+                // Rebuilt from the JSON persistTextAnswers saved. The correct
+                // answers go out only here, after submission.
+                List<ExamAnswerDTO> rebuilt = new ArrayList<>();
+                for (AnswerEvent event : questionEvents) {
+                    if (event.getUserAnswer() == null || !event.getUserAnswer().trim().startsWith("{")) {
+                        continue;
+                    }
+                    try {
+                        Map<String, Object> data = ANSWER_JSON.readValue(
+                                event.getUserAnswer(), new TypeReference<>() {});
+                        data.put("status", Boolean.TRUE.equals(event.getIsCorrect()) ? "correct" : "wrong");
+                        ExamAnswerDTO answer = new ExamAnswerDTO();
+                        answer.setAnsweredData(data);
+                        rebuilt.add(answer);
+                    } catch (Exception exception) {
+                        // A row this service did not write cannot be rebuilt.
+                    }
+                }
+                answers = rebuilt;
+                if (isMatching(questionType)) {
+                    reviewMatches = correctMatches(questionId);
+                } else {
+                    reviewBlanks = correctBlankAnswers(questionEvents.get(0).getQuestion());
+                }
+
+            } else if (isMcq) {
 
                 List<Long> selectedIds = questionEvents.stream()
                         .map(AnswerEvent::getOptionId)
@@ -1160,6 +1424,8 @@ public class ExamScoringService {
             dto.setCorrect(correct);
             dto.setAnswers(answers);
             dto.setCorrectOptionIds(correctOptionIds);
+            dto.setCorrectMatches(reviewMatches);
+            dto.setCorrectBlanks(reviewBlanks);
 
             reviewQuestions.add(dto);
         }

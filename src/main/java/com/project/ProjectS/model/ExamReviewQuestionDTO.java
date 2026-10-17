@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * One question's slice of an exam/mock-exam review: what was submitted for it
@@ -27,4 +28,8 @@ public class ExamReviewQuestionDTO {
     // highlight them. Never sent on the live exam-taking payload - only this
     // post-submission review response reveals it.
     private List<Long> correctOptionIds;
+    // MATCHING only: pairId -> the right column B text. Review only.
+    private Map<Long, String> correctMatches;
+    // FILL_IN_THE_BLANK only: blank number -> its correct answer texts. Review only.
+    private Map<Integer, List<String>> correctBlanks;
 }

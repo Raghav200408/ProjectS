@@ -23,7 +23,8 @@ class FinalAccountsDragDropTest {
     private final RuleEngineService rules = mock(RuleEngineService.class);
     private final AnswerEventRepository events = mock(AnswerEventRepository.class);
     private final ExamScoringService scorer = new ExamScoringService(rows, mock(McqOptionRepository.class), rules,
-            mock(TableNameRepository.class), mock(TableHeaderRepository.class), questions, events);
+            mock(TableNameRepository.class), mock(TableHeaderRepository.class), questions, events,
+            mock(QuestionMatchingPairRepository.class), mock(QuestionFillBlankAnswerRepository.class));
 
     @ParameterizedTest
     @ValueSource(strings = {"Drag And Drop", "dragAndDropWithAdj", "DRAG_AND_DROP_WITH_ADJ"})
@@ -133,7 +134,8 @@ class FinalAccountsDragDropTest {
         TableHeaderRepository headers = mock(TableHeaderRepository.class);
         when(names.findAll()).thenReturn(List.of(table)); when(headers.findAll()).thenReturn(List.of(header));
         ExamScoringService oldPath = new ExamScoringService(rows, mock(McqOptionRepository.class), rules,
-                names, headers, questions, events);
+                names, headers, questions, events,
+                mock(QuestionMatchingPairRepository.class), mock(QuestionFillBlankAnswerRepository.class));
 
         assertEquals(1, oldPath.score(List.of(1L), List.of(submission(answer(11L, 8L, 1L, 2L, "200")))).totalMarks());
         verify(rules, never()).getRuleEngineByAttributeId(8L, 1L);
