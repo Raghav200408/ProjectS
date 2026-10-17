@@ -15,11 +15,15 @@ public class AttendanceResponseDTO {
 
     private String studentId;
 
-    private String rollNo;
-
     private String studentName;
 
     private String section;
+    private Long collegeId;
+    private String collegeName;
+    private Long branchId;
+    private String branchName;
+    private Long courseId;
+    private String courseName;
 
     private LocalDate attendanceDate;
 

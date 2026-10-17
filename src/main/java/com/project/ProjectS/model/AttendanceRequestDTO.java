@@ -12,8 +12,6 @@ public class AttendanceRequestDTO {
 
     private String studentId;
 
-    private String rollNo;
-
     private String studentName;
 
     private String section;

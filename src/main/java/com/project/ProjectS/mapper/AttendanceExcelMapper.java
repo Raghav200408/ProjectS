@@ -18,7 +18,6 @@ public class AttendanceExcelMapper implements ExcelRowMapper<Attendance> {
 
         // Student details
         attendance.setStudentId(row.get("student_id"));
-        attendance.setRollNo(row.get("roll_no"));
         attendance.setStudentName(row.get("student_name"));
         attendance.setSection(row.get("section"));
 

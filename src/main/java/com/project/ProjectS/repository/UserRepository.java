@@ -16,6 +16,8 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
+    @EntityGraph(attributePaths = {"college", "branch", "branch.college", "course"})
+    List<User> findByStudentCodeIn(java.util.Collection<Long> studentCodes);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM User u WHERE u.userId = :userId")
