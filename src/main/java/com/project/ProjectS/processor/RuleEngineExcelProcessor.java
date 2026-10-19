@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Component
 @Transactional
@@ -71,21 +72,28 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
 
             ruleEngine.setChapter(chapter);
 
+            String fieldTypeName = clean(row.get("field_type"));
+            if (fieldTypeName != null) {
+                TableHeader fieldType = tableHeaderRepository.findByName(fieldTypeName)
+                        .orElseThrow(() -> new RuntimeException("Field Type not found : " + fieldTypeName));
+                ruleEngine.setFieldType(fieldType);
+            }
+
             // Pair Attribute
             String pairAttributeName =
                     clean(row.get("pair_attribute"));
 
             if (pairAttributeName != null) {
 
-                TableAttribute pairAttribute =
-                        tableAttributeRepository
-                                .findByName(pairAttributeName)
-                                .orElseThrow(() ->
-                                        new RuntimeException(
-                                                "Pair Attribute not found : "
-                                                        + pairAttributeName
-                                        )
-                                );
+                Optional<TableAttribute> pairAttributeResult =
+                        tableAttributeRepository.findByName(pairAttributeName);
+
+                if (pairAttributeResult.isEmpty()) {
+                    throw new RuntimeException(
+                            "Pair Attribute not found : " + pairAttributeName);
+                }
+
+                TableAttribute pairAttribute = pairAttributeResult.get();
 
                 ruleEngine.setPairAttribute(
                         pairAttribute
@@ -99,15 +107,15 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
 
             if (attributeName != null) {
 
-                TableAttribute attribute =
-                        tableAttributeRepository
-                                .findByName(attributeName)
-                                .orElseThrow(() ->
-                                        new RuntimeException(
-                                                "Attribute not found : "
-                                                        + attributeName
-                                        )
-                                );
+                Optional<TableAttribute> attributeResult =
+                        tableAttributeRepository.findByName(attributeName);
+
+                if (attributeResult.isEmpty()) {
+                    throw new RuntimeException(
+                            "Attribute not found : " + attributeName);
+                }
+
+                TableAttribute attribute = attributeResult.get();
 
                 ruleEngine.setTableAttributeid(
                         attribute

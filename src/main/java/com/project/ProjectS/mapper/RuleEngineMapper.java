@@ -35,6 +35,10 @@ public class RuleEngineMapper {
             response.setPairAttributeName(rule.getPairAttribute().getName());
         }
 
+        if (rule.getFieldType() != null) {
+            response.setFieldType(rule.getFieldType().getName());
+        }
+
         response.setRelationshipName(rule.getRelationshipName());
         response.setPairOrder(rule.getPairOrder());
 

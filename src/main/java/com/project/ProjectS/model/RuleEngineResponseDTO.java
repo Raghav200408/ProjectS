@@ -27,6 +27,8 @@ public class RuleEngineResponseDTO {
 
     private String attributeName;
 
+    private String fieldType;
+
     private String relationshipName;
 
     private Integer pairOrder;
