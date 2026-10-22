@@ -34,8 +34,7 @@ public class ExcelReader {
                 return excelData;
             }
 
-            List<String> headers =
-                    new ArrayList<>();
+            Map<Integer, String> headers = new LinkedHashMap<>();
 
             // =================================================
             // READ HEADER ROW
@@ -46,10 +45,16 @@ public class ExcelReader {
                 String header =
                         getCellValue(cell)
                                 .trim()
-                                .toLowerCase()
+                                .toLowerCase(Locale.ROOT)
                                 .replace(" ", "_");
 
-                headers.add(header);
+                if (!header.isBlank()) {
+                    headers.put(cell.getColumnIndex(), header);
+                }
+            }
+
+            if (headers.isEmpty()) {
+                return excelData;
             }
 
             System.out.println(
@@ -74,28 +79,25 @@ public class ExcelReader {
 
                 Map<String, String> rowData =
                         new LinkedHashMap<>();
-                rowData.put(
-                        "_excel_row_number",
-                        String.valueOf(i + 1)
-                );
-
-                for (int j = 0;
-                     j < headers.size();
-                     j++) {
+                for (Map.Entry<Integer, String> header : headers.entrySet()) {
 
                     Cell cell =
                             row.getCell(
-                                    j,
+                                    header.getKey(),
                                     Row.MissingCellPolicy
-                                            .CREATE_NULL_AS_BLANK
+                                            .RETURN_BLANK_AS_NULL
                             );
 
                     rowData.put(
-                            headers.get(j),
+                            header.getValue(),
                             getCellValue(cell)
                     );
                 }
 
+                if (rowData.values().stream().allMatch(String::isBlank)) {
+                    continue;
+                }
+                rowData.put("_excel_row_number", String.valueOf(i + 1));
                 excelData.add(rowData);
             }
         }
