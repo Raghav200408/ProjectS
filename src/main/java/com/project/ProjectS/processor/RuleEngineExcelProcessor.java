@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import com.project.ProjectS.util.RuleEngineAttributeLookup;
 
 @Component
 @Transactional
@@ -42,7 +42,9 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
         for (Map<String, String> row : excelData) {
 
             // Skip empty rows
-            if (row.values().stream().allMatch(
+            if (row.entrySet().stream()
+                    .filter(entry -> !"_excel_row_number".equals(entry.getKey()))
+                    .map(Map.Entry::getValue).allMatch(
                     value -> value == null || value.isBlank()
             )) {
                 continue;
@@ -72,55 +74,20 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
 
             ruleEngine.setChapter(chapter);
 
+            String rowNumber = row.getOrDefault("_excel_row_number", "unknown");
+            String context = "Excel row " + rowNumber + ": ";
             String fieldTypeName = clean(row.get("field_type"));
-            if (fieldTypeName != null) {
-                TableHeader fieldType = tableHeaderRepository.findByName(fieldTypeName)
-                        .orElseThrow(() -> new RuntimeException("Field Type not found : " + fieldTypeName));
-                ruleEngine.setFieldType(fieldType);
+            if (fieldTypeName == null) {
+                throw new IllegalArgumentException(context + "field_type is required");
             }
-
-            // Pair Attribute
-            String pairAttributeName =
-                    clean(row.get("pair_attribute"));
-
-            if (pairAttributeName != null) {
-
-                Optional<TableAttribute> pairAttributeResult =
-                        tableAttributeRepository.findByName(pairAttributeName);
-
-                if (pairAttributeResult.isEmpty()) {
-                    throw new RuntimeException(
-                            "Pair Attribute not found : " + pairAttributeName);
-                }
-
-                TableAttribute pairAttribute = pairAttributeResult.get();
-
-                ruleEngine.setPairAttribute(
-                        pairAttribute
-                );
-            }
-
-            // Attribute
-
-            String attributeName =
-                    clean(row.get("attribute"));
-
-            if (attributeName != null) {
-
-                Optional<TableAttribute> attributeResult =
-                        tableAttributeRepository.findByName(attributeName);
-
-                if (attributeResult.isEmpty()) {
-                    throw new RuntimeException(
-                            "Attribute not found : " + attributeName);
-                }
-
-                TableAttribute attribute = attributeResult.get();
-
-                ruleEngine.setTableAttributeid(
-                        attribute
-                );
-            }
+            TableHeader fieldType = tableHeaderRepository.findByName(fieldTypeName)
+                    .orElseThrow(() -> new IllegalArgumentException(context
+                            + "field_type '" + fieldTypeName + "' not found"));
+            ruleEngine.setFieldType(fieldType);
+            ruleEngine.setPairAttribute(RuleEngineAttributeLookup.resolve(tableAttributeRepository,
+                    row.get("pair_attribute"), fieldType, context + "pair_attribute"));
+            ruleEngine.setTableAttributeid(RuleEngineAttributeLookup.resolve(tableAttributeRepository,
+                    row.get("attribute"), fieldType, context + "attribute"));
 
             // Pair Order
 

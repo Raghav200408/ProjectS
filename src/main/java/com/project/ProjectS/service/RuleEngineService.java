@@ -17,6 +17,7 @@ import com.project.ProjectS.repository.RuleEngineRepository;
 import com.project.ProjectS.repository.TableAttributeRepository;
 import com.project.ProjectS.repository.TableHeaderRepository;
 import com.project.ProjectS.repository.TableNameRepository;
+import com.project.ProjectS.util.RuleEngineAttributeLookup;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -129,9 +130,15 @@ public class RuleEngineService {
         Chapter chapter = getChapter(request.getChapterName());
 
         entity.setChapter(chapter);
-        entity.setPairAttribute(getTableAttribute(request.getPairAttributeName(), "Pair Attribute"));
-        entity.setFieldType(getTableHeader(request.getFieldType(), "Field Type"));
-        entity.setTableAttributeid(getTableAttribute(request.getAttributeName(), "Attribute"));
+        if (!hasText(request.getFieldType())) {
+            throw new IllegalArgumentException("Field Type is required");
+        }
+        TableHeader fieldType = getTableHeader(request.getFieldType(), "Field Type");
+        entity.setFieldType(fieldType);
+        entity.setPairAttribute(RuleEngineAttributeLookup.resolve(tableAttributeRepository,
+                request.getPairAttributeName(), fieldType, "Pair Attribute"));
+        entity.setTableAttributeid(RuleEngineAttributeLookup.resolve(tableAttributeRepository,
+                request.getAttributeName(), fieldType, "Attribute"));
         entity.setRelationshipName(request.getRelationshipName());
         entity.setPairOrder(request.getPairOrder());
         entity.setArithmetic1(request.getArithmetic1());
@@ -171,17 +178,6 @@ public class RuleEngineService {
         }
 
         throw new RuntimeException("Chapter name is required");
-    }
-
-    private TableAttribute getTableAttribute(String name, String fieldLabel) {
-
-        if (hasText(name)) {
-            String attributeName = name.trim();
-            return tableAttributeRepository.findByName(attributeName)
-                    .orElseThrow(() -> new RuntimeException(fieldLabel + " not found: " + attributeName));
-        }
-
-        return null;
     }
 
     private TableName getTableName(String name, String fieldLabel) {
