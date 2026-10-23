@@ -18,6 +18,7 @@ import com.project.ProjectS.repository.TableAttributeRepository;
 import com.project.ProjectS.repository.TableHeaderRepository;
 import com.project.ProjectS.repository.TableNameRepository;
 import com.project.ProjectS.util.RuleEngineAttributeLookup;
+import com.project.ProjectS.util.RuleEngineUniqueness;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,9 +60,9 @@ public class RuleEngineService {
                 request.getChapterName(), request.getRelationshipName(), request.getTable1Name(), request.getTable2Name());
 
         RuleEngine entity = new RuleEngine();
-        mapRequest(entity, request);
+        mapRequest(entity, request, null);
 
-        ruleEngineRepository.save(entity);
+        RuleEngineUniqueness.save(ruleEngineRepository, entity);
 
 
         if (entity.getTableAttributeid() != null) {
@@ -103,8 +104,8 @@ public class RuleEngineService {
                     return new RuntimeException("Rule Engine not found");
                 });
 
-        mapRequest(entity, request);
-        ruleEngineRepository.save(entity);
+        mapRequest(entity, request, id);
+        RuleEngineUniqueness.save(ruleEngineRepository, entity);
 
         log.info("Rule engine updated successfully: id={}", id);
         return "Rule Engine updated successfully";
@@ -125,20 +126,23 @@ public class RuleEngineService {
         return "Rule Engine deleted successfully";
     }
 
-    private void mapRequest(RuleEngine entity, RuleEngineRequestDTO request) {
+    private void mapRequest(RuleEngine entity, RuleEngineRequestDTO request, Long excludedRuleId) {
 
         Chapter chapter = getChapter(request.getChapterName());
 
-        entity.setChapter(chapter);
-        if (!hasText(request.getFieldType())) {
-            throw new IllegalArgumentException("Field Type is required");
-        }
         TableHeader fieldType = getTableHeader(request.getFieldType(), "Field Type");
-        entity.setFieldType(fieldType);
-        entity.setPairAttribute(RuleEngineAttributeLookup.resolve(tableAttributeRepository,
-                request.getPairAttributeName(), fieldType, "Pair Attribute"));
-        entity.setTableAttributeid(RuleEngineAttributeLookup.resolve(tableAttributeRepository,
-                request.getAttributeName(), fieldType, "Attribute"));
+        TableHeader pairedFieldType = getTableHeader(request.getPairedFieldType(), "Paired Field Type");
+        TableAttribute attribute = resolveFormAttribute(request.getAttributeId(),
+                request.getAttributeName(), fieldType, "Attribute");
+        RuleEngineUniqueness.requireAvailable(ruleEngineRepository, chapter, attribute, excludedRuleId);
+        TableAttribute pairAttribute = resolveFormAttribute(request.getPairAttributeId(),
+                request.getPairAttributeName(), pairedFieldType, "Pair Attribute");
+        entity.setChapter(chapter);
+        entity.setTableAttributeid(attribute);
+        entity.setPairAttribute(pairAttribute);
+        // Attribute IDs are authoritative; derive each type from its own linked attribute.
+        entity.setFieldType(entity.getTableAttributeid().getTableHeader());
+        entity.setPairedFieldType(entity.getPairAttribute().getTableHeader());
         entity.setRelationshipName(request.getRelationshipName());
         entity.setPairOrder(request.getPairOrder());
         entity.setArithmetic1(request.getArithmetic1());
@@ -167,6 +171,18 @@ public class RuleEngineService {
 
         entity.setActiveRow(request.getActiveRow());
         entity.setRowStatus(request.getRowStatus());
+    }
+
+    private TableAttribute resolveFormAttribute(Long id, String name, TableHeader fieldType, String label) {
+        if (id != null) {
+            return tableAttributeRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException(label + " ID " + id + " not found"));
+        }
+        // Keep name-based API clients supported, without guessing among duplicate names.
+        if (fieldType == null) {
+            throw new IllegalArgumentException("Field Type is required when " + label + " ID is not provided");
+        }
+        return RuleEngineAttributeLookup.resolve(tableAttributeRepository, name, fieldType, label);
     }
 
     private Chapter getChapter(String name) {
@@ -225,6 +241,7 @@ public class RuleEngineService {
         );
         dto.setPairAttributeTableHeaderName(getAttributeHeaderName(entity.getPairAttribute()));
         dto.setFieldType(getHeaderName(entity.getFieldType()));
+        dto.setPairedFieldType(getHeaderName(entity.getPairedFieldType()));
         dto.setRelationshipName(entity.getRelationshipName());
         dto.setPairOrder(entity.getPairOrder());
 

@@ -7,7 +7,8 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "rule_engines")
+@Table(name = "rule_engines", uniqueConstraints = @UniqueConstraint(
+        name = "rule_engines_chapter_attribute_key", columnNames = {"chapter_id", "attribute_id"}))
 @Getter
 @Setter
 public class RuleEngine {
@@ -40,6 +41,10 @@ public class RuleEngine {
     @ManyToOne
     @JoinColumn(name = "field_type", referencedColumnName = "name")
     private TableHeader fieldType;
+
+    @ManyToOne
+    @JoinColumn(name = "paired_field_type", referencedColumnName = "name")
+    private TableHeader pairedFieldType;
 
     @Column(name = "relationship_name", length = 100)
     private String relationshipName;

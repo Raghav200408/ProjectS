@@ -78,6 +78,9 @@ public class NotificationEventAspect {
         if (body instanceof QuestionExcelUploadResponseDTO upload) {
             success = success && upload.isSuccess() && upload.getFailedQuestions() == 0;
         }
+        if (body instanceof com.project.ProjectS.model.RuleEngineUploadResponseDTO upload) {
+            success = success && upload.isSuccess();
+        }
         uploadNotification(success);
         return response;
     }

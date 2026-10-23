@@ -82,11 +82,12 @@ class RuleEngineExcelReaderTest {
         var processor = new RuleEngineExcelProcessor(mapper, rules, chapters, attributes, headers, tables);
         Map<String,String> blank = new HashMap<>();
         blank.put("_excel_row_number", "85"); blank.put("chapter", " "); blank.put("attribute", null);
-        processor.process(List.of(blank, Map.of("_excel_row_number", "86")));
+        var upload = new RuleEngineExcelUploadService(processor);
+        upload.process(List.of(blank, Map.of("_excel_row_number", "86")));
         verifyNoInteractions(mapper, rules, chapters, attributes, headers, tables);
-        RuntimeException error = assertThrows(RuntimeException.class,
-                () -> processor.process(List.of(Map.of("_excel_row_number", "87", "attribute", "Rent"))));
-        assertEquals("chapter is required", error.getMessage());
+        var response = upload.process(List.of(Map.of("_excel_row_number", "87", "attribute", "Rent")));
+        assertEquals(1, response.getSkippedRows());
+        assertEquals("Excel row 87: chapter is required", response.getErrors().get(0).errorMessage());
         verify(rules, never()).save(any());
     }
 }
