@@ -187,6 +187,42 @@ public class QuestionService {
         entitlementService.requireCourseAccess(email, courseId);
     }
 
+    public void requireQuestionAccess(Long questionId, String email) {
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found"));
+        try {
+            entitlementService.requireQuestionAccess(email, question.getCourse().getCourseId(), questionId);
+        } catch (IllegalStateException exception) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, exception.getMessage());
+        }
+    }
+
+    public boolean isQuestionAllowedForUser(Long questionId, Long courseId, String email) {
+        try {
+            entitlementService.requireQuestionAccess(email, courseId, questionId);
+            return true;
+        } catch (ResponseStatusException | IllegalStateException exception) {
+            return false;
+        }
+    }
+
+    public List<QuestionResponseDTO> filterQuestionsForUser(List<QuestionResponseDTO> candidates, String email) {
+        Map<Long, java.util.Set<Long>> accessibleByCourse = new java.util.HashMap<>();
+        for (QuestionResponseDTO candidate : candidates) {
+            if (candidate.getCourseId() == null) continue;
+            accessibleByCourse.computeIfAbsent(candidate.getCourseId(), courseId -> {
+                try {
+                    return entitlementService.accessibleQuestionIds(email, courseId);
+                } catch (IllegalStateException | ResponseStatusException exception) {
+                    return java.util.Set.of();
+                }
+            });
+        }
+        return candidates.stream().filter(question -> question.getCourseId() != null &&
+                accessibleByCourse.getOrDefault(question.getCourseId(), java.util.Set.of())
+                        .contains(question.getQuestionId())).toList();
+    }
+
 
     public void setQuestionActive(Long questionId, boolean active) {
         Question question = questionRepository.findById(questionId)

@@ -7,5 +7,6 @@ import java.util.List;
 public interface PlanCourseRepository extends JpaRepository<PlanCourse, Long> {
     List<PlanCourse> findByCourse_CourseIdAndPlan_ActiveTrue(Long courseId);
     List<PlanCourse> findByPlan_PlanId(Long planId);
+    java.util.Optional<PlanCourse> findByPlan_PlanIdAndCourse_CourseId(Long planId, Long courseId);
     void deleteByPlan_PlanId(Long planId);
 }

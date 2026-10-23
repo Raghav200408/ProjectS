@@ -18,4 +18,10 @@ public class PlanCourse {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "course_id")
     private Course course;
+
+    @Column(name = "question_limit")
+    private Integer questionLimit;
+
+    @Column(name = "all_course_questions", nullable = false)
+    private boolean allCourseQuestions = false;
 }

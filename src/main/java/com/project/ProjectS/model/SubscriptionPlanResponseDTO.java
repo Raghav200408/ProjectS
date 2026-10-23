@@ -15,6 +15,8 @@ public class SubscriptionPlanResponseDTO {
     private boolean active;
     private Integer durationDays;
     private Integer practiceQuestionLimit;
+    private boolean allCourseQuestions;
+    private Integer availableQuestionCount;
     private boolean mockTestEnabled;
     private Integer mockTestLimit;
     private boolean examEnabled;

@@ -97,9 +97,9 @@ public class MockExamController {
     }
 
     @GetMapping("/{mockExamId}/available-questions")
-    public ResponseEntity<List<QuestionResponseDTO>> getAvailableQuestions(@PathVariable Long mockExamId) {
+    public ResponseEntity<List<QuestionResponseDTO>> getAvailableQuestions(@PathVariable Long mockExamId, Authentication authentication) {
         log.info("Fetching available questions for mockExamId={}", mockExamId);
-        List<QuestionResponseDTO> response = mockExamService.getAvailableMockExamQuestions(mockExamId);
+        List<QuestionResponseDTO> response = mockExamService.getAvailableMockExamQuestions(mockExamId, authentication);
         log.info("Fetched {} available questions for mockExamId={}", response.size(), mockExamId);
         return ResponseEntity.ok(response);
     }

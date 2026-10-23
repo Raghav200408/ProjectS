@@ -276,9 +276,13 @@ public class MockExamService {
                                 "Mock exam not found with id: " + mockExamId));
 
         if (authentication != null && isStudent(authentication)) {
-//            entitlementService.requireCourseAccess(
-//                    authentication.getName(),
-//                    mockExam.getCourse().getCourseId());
+            entitlementService.requireMockTestAvailable(authentication.getName(), mockExam.getCourse().getCourseId());
+            Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), mockExam.getCourse().getCourseId());
+            boolean restricted = mockExamQuestionRepository.findByMockExam_MockExamId(mockExamId).stream()
+                    .anyMatch(row -> !permitted.contains(row.getQuestion().getQuestionId()));
+            if (restricted) throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN,
+                    "This mock exam contains questions outside your active subscription");
         }
 
         return getMockExamQuestions(mockExamId);
@@ -319,6 +323,16 @@ public class MockExamService {
                         .toList();
 
         return questionService.getQuestionsByIds(availableQuestionIds);
+    }
+
+    public List<QuestionResponseDTO> getAvailableMockExamQuestions(Long mockExamId, Authentication authentication) {
+        MockExam exam = mockExamRepository.findById(mockExamId)
+                .orElseThrow(() -> new RuntimeException("Mock exam not found with id: " + mockExamId));
+        List<QuestionResponseDTO> available = getAvailableMockExamQuestions(mockExamId);
+        if (authentication == null || !isStudent(authentication)) return available;
+        entitlementService.requireMockTestAvailable(authentication.getName(), exam.getCourse().getCourseId());
+        Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), exam.getCourse().getCourseId());
+        return available.stream().filter(question -> permitted.contains(question.getQuestionId())).toList();
     }
 
 
@@ -546,6 +560,17 @@ public class MockExamService {
                     .orElseThrow(() ->
                             new RuntimeException("Authenticated user not found"))
                     .getUserId());
+            if (isStudent(authentication)) {
+                MockExam mockExam = mockExamRepository.findById(mockExamId)
+                        .orElseThrow(() -> new RuntimeException("Mock exam not found with id: " + mockExamId));
+                Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), mockExam.getCourse().getCourseId());
+                boolean restricted = mockExamQuestionRepository.findByMockExam_MockExamId(mockExamId).stream()
+                        .anyMatch(row -> !permitted.contains(row.getQuestion().getQuestionId()));
+                if (restricted) throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.FORBIDDEN,
+                        "This mock exam contains questions outside your active subscription");
+                entitlementService.consumeMockTest(request.getUserId(), mockExam.getCourse().getCourseId());
+            }
         }
 
         return submitMockExam(mockExamId, request);
