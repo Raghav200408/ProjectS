@@ -12,6 +12,15 @@ import java.util.List;
 @Repository
 public interface RuleEngineRepository extends JpaRepository<RuleEngine, Long> {
 
+    @Query("""
+        SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM RuleEngine r
+        WHERE r.chapter.chapterId = :chapterId
+          AND r.tableAttributeid.attributeId = :attributeId
+          AND (:excludedRuleId IS NULL OR r.ruleEngineId <> :excludedRuleId)
+        """)
+    boolean existsForChapterAndAttribute(@Param("chapterId") Long chapterId,
+            @Param("attributeId") Long attributeId, @Param("excludedRuleId") Long excludedRuleId);
+
 
 //    @Query("""
 //        SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END

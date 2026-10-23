@@ -4,6 +4,7 @@ import com.project.ProjectS.entity.RuleEngine;
 import com.project.ProjectS.model.RuleEngineRequestDTO;
 import com.project.ProjectS.model.RuleEngineResponse;
 import com.project.ProjectS.model.RuleEngineResponseDTO;
+import com.project.ProjectS.exception.DuplicateRuleEngineException;
 import com.project.ProjectS.service.RuleEngineService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import com.project.ProjectS.processor.RuleEngineExcelProcessor;
+import com.project.ProjectS.service.RuleEngineExcelUploadService;
 import com.project.ProjectS.service.ExcelUploadService;
 import java.util.List;
 import java.util.Map;
@@ -20,15 +21,20 @@ import java.util.Map;
 @RequestMapping("/api/rule-engines")
 public class RuleEngineController {
     @Autowired
-    public RuleEngineController(RuleEngineService service, ExcelUploadService excelUploadService, RuleEngineExcelProcessor ruleEngineExcelProcessor) {
+    public RuleEngineController(RuleEngineService service, ExcelUploadService excelUploadService, RuleEngineExcelUploadService ruleEngineExcelUploadService) {
         this.service = service;
         this.excelUploadService = excelUploadService;
-        this.ruleEngineExcelProcessor = ruleEngineExcelProcessor;
+        this.ruleEngineExcelUploadService = ruleEngineExcelUploadService;
     }
 
     private final RuleEngineService service;
     private final ExcelUploadService excelUploadService;
-    private final RuleEngineExcelProcessor ruleEngineExcelProcessor;
+    private final RuleEngineExcelUploadService ruleEngineExcelUploadService;
+
+    @ExceptionHandler(DuplicateRuleEngineException.class)
+    public ResponseEntity<Map<String, String>> duplicateRule(DuplicateRuleEngineException error) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", error.getMessage()));
+    }
 
     @PostMapping
     public ResponseEntity<String> create(
@@ -66,7 +72,7 @@ public class RuleEngineController {
     }
 
     @PostMapping("/excel/upload")
-    public ResponseEntity<String> uploadExcel(
+    public ResponseEntity<?> uploadExcel(
             @RequestParam("file") MultipartFile file) {
 
         try {
@@ -76,14 +82,7 @@ public class RuleEngineController {
                     excelUploadService.readExcel(file);
 
 
-            // Step 2: Process Excel data and save RuleEngine
-            ruleEngineExcelProcessor.process(excelData);
-
-
-            return ResponseEntity.ok(
-                    "Rule Engine Excel uploaded successfully"
-            );
-
+            return ResponseEntity.ok(ruleEngineExcelUploadService.process(excelData));
 
         } catch (Exception e) {
 

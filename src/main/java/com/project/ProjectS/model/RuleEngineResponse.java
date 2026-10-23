@@ -16,6 +16,7 @@ public class RuleEngineResponse {
     private String attributeName;
 
     private String fieldType;
+    private String pairedFieldType;
 
     private Long pairAttributeId;
     private String pairAttributeName;

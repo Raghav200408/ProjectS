@@ -2,33 +2,19 @@ package com.project.ProjectS.processor;
 
 import com.project.ProjectS.entity.*;
 import com.project.ProjectS.mapper.RuleEngineExcelMapper;
+import com.project.ProjectS.model.RuleEngineUploadErrorDTO;
+import com.project.ProjectS.exception.RuleEngineUploadException;
 import com.project.ProjectS.repository.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.project.ProjectS.util.RuleEngineUniqueness;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 import java.util.Map;
-import com.project.ProjectS.util.RuleEngineAttributeLookup;
+import java.util.Optional;
 
 @Component
-@Transactional
-public class RuleEngineExcelProcessor implements ExcelProcessor {
-
-    @Autowired
-    public RuleEngineExcelProcessor(RuleEngineExcelMapper ruleEngineMapper, RuleEngineRepository ruleEngineRepository, ChapterRepository chapterRepository, TableAttributeRepository tableAttributeRepository, TableHeaderRepository tableHeaderRepository, TableNameRepository tableNameRepository) {
-        this.ruleEngineMapper = ruleEngineMapper;
-        this.ruleEngineRepository = ruleEngineRepository;
-        this.chapterRepository = chapterRepository;
-        this.tableAttributeRepository = tableAttributeRepository;
-        this.tableHeaderRepository = tableHeaderRepository;
-        this.tableNameRepository = tableNameRepository;
-    }
-
-
-    private static final Logger logger = LogManager.getLogger(RuleEngineExcelProcessor.class);
+public class RuleEngineExcelProcessor {
     private final RuleEngineExcelMapper ruleEngineMapper;
     private final RuleEngineRepository ruleEngineRepository;
     private final ChapterRepository chapterRepository;
@@ -36,120 +22,83 @@ public class RuleEngineExcelProcessor implements ExcelProcessor {
     private final TableHeaderRepository tableHeaderRepository;
     private final TableNameRepository tableNameRepository;
 
-    @Override
-    public void process(List<Map<String, String>> excelData) {
+    public RuleEngineExcelProcessor(RuleEngineExcelMapper ruleEngineMapper, RuleEngineRepository ruleEngineRepository,
+            ChapterRepository chapterRepository, TableAttributeRepository tableAttributeRepository,
+            TableHeaderRepository tableHeaderRepository, TableNameRepository tableNameRepository) {
+        this.ruleEngineMapper = ruleEngineMapper; this.ruleEngineRepository = ruleEngineRepository;
+        this.chapterRepository = chapterRepository; this.tableAttributeRepository = tableAttributeRepository;
+        this.tableHeaderRepository = tableHeaderRepository; this.tableNameRepository = tableNameRepository;
+    }
 
-        for (Map<String, String> row : excelData) {
+    // Returning an error commits a newly created DRAFT; throwing rolls back only this row.
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public RuleEngineUploadErrorDTO processRow(Map<String, String> row, int rowNumber) {
+        String chapterName = clean(row.get("chapter"));
+        if (chapterName == null) throw new IllegalArgumentException("chapter is required");
+        Chapter chapter = chapterRepository.findByName(chapterName)
+                .orElseThrow(() -> new IllegalArgumentException("Chapter not found: " + chapterName));
 
-            // Skip empty rows
-            if (row.entrySet().stream()
-                    .filter(entry -> !"_excel_row_number".equals(entry.getKey()))
-                    .map(Map.Entry::getValue).allMatch(
-                    value -> value == null || value.isBlank()
-            )) {
-                continue;
-            }
+        String attributeName = requiredName(row, "attribute");
+        TableHeader fieldType = header(row, "field_type", attributeName);
+        Optional<TableAttribute> attribute = findAttribute(attributeName, fieldType, "attribute");
+        if (attribute.isEmpty()) return createDraft(rowNumber, "attribute", attributeName, fieldType);
 
-            RuleEngine ruleEngine =
-                    ruleEngineMapper.map(row);
+        // Skip existing rules before inspecting or creating any paired attribute.
+        RuleEngineUniqueness.requireAvailable(ruleEngineRepository, chapter, attribute.get(), null);
 
-            // Chapter
-            String chapterName =
-                    clean(row.get("chapter"));
+        // Do not inspect or create the paired attribute until the main attribute already exists.
+        String pairName = requiredName(row, "pair_attribute");
+        TableHeader pairedFieldType = header(row, "paired_field_type", pairName);
+        Optional<TableAttribute> pair = findAttribute(pairName, pairedFieldType, "pair_attribute");
+        if (pair.isEmpty()) return createDraft(rowNumber, "pair_attribute", pairName, pairedFieldType);
 
-            if (chapterName == null) {
-                throw new RuntimeException(
-                        "chapter is required"
-                );
-            }
+        RuleEngine rule = ruleEngineMapper.map(row);
+        rule.setChapter(chapter);
+        rule.setFieldType(fieldType);
+        rule.setPairedFieldType(pairedFieldType);
+        rule.setTableAttributeid(attribute.get());
+        rule.setPairAttribute(pair.get());
+        for (int index = 1; index <= 4; index++) setTableAndHeader(row, rule, index);
+        RuleEngineUniqueness.save(ruleEngineRepository, rule);
+        attribute.get().setRowStatus("RULE");
+        tableAttributeRepository.save(attribute.get());
+        return null;
+    }
 
-            Chapter chapter =
-                    chapterRepository.findByName(chapterName)
-                            .orElseThrow(() ->
-                                    new RuntimeException(
-                                            "Chapter not found : "
-                                                    + chapterName
-                                    )
-                            );
+    private String requiredName(Map<String, String> row, String field) {
+        String name = clean(row.get(field));
+        if (name == null) throw new RuleEngineUploadException(field, null, null, field + " is required");
+        return name;
+    }
 
-            ruleEngine.setChapter(chapter);
-
-            String rowNumber = row.getOrDefault("_excel_row_number", "unknown");
-            String context = "Excel row " + rowNumber + ": ";
-            String fieldTypeName = clean(row.get("field_type"));
-            if (fieldTypeName == null) {
-                throw new IllegalArgumentException(context + "field_type is required");
-            }
-            TableHeader fieldType = tableHeaderRepository.findByName(fieldTypeName)
-                    .orElseThrow(() -> new IllegalArgumentException(context
-                            + "field_type '" + fieldTypeName + "' not found"));
-            ruleEngine.setFieldType(fieldType);
-            ruleEngine.setPairAttribute(RuleEngineAttributeLookup.resolve(tableAttributeRepository,
-                    row.get("pair_attribute"), fieldType, context + "pair_attribute"));
-            ruleEngine.setTableAttributeid(RuleEngineAttributeLookup.resolve(tableAttributeRepository,
-                    row.get("attribute"), fieldType, context + "attribute"));
-
-            // Pair Order
-
-            String pairOrder =
-                    clean(row.get("pair_order"));
-
-            if (pairOrder != null) {
-
-                ruleEngine.setPairOrder(
-                        Integer.parseInt(pairOrder)
-                );
-            }
-
-            // Conditions 1 - 4
-
-            setTableAndHeader(
-                    row,
-                    ruleEngine,
-                    1
-            );
-
-            setTableAndHeader(
-                    row,
-                    ruleEngine,
-                    2
-            );
-
-            setTableAndHeader(
-                    row,
-                    ruleEngine,
-                    3
-            );
-
-            setTableAndHeader(
-                    row,
-                    ruleEngine,
-                    4
-            );
-
-            // Save Rule Engine
-
-            System.out.println(
-                    "Saving Rule Engine : "
-                            + ruleEngine.getRelationshipName()
-            );
-
-            RuleEngine savedRule =
-                    ruleEngineRepository.save(ruleEngine);
-
-            // Match manual rule creation: the linked attribute now has a rule.
-            if (ruleEngine.getTableAttributeid() != null) {
-                TableAttribute attribute = ruleEngine.getTableAttributeid();
-                attribute.setRowStatus("RULE");
-                tableAttributeRepository.save(attribute);
-            }
-
-            System.out.println(
-                    "========== SAVED RULE ENGINE ID : "
-                            + savedRule.getRuleEngineId()
-                            + " =========="
-            );
+    private TableHeader header(Map<String, String> row, String field, String attributeName) {
+        String name = clean(row.get(field));
+        if (name == null) throw new RuleEngineUploadException(field, attributeName, null, field + " is required");
+        try {
+            return tableHeaderRepository.findByName(name).orElseThrow(() -> new RuleEngineUploadException(
+                    field, attributeName, name, field + " '" + name + "' not found. No attribute created."));
+        } catch (IncorrectResultSizeDataAccessException e) {
+            throw new RuleEngineUploadException(field, attributeName, name,
+                    field + " '" + name + "' matched multiple headers. No attribute created.");
         }
+    }
+
+    private Optional<TableAttribute> findAttribute(String name, TableHeader header, String field) {
+        try {
+            return tableAttributeRepository.findByNameAndTableHeader(name, header);
+        } catch (IncorrectResultSizeDataAccessException e) {
+            throw new RuleEngineUploadException(field, name, header.getName(), field + " '" + name
+                    + "' with header '" + header.getName() + "' matched multiple records. No attribute created.");
+        }
+    }
+
+    private RuleEngineUploadErrorDTO createDraft(int rowNumber, String field, String name, TableHeader header) {
+        TableAttribute attribute = new TableAttribute();
+        attribute.setName(name); attribute.setTableHeader(header); attribute.setRowStatus("DRAFT");
+        tableAttributeRepository.saveAndFlush(attribute);
+        return new RuleEngineUploadErrorDTO(rowNumber, field, name, header.getName(),
+                "Excel row " + rowNumber + ": " + field + " '" + name + "' not found with header '"
+                        + header.getName() + "'. Created in Table Attributes as DRAFT. Rule row skipped; retry this row.", true);
     }
 
     // Table + Header Mapping

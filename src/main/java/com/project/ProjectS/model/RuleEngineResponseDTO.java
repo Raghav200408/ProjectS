@@ -28,6 +28,7 @@ public class RuleEngineResponseDTO {
     private String attributeName;
 
     private String fieldType;
+    private String pairedFieldType;
 
     private String relationshipName;
 

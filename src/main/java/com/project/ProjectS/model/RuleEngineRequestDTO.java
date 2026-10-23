@@ -10,10 +10,13 @@ public class RuleEngineRequestDTO {
     private String chapterName;
 
     private String pairAttributeName;
+    private Long pairAttributeId;
 
     private String attributeName;
+    private Long attributeId;
 
     private String fieldType;
+    private String pairedFieldType;
 
     private String relationshipName;
 
