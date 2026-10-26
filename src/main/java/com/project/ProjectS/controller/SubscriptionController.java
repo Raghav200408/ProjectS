@@ -26,6 +26,15 @@ public class SubscriptionController {
     public List<SubscriptionPlanResponseDTO> plans(@RequestParam(required = false) Long courseId) {
         return service.plansForCourseOrAll(courseId);
     }
+    @GetMapping("/plans/{planId}/courses/{courseId}/questions")
+    public java.util.Map<String, Object> planQuestions(@PathVariable Long planId, @PathVariable Long courseId) {
+        return service.getQuestionAssignments(planId, courseId);
+    }
+    @PutMapping("/plans/{planId}/courses/{courseId}/questions")
+    public java.util.Map<String, Object> assignPlanQuestions(@PathVariable Long planId, @PathVariable Long courseId,
+                                                               @RequestBody PlanQuestionAssignmentRequestDTO request) {
+        return service.setQuestionAssignments(planId, courseId, request);
+    }
     @PostMapping("/plans")
     public ResponseEntity<SubscriptionPlanResponseDTO> create(@RequestBody SubscriptionPlanRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
@@ -47,9 +56,9 @@ public class SubscriptionController {
     @PostMapping("/activate")
     public UserSubscriptionResponseDTO activate(@RequestBody SubscriptionActivationRequestDTO request,
                                                 Authentication authentication) {
-        return request.getUserId() == null
-                ? service.activateForEmail(request, authentication.getName())
-                : service.activate(request);
+        // Self-service activation must never accept another student's ID.
+        request.setUserId(null);
+        return service.activateForEmail(request, authentication.getName());
     }
     @PostMapping("/bulk-assign")
     public List<UserSubscriptionResponseDTO> bulkAssign(@RequestBody BulkSubscriptionAssignmentDTO request) {

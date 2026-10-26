@@ -53,6 +53,8 @@ public class MockTestService {
                 .filter(question -> mcqs.findById(question.getQuestionId())
                         .map(mcq -> Boolean.TRUE.equals(mcq.getActiveRow())).orElse(false))
                 .toList());
+        var permitted = entitlementService.accessibleQuestionIds(email, request.getCourseId());
+        candidates.removeIf(question -> !permitted.contains(question.getQuestionId()));
         Collections.shuffle(candidates);
         int count = Math.min(requested, candidates.size());
         if (count == 0) {

@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class BranchService {
+    @org.springframework.beans.factory.annotation.Autowired private CourseAssignmentService assignments;
 
     private static final Logger log =
             LogManager.getLogger(BranchService.class);
@@ -92,7 +93,7 @@ public class BranchService {
         log.info("Fetching all branches.");
 
         List<BranchResponseDTO> branches = branchRepository.findAll()
-                .stream()
+                .stream().filter(branch -> assignments.canSeeBranch(assignments.currentUser(), branch))
                 .map(this::convert)
                 .collect(Collectors.toList());
 
@@ -113,6 +114,8 @@ public class BranchService {
 
         log.info("Branch fetched successfully with ID: {}", id);
 
+        if (!assignments.canSeeBranch(assignments.currentUser(), branch))
+            throw new org.springframework.security.access.AccessDeniedException("Institution outside your scope");
         return branch;
     }
 

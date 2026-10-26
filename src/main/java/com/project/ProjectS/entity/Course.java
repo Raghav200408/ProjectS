@@ -18,11 +18,11 @@ public class Course {
     private Long courseId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "branch_id", nullable = false)
+    @JoinColumn(name = "branch_id")
     private Branch branch;
 
     @ManyToOne
-    @JoinColumn(name = "college_id", nullable = false)
+    @JoinColumn(name = "college_id")
     private College college;
 
     @Column(name = "name", nullable = false)

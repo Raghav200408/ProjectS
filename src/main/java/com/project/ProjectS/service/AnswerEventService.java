@@ -18,6 +18,7 @@ import java.util.Objects;
 @Service
 @Transactional
 public class AnswerEventService {
+    @Autowired private LearningAccessService learningAccess;
     private static final Logger log = LogManager.getLogger(AnswerEventService.class);
 
     @Autowired
@@ -61,6 +62,7 @@ public class AnswerEventService {
                 authentication == null ? null : authentication.getName(), request.getQuestionId(), request.getEventType());
         User authenticatedUser = getAuthenticatedUser(authentication);
         request.setUserId(authenticatedUser.getUserId());
+        learningAccess.practice(request.getUserId(), request.getQuestionId());
         return createEvent(request);
     }
 
@@ -601,6 +603,7 @@ public class AnswerEventService {
         return answerEventRepository
                 .findAll()
                 .stream()
+                .filter(event -> learningAccess.canReadLearner(event.getUser()))
                 .map(this::convertToResponse)
                 .toList();
     }
@@ -619,6 +622,7 @@ public class AnswerEventService {
                                 )
                         );
 
+        learningAccess.requireReadableLearner(event.getUser());
         return convertToResponse(event);
     }
 

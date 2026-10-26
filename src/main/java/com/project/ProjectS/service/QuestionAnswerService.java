@@ -19,6 +19,7 @@ import java.util.List;
 @Service
 @Transactional
 public class QuestionAnswerService {
+    @Autowired private LearningAccessService learningAccess;
     private static final Logger log = LogManager.getLogger(QuestionAnswerService.class);
 
     @Autowired
@@ -77,6 +78,7 @@ public class QuestionAnswerService {
                 request != null ? request.getUserId() : null,
                 request != null ? request.getQuestionId() : null);
         request.setUserId(getAuthenticatedUserId(authentication));
+        learningAccess.practice(request.getUserId(), request.getQuestionId());
         return saveAnswer(request);
     }
 
@@ -242,6 +244,7 @@ public class QuestionAnswerService {
                         questionId
                 )
                 .stream()
+                .filter(answer -> learningAccess.canReadLearner(answer.getUser()))
                 .map(this::convertToResponse)
                 .toList();
     }

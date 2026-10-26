@@ -37,6 +37,7 @@ import java.util.Set;
  */
 @Service
 public class PracticeResultService {
+    @Autowired private LearningAccessService learningAccess;
     private static final Logger log = LogManager.getLogger(PracticeResultService.class);
 
     private static final String TYPE_ATTRIBUTE = "ATTRIBUTE";
@@ -83,6 +84,7 @@ public class PracticeResultService {
         log.info("Recording practice result for questionId={} userId={} eventType={}", request != null ? request.getQuestionId() : null, request != null ? request.getUserId() : null, request != null ? request.getEventType() : null);
 
         User user = getLoggedInUser(authentication);
+        learningAccess.practice(user.getUserId(), request.getQuestionId());
 
         if (request == null) {
             throw badRequest("Request body is required");

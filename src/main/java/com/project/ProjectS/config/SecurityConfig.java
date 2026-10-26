@@ -77,14 +77,23 @@ public class SecurityConfig {
                                 "/api/subscriptions/bulk", "/api/subscriptions/*/deactivate").hasAnyRole(ADMINS)
 
                         // Colleges, branches and sections.
+                        .requestMatchers(HttpMethod.GET, "/api/college/**", "/api/branch/**").hasAnyRole(ADMINS)
                         .requestMatchers("/api/college/**", "/api/branch/**").hasAnyRole(SA, CA)
                         .requestMatchers("/api/section/**").hasAnyRole(ADMINS)
 
+                        .requestMatchers(HttpMethod.POST, "/api/subscriptions/plans/**").hasRole(SA)
+                        .requestMatchers(HttpMethod.PUT, "/api/subscriptions/plans/**").hasRole(SA)
+                        .requestMatchers(HttpMethod.DELETE, "/api/subscriptions/plans/**").hasRole(SA)
                         // Courses, subjects, chapters and topics: student/guest read-only.
+                        .requestMatchers("/api/course/*/assignments").hasAnyRole(ADMINS)
+                        .requestMatchers("/api/course/catalog").hasAnyRole(ADMINS)
+                        .requestMatchers(HttpMethod.POST, "/api/course/**").hasRole(SA)
+                        .requestMatchers(HttpMethod.PUT, "/api/course/**").hasRole(SA)
+                        .requestMatchers(HttpMethod.DELETE, "/api/course/**").hasRole(SA)
                         .requestMatchers(HttpMethod.GET, "/api/course/**", "/api/subjects/**",
                                 "/api/chapter/**", "/api/topics/**").hasAnyRole(ALL)
                         .requestMatchers("/api/course/**", "/api/subjects/**",
-                                "/api/chapter/**", "/api/topics/**").hasAnyRole(ADMINS)
+                                "/api/chapter/**", "/api/topics/**").hasRole(SA)
 
                         // Practice is available to all roles; authoring is Super Admin only.
                         .requestMatchers(HttpMethod.POST, "/api/mcq-questions/submit",

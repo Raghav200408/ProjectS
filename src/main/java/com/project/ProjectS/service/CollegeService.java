@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class CollegeService {
+    @org.springframework.beans.factory.annotation.Autowired private CourseAssignmentService assignments;
     @Autowired
     public CollegeService(CollegeRepository repository) {
         this.repository = repository;
@@ -51,7 +52,7 @@ public class CollegeService {
         log.info("Fetching all colleges.");
 
         List<CollegeResponseDTO> colleges = repository.findAll()
-                .stream()
+                .stream().filter(college -> assignments.canSeeCollege(assignments.currentUser(), college.getCollegeId()))
                 .map(this::convert)
                 .collect(Collectors.toList());
 
@@ -74,6 +75,8 @@ public class CollegeService {
 
         log.info("College fetched successfully with ID: {}", id);
 
+        if (!assignments.canSeeCollege(assignments.currentUser(), entity.getCollegeId()))
+            throw new org.springframework.security.access.AccessDeniedException("Institution outside your scope");
         return entity;
     }
 

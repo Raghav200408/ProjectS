@@ -46,6 +46,7 @@ import java.util.Set;
 
 @Service
 public class McqQuestionService {
+    @org.springframework.beans.factory.annotation.Autowired private LearningAccessService learningAccess;
     private static final Logger log = LogManager.getLogger(McqQuestionService.class);
 
     private final QuestionRepository questionRepository;
@@ -327,6 +328,25 @@ public class McqQuestionService {
         entitlementService.requireCourseAccess(email, courseId);
     }
 
+    public void requireQuestionAccess(Long questionId, String email) {
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Question not found"));
+        entitlementService.requireQuestionAccess(email, question.getCourse().getCourseId(), questionId);
+    }
+
+    public List<McqQuestionResponseDTO> filterQuestionsForUser(List<McqQuestionResponseDTO> candidates, String email) {
+        java.util.Map<Long, Set<Long>> accessible = new java.util.HashMap<>();
+        for (McqQuestionResponseDTO candidate : candidates) {
+            if (candidate.getCourseId() != null) accessible.computeIfAbsent(candidate.getCourseId(), courseId -> {
+                try { return entitlementService.accessibleQuestionIds(email, courseId); }
+                catch (org.springframework.web.server.ResponseStatusException | org.springframework.security.access.AccessDeniedException ex) { return Set.of(); }
+            });
+        }
+        return candidates.stream().filter(item -> item.getCourseId() != null &&
+                accessible.getOrDefault(item.getCourseId(), Set.of()).contains(item.getQuestionId())).toList();
+    }
+
 
     // ==========================================
     // 5. UPDATE MCQ
@@ -582,6 +602,9 @@ public class McqQuestionService {
         request.setUserId(userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"))
                 .getUserId());
+        if (request.getQuestionId() != null && !request.isMockTest()) learningAccess.practice(
+                userRepository.findByEmail(email).orElseThrow().getUserId(), request.getQuestionId());
+        if (request.getQuestionId() != null) requireQuestionAccess(request.getQuestionId(), email);
         return submitMcqAnswersInternal(request);
     }
 

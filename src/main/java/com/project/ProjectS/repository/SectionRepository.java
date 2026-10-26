@@ -11,6 +11,8 @@ import java.util.Optional;
 
 @Repository
 public interface SectionRepository extends JpaRepository<Section, Long> {
+    boolean existsBySectionNameAndCourse_CourseIdAndBranch_BranchId(String name, Long courseId, Long branchId);
+    boolean existsBySectionNameAndCourse_CourseIdAndBranch_BranchIdAndSectionIdNot(String name, Long courseId, Long branchId, Long sectionId);
 
     boolean existsBySectionNameAndCourse_CourseId(
             String sectionName,

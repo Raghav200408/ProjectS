@@ -21,6 +21,7 @@ public class CourseExcelProcessor implements ExcelProcessor {
 
     private final CourseExcelMapper courseExcelMapper;
     private final CourseRepository courseRepository;
+    @Autowired private com.project.ProjectS.service.CourseAssignmentService assignments;
 
 
 
@@ -45,23 +46,21 @@ public class CourseExcelProcessor implements ExcelProcessor {
 
 
 
-            boolean exists =
-                    courseRepository.existsByNameAndBranch(
-                            course.getName(),
-                            course.getBranch()
-                    );
-
-
-
-            if(exists){
-
-                continue;
-
+            var branch = course.getBranch();
+            String requestedId = row.get("course_id");
+            if (requestedId != null && !requestedId.isBlank()) {
+                course = courseRepository.findById(Long.valueOf(requestedId.trim()))
+                        .orElseThrow(() -> new IllegalArgumentException("Course ID not found"));
+            } else {
+                var existing = courseRepository.findByNameIgnoreCase(course.getName());
+                if (existing.size() > 1) throw new IllegalArgumentException("Course name is ambiguous; supply course_id");
+                if (existing.size() == 1) course = existing.get(0);
+                else {
+                    course.setBranch(null); course.setCollege(null);
+                    courseRepository.save(course);
+                }
             }
-
-
-
-            courseRepository.save(course);
+            if (branch != null) assignments.saveAssignment(course, branch, true);
 
         }
 

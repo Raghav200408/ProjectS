@@ -18,6 +18,8 @@ import com.project.ProjectS.security.service.CustomUserDetails;
 @Transactional
 @Service
 public class ExamService {
+    @org.springframework.beans.factory.annotation.Autowired private CourseAssignmentService courseAssignments;
+    @org.springframework.beans.factory.annotation.Autowired private LearningAccessService learningAccess;
     private static final Logger log = LogManager.getLogger(ExamService.class);
 
     private final ExamRepository examRepository;
@@ -79,6 +81,7 @@ public class ExamService {
 
     @Transactional
     public ExamResponseDTO createExam(ExamRequestDTO request) {
+        validateInstitution(request);
         log.info("Creating exam: name={} collegeId={} branchId={} courseId={} sectionId={}",
                 request.getExamName(), request.getCollegeId(), request.getBranchId(),
                 request.getCourseId(), request.getSectionId());
@@ -205,7 +208,7 @@ public class ExamService {
             default -> List.of();
         };
 
-        return exams.stream()
+        return exams.stream().filter(exam -> courseAssignments.eligible(user, exam.getCourse()))
                 .map(this::convertToResponse)
                 .toList();
     }
@@ -238,6 +241,7 @@ public class ExamService {
                                         + examId
                         ));
 
+        learningAccess.requireExamAudience(courseAssignments.currentUser(), exam);
         return convertToResponse(exam);
     }
 
@@ -245,6 +249,8 @@ public class ExamService {
     public ExamResponseDTO updateExam(
             Long examId,
             ExamRequestDTO request) {
+        getExamById(examId);
+        validateInstitution(request);
 
         Exam exam = examRepository
                 .findById(examId)
@@ -359,6 +365,7 @@ public class ExamService {
 
     @Transactional
     public void deleteExam(Long examId) {
+        getExamById(examId);
 
         if (!examRepository.existsById(examId)) {
 
@@ -455,6 +462,9 @@ public class ExamService {
         }
 
         User caller = getLoggedInUser(authentication);
+        if (caller == null) throw new org.springframework.security.access.AccessDeniedException("Sign in is required");
+        if (!caller.getUserId().equals(result.getUser().getUserId())) courseAssignments.requireOrganization(caller,
+                result.getExam().getCollege().getCollegeId(), result.getExam().getBranch().getBranchId());
         boolean isOwner = caller != null
                 && caller.getUserId().equals(result.getUser().getUserId());
         boolean isManager = caller != null
@@ -503,6 +513,9 @@ public class ExamService {
         }
 
         User caller = getLoggedInUser(authentication);
+        if (caller == null) throw new org.springframework.security.access.AccessDeniedException("Sign in is required");
+        if (!caller.getUserId().equals(result.getUser().getUserId())) courseAssignments.requireOrganization(caller,
+                result.getExam().getCollege().getCollegeId(), result.getExam().getBranch().getBranchId());
         boolean isOwner = caller != null
                 && caller.getUserId().equals(result.getUser().getUserId());
         boolean isManager = caller != null
@@ -544,12 +557,26 @@ public class ExamService {
                 .toList();
     }
 
+    @Transactional
     public ExamSubmitResponseDTO submitExam(Long examId, ExamSubmitRequestDTO request,
                                             Authentication authentication) {
+        Exam audienceExam = examRepository.findById(examId).orElseThrow(() -> new IllegalArgumentException("Exam not found"));
+        learningAccess.requireExamAudience(courseAssignments.currentUser(), audienceExam);
         if (authentication != null) {
             request.setUserId(userRepository.findByEmail(authentication.getName())
                     .orElseThrow(() -> new RuntimeException("Authenticated user not found"))
                     .getUserId());
+            if (isStudent(authentication)) {
+                Exam exam = examRepository.findById(examId)
+                        .orElseThrow(() -> new RuntimeException("Exam not found with id: " + examId));
+                Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), exam.getCourse().getCourseId());
+                boolean restricted = examQuestionRepository.findByExam_ExamId(examId).stream()
+                        .anyMatch(row -> !permitted.contains(row.getQuestion().getQuestionId()));
+                if (restricted) throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.FORBIDDEN,
+                        "This exam contains questions outside your active subscription");
+                entitlementService.consumeExamAttempt(request.getUserId(), exam.getCourse().getCourseId());
+            }
         }
         return submitExam(examId, request);
     }
@@ -558,6 +585,7 @@ public class ExamService {
     public void addQuestionsToExam(
             Long examId,
             AddExamQuestionsRequestDTO request) {
+        getExamById(examId);
 
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() ->
@@ -672,6 +700,17 @@ public class ExamService {
         return questionService.getQuestionsByIds(availableQuestionIds);
     }
 
+    public List<QuestionResponseDTO> getAvailableQuestions(Long examId, Authentication authentication) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new RuntimeException("Exam not found with id: " + examId));
+        learningAccess.requireExamAudience(courseAssignments.currentUser(), exam);
+        List<QuestionResponseDTO> available = getAvailableQuestions(examId);
+        if (authentication == null || !isStudent(authentication)) return available;
+        entitlementService.requireExamAttemptAvailable(authentication.getName(), exam.getCourse().getCourseId());
+        Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), exam.getCourse().getCourseId());
+        return available.stream().filter(question -> permitted.contains(question.getQuestionId())).toList();
+    }
+
     @Transactional(readOnly = true)
     public List<QuestionResponseDTO> getExamQuestions(Long examId) {
 
@@ -700,11 +739,26 @@ public class ExamService {
     public List<QuestionResponseDTO> getExamQuestions(Long examId, Authentication authentication) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new RuntimeException("Exam not found with id: " + examId));
-//        if (authentication != null && isStudent(authentication)) {
-//            entitlementService.requireCourseAccess(authentication.getName(),
-//                    exam.getCourse().getCourseId());
-//        }
+        learningAccess.requireExamAudience(courseAssignments.currentUser(), exam);
+        if (authentication != null && isStudent(authentication)) {
+            entitlementService.requireExamAttemptAvailable(authentication.getName(), exam.getCourse().getCourseId());
+            Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), exam.getCourse().getCourseId());
+            boolean restricted = examQuestionRepository.findByExam_ExamId(examId).stream()
+                    .anyMatch(row -> !permitted.contains(row.getQuestion().getQuestionId()));
+            if (restricted) throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN,
+                    "This exam contains questions outside your active subscription");
+        }
         return getExamQuestions(examId);
+    }
+
+    private void validateInstitution(ExamRequestDTO request) {
+        courseAssignments.requireOrganization(courseAssignments.currentUser(), request.getCollegeId(), request.getBranchId());
+        courseAssignments.requireAssignment(request.getCollegeId(), request.getBranchId(), request.getCourseId());
+        Section section = sectionRepository.findById(request.getSectionId()).orElseThrow(() -> new IllegalArgumentException("Section not found"));
+        if (Boolean.FALSE.equals(section.getActiveRow()) || !section.getCollege().getCollegeId().equals(request.getCollegeId()) ||
+                !section.getBranch().getBranchId().equals(request.getBranchId()) || !section.getCourse().getCourseId().equals(request.getCourseId()))
+            throw new IllegalArgumentException("Exam section must belong to the selected branch and course");
     }
 
     private boolean isStudent(Authentication authentication) {
@@ -718,6 +772,7 @@ public class ExamService {
     public void removeQuestionFromExam(
             Long examId,
             Long questionId) {
+        getExamById(examId);
 
         if (!examRepository.existsById(examId)) {
             throw new RuntimeException(

@@ -35,7 +35,13 @@ public class CourseExcelMapper implements ExcelRowMapper<Course> {
 
         // Validate Branch Name
         if (branchName == null || branchName.isBlank()) {
-            throw new RuntimeException("Branch Name is required");
+            if (courseName == null || courseName.isBlank()) throw new IllegalArgumentException("Course Name is required");
+            if (row.get("branch_id") == null || row.get("branch_id").isBlank()) {
+                Course global = new Course(); global.setName(courseName); return global;
+            }
+            Branch selected = branchRepository.findById(Long.valueOf(row.get("branch_id").trim()))
+                    .orElseThrow(() -> new IllegalArgumentException("Branch ID not found"));
+            Course mapped = new Course(); mapped.setName(courseName); mapped.setBranch(selected); mapped.setCollege(selected.getCollege()); return mapped;
         }
 
         // Validate Course Name
@@ -53,6 +59,7 @@ public class CourseExcelMapper implements ExcelRowMapper<Course> {
             );
         }
 
+        if (branches.size() != 1) throw new IllegalArgumentException("Branch name is ambiguous; supply branch_id without branch_name");
         Branch branch = branches.get(0);
 
         // Create Course

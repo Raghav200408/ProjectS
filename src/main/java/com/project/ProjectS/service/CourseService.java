@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@org.springframework.transaction.annotation.Transactional
 public class CourseService {
     @Autowired
     public CourseService(CourseRepository courseRepository, BranchRepository branchRepository, CollegeRepository collegeRepository) {
@@ -38,76 +39,31 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final BranchRepository branchRepository;
     private final CollegeRepository collegeRepository;
+    @Autowired private CourseAssignmentService assignmentService;
+    public List<CourseResponseDTO> getCatalog() {
+        if (!CourseAssignmentService.isManager(assignmentService.currentUser()))
+            throw new org.springframework.security.access.AccessDeniedException("Administrator access required");
+        return courseRepository.findAll().stream().map(this::convert).toList();
+    }
 
+    @org.springframework.transaction.annotation.Transactional
     public String create(CourseRequestDTO request) {
-
-        log.info("Creating course with name: {}", request.getName());
-
-        College college = collegeRepository.findById(request.getCollegeId())
-                .orElseThrow(() -> {
-
-                    log.warn(
-                            "College not found with ID: {}",
-                            request.getCollegeId()
-                    );
-
-                    return new RuntimeException("College not found");
-                });
-
-        Branch branch = branchRepository.findById(request.getBranchId())
-                .orElseThrow(() -> {
-
-                    log.warn(
-                            "Branch not found with ID: {}",
-                            request.getBranchId()
-                    );
-
-                    return new RuntimeException("Branch not found");
-                });
-
-
-
-        if (courseRepository.existsByNameAndBranch(
-                request.getName(),
-                branch
-        )) {
-
-            log.warn(
-                    "Course already exists: {} in branch {}",
-                    request.getName(),
-                    branch.getBranchName()
-            );
-
-            throw new RuntimeException("Course already exists");
-        }
-
-
-
+        if (!courseRepository.findByNameIgnoreCase(request.getName().trim()).isEmpty())
+            throw new IllegalArgumentException("A course with this name already exists; assign the existing course to branches instead");
         Course entity = new Course();
-
-        entity.setCollege(college);
-        entity.setBranch(branch);
-        entity.setName(request.getName());
-        entity.setActiveRow(
-                request.getActiveRow() != null
-                        ? request.getActiveRow()
-                        : true
-        );
-
-        entity.setRowStatus(
-                request.getRowStatus() != null
-                        ? request.getRowStatus()
-                        : 1
-        );
+        entity.setName(request.getName().trim());
+        entity.setActiveRow(request.getActiveRow() == null ? true : request.getActiveRow());
+        entity.setRowStatus(request.getRowStatus() == null ? 1 : request.getRowStatus());
+        Branch initialBranch = null;
+        if (request.getBranchId() != null || request.getCollegeId() != null) {
+            if (request.getBranchId() == null || request.getCollegeId() == null)
+                throw new IllegalArgumentException("Supply both college and branch for an initial assignment");
+            initialBranch = branchRepository.findById(request.getBranchId()).orElseThrow(() -> new IllegalArgumentException("Branch not found"));
+            if (initialBranch.getCollege() == null || !initialBranch.getCollege().getCollegeId().equals(request.getCollegeId()))
+                throw new IllegalArgumentException("Branch does not belong to the college");
+        }
         courseRepository.save(entity);
-
-
-        log.info(
-                "Course created successfully with name: {}",
-                request.getName()
-        );
-
-
+        if (initialBranch != null) assignmentService.saveAssignment(entity, initialBranch, true);
         return "Course created successfully";
     }
 
@@ -115,8 +71,9 @@ public class CourseService {
 
         log.info("Fetching all courses.");
 
+        var caller = assignmentService.currentUser();
         List<CourseResponseDTO> courses = courseRepository.findAll()
-                .stream()
+                .stream().filter(course -> assignmentService.eligible(caller, course))
                 .map(this::convert)
                 .collect(Collectors.toList());
 
@@ -137,6 +94,7 @@ public class CourseService {
 
         log.info("Course fetched successfully with ID: {}", id);
 
+        assignmentService.requireEligible(assignmentService.currentUser(), entity);
         return convert(entity);
     }
 
@@ -150,20 +108,7 @@ public class CourseService {
                     return new RuntimeException("Course not found");
                 });
 
-        College college = collegeRepository.findById(request.getCollegeId())
-                .orElseThrow(() -> {
-                    log.warn("College not found with ID: {}", request.getCollegeId());
-                    return new RuntimeException("College not found");
-                });
-
-        Branch branch = branchRepository.findById(request.getBranchId())
-                .orElseThrow(() -> {
-                    log.warn("Branch not found with ID: {}", request.getBranchId());
-                    return new RuntimeException("Branch not found");
-                });
-
-        entity.setCollege(college);
-        entity.setBranch(branch);
+        // Editing shared content never moves its institution assignments.
         entity.setName(request.getName());
         entity.setActiveRow(
                 request.getActiveRow() != null
@@ -194,7 +139,8 @@ public class CourseService {
                     return new RuntimeException("Course not found");
                 });
 
-        courseRepository.delete(entity);
+        entity.setActiveRow(false);
+        courseRepository.save(entity);
 
         log.info("Course deleted successfully with ID: {}", id);
 
@@ -207,11 +153,16 @@ public class CourseService {
 
         dto.setCourseId(entity.getCourseId());
 
-        dto.setCollegeId(entity.getCollege().getCollegeId());
-        dto.setCollegeName(entity.getCollege().getInstituteName());
+        if (entity.getCollege() != null) {
+            dto.setCollegeId(entity.getCollege().getCollegeId());
+            dto.setCollegeName(entity.getCollege().getInstituteName());
+        }
 
-        dto.setBranchId(entity.getBranch().getBranchId());
-        dto.setBranchName(entity.getBranch().getBranchName());
+        if (entity.getBranch() != null) {
+            dto.setBranchId(entity.getBranch().getBranchId());
+            dto.setBranchName(entity.getBranch().getBranchName());
+        }
+        dto.setAssignments(assignmentService.list(entity.getCourseId(), assignmentService.currentUser()));
 
         dto.setName(entity.getName());
 
@@ -330,6 +281,7 @@ public class CourseService {
 
 
                 courseRepository.save(course);
+                assignmentService.saveAssignment(course, branch, true);
 
 
                 savedCount++;

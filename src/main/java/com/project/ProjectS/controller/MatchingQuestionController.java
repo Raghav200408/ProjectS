@@ -5,10 +5,12 @@ import com.project.ProjectS.model.MatchingQuestionResponseDTO;
 import com.project.ProjectS.model.QuestionExcelUploadRequestDTO;
 import com.project.ProjectS.model.QuestionExcelUploadResponseDTO;
 import com.project.ProjectS.service.MatchingQuestionService;
+import com.project.ProjectS.service.QuestionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
@@ -18,6 +20,9 @@ public class MatchingQuestionController {
 
     @Autowired
     private MatchingQuestionService matchingQuestionService;
+
+    @Autowired
+    private QuestionService questionService;
 
 
     // CREATE
@@ -34,7 +39,9 @@ public class MatchingQuestionController {
     // GET BY ID
     @GetMapping("/{questionId}")
     public ResponseEntity<MatchingQuestionResponseDTO> getMatchingQuestionById(
-            @PathVariable Long questionId) {
+            @PathVariable Long questionId, Authentication authentication) {
+
+        if (isLearner(authentication)) questionService.requireQuestionAccess(questionId, authentication.getName());
 
         return ResponseEntity.ok(
                 matchingQuestionService.getMatchingQuestionById(questionId)
@@ -44,11 +51,18 @@ public class MatchingQuestionController {
 
     // GET ALL
     @GetMapping
-    public ResponseEntity<List<MatchingQuestionResponseDTO>> getAllMatchingQuestions() {
+    public ResponseEntity<List<MatchingQuestionResponseDTO>> getAllMatchingQuestions(Authentication authentication) {
 
-        return ResponseEntity.ok(
-                matchingQuestionService.getAllMatchingQuestions()
-        );
+        List<MatchingQuestionResponseDTO> questions = matchingQuestionService.getAllMatchingQuestions();
+        if (isLearner(authentication)) questions = questions.stream().filter(question ->
+                questionService.isQuestionAllowedForUser(question.getQuestionId(), question.getCourseId(), authentication.getName())).toList();
+
+        return ResponseEntity.ok(questions);
+    }
+
+    private boolean isLearner(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream().anyMatch(authority ->
+                "ROLE_STUDENT".equals(authority.getAuthority()) || "ROLE_GUEST".equals(authority.getAuthority()));
     }
 
 

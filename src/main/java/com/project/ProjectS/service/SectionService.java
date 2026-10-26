@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class SectionService {
+    @Autowired private CourseAssignmentService courseAssignments;
     @Autowired
     public SectionService(SectionRepository sectionRepository, CourseRepository courseRepository, CollegeRepository collegeRepository, BranchRepository branchRepository) {
         this.sectionRepository = sectionRepository;
@@ -43,18 +44,10 @@ public class SectionService {
 
         log.info("Creating section with name: {}", request.getSectionName());
 
-        if (sectionRepository.existsBySectionNameAndCourse_CourseId(
-                request.getSectionName(),
-                request.getCourseId())) {
-
-            log.warn(
-                    "Section {} already exists for course {}",
-                    request.getSectionName(),
-                    request.getCourseId()
-            );
-
-            throw new RuntimeException("Section already exists for this course");
-        }
+        courseAssignments.requireOrganization(courseAssignments.currentUser(), request.getCollegeId(), request.getBranchId());
+        courseAssignments.requireAssignment(request.getCollegeId(), request.getBranchId(), request.getCourseId());
+        if (sectionRepository.existsBySectionNameAndCourse_CourseIdAndBranch_BranchId(request.getSectionName(), request.getCourseId(), request.getBranchId()))
+            throw new IllegalArgumentException("Section already exists in this branch/course");
 
         College college = collegeRepository.findById(request.getCollegeId())
                 .orElseThrow(() -> {
@@ -90,24 +83,6 @@ public class SectionService {
                             "Course not found"
                     );
                 });
-
-
-
-        if (sectionRepository.existsBySectionNameAndCourse(
-                request.getSectionName(),
-                course
-        )) {
-
-            log.warn(
-                    "Section already exists: {} for course: {}",
-                    request.getSectionName(),
-                    course.getName()
-            );
-
-            throw new RuntimeException(
-                    "Section already exists for this course"
-            );
-        }
 
 
 
@@ -151,7 +126,10 @@ public class SectionService {
         log.info("Fetching all sections.");
 
         List<SectionResponseDTO> sections = sectionRepository.findAll()
-                .stream()
+                .stream().filter(section -> {
+                    try { courseAssignments.requireOrganization(courseAssignments.currentUser(), section.getCollege().getCollegeId(), section.getBranch().getBranchId()); return true; }
+                    catch (org.springframework.security.access.AccessDeniedException denied) { return false; }
+                })
                 .map(this::convert)
                 .collect(Collectors.toList());
 
@@ -172,6 +150,7 @@ public class SectionService {
 
         log.info("Section fetched successfully with ID: {}", id);
 
+        courseAssignments.requireOrganization(courseAssignments.currentUser(), entity.getCollege().getCollegeId(), entity.getBranch().getBranchId());
         return convert(entity);
     }
     public String update(Long id, SectionRequestDTO request) {
@@ -212,22 +191,11 @@ public class SectionService {
                     return new RuntimeException("Course not found");
                 });
 
-        if ((!entity.getSectionName().equals(request.getSectionName())) ||
-                (!entity.getCourse().getCourseId().equals(request.getCourseId()))) {
-
-            if (sectionRepository.existsBySectionNameAndCourse_CourseId(
-                    request.getSectionName(),
-                    request.getCourseId())) {
-
-                log.warn(
-                        "Section {} already exists for course {}",
-                        request.getSectionName(),
-                        request.getCourseId()
-                );
-
-                throw new RuntimeException("Section already exists for this course");
-            }
-        }
+        courseAssignments.requireOrganization(courseAssignments.currentUser(), entity.getCollege().getCollegeId(), entity.getBranch().getBranchId());
+        courseAssignments.requireOrganization(courseAssignments.currentUser(), request.getCollegeId(), request.getBranchId());
+        courseAssignments.requireAssignment(request.getCollegeId(), request.getBranchId(), request.getCourseId());
+        if (sectionRepository.existsBySectionNameAndCourse_CourseIdAndBranch_BranchIdAndSectionIdNot(request.getSectionName(), request.getCourseId(), request.getBranchId(), id))
+            throw new IllegalArgumentException("Section already exists in this branch/course");
 
         entity.setCollege(college);
         entity.setBranch(branch);
@@ -257,6 +225,7 @@ public class SectionService {
                     return new RuntimeException("Section not found");
                 });
 
+        courseAssignments.requireOrganization(courseAssignments.currentUser(), entity.getCollege().getCollegeId(), entity.getBranch().getBranchId());
         sectionRepository.delete(entity);
 
         log.info("Section deleted successfully with ID: {}", id);

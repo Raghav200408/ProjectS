@@ -42,6 +42,8 @@ public class CourseController {
     private final ExcelUploadService excelUploadService;
     private final CourseRepository courseRepository;
     private final CourseExcelMapper courseExcelMapper;
+    @GetMapping("/catalog")
+    public List<CourseResponseDTO> catalog() { return service.getCatalog(); }
 
     @PostMapping
     public ResponseEntity<String> create(

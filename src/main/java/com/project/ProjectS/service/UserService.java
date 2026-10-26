@@ -19,6 +19,7 @@ import java.util.List;
 @Service
 @Transactional
 public class UserService {
+    @Autowired private CourseAssignmentService courseAssignments;
     private static final Logger log = LogManager.getLogger(UserService.class);
 
     @Autowired
@@ -223,6 +224,7 @@ public class UserService {
     public UserResponseDTO createStudent(StudentRequestDTO request) {
 
         assertCanAssignOrganization(request.getCollegeId(), request.getBranchId(), "STUDENT");
+        validateEnrollment(request);
 
         validateUser(request.getEmail(), request.getPhoneNumber());
 
@@ -458,6 +460,7 @@ public class UserService {
         User user = getUserByIdAndRole(userId, "STUDENT");
         assertCanManageUser(user);
         assertCanAssignOrganization(request.getCollegeId(), request.getBranchId(), "STUDENT");
+        validateEnrollment(request);
 
         validateUserForUpdate(
                 userId,
@@ -724,6 +727,14 @@ public class UserService {
     }
 
     //get section
+    private void validateEnrollment(StudentRequestDTO request) {
+        courseAssignments.requireAssignment(request.getCollegeId(), request.getBranchId(), request.getCourseId());
+        Section section = getSection(request.getSectionId());
+        if (Boolean.FALSE.equals(section.getActiveRow()) || !section.getCourse().getCourseId().equals(request.getCourseId()) ||
+                !section.getBranch().getBranchId().equals(request.getBranchId()) || !section.getCollege().getCollegeId().equals(request.getCollegeId()))
+            throw new IllegalArgumentException("Section must belong to the student's branch and course");
+    }
+
     private Section getSection(Long sectionId) {
 
         return sectionRepository.findById(sectionId)

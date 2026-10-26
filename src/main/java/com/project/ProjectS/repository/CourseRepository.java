@@ -9,6 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface CourseRepository extends JpaRepository<Course, Long> {
+    java.util.List<Course> findByNameIgnoreCase(String name);
 
 
     boolean existsByNameAndBranch(

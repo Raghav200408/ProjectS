@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class CourseResponseDTO {
+    private java.util.List<CourseAssignmentDTO> assignments = java.util.List.of();
 
     private Long collegeId;
     private String collegeName;

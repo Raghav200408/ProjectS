@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 @Transactional
 @Service
 public class MockExamService {
+    @org.springframework.beans.factory.annotation.Autowired private CourseAssignmentService courseAssignments;
+    @org.springframework.beans.factory.annotation.Autowired private LearningAccessService learningAccess;
     private static final Logger log = LogManager.getLogger(MockExamService.class);
 
     private final MockExamRepository mockExamRepository;
@@ -105,6 +107,8 @@ public class MockExamService {
         List<MockExam> mockExams = mockExamRepository.findAll();
 
         User user = getLoggedInUser(authentication);
+        if (user == null) throw new org.springframework.security.access.AccessDeniedException("Sign in is required");
+        mockExams = mockExams.stream().filter(paper -> courseAssignments.eligible(user, paper.getCourse())).toList();
 
         if (user != null && authentication != null && isStudent(authentication)) {
 
@@ -136,6 +140,7 @@ public class MockExamService {
                         new RuntimeException(
                                 "Mock exam not found with id: " + mockExamId));
 
+        courseAssignments.requireEligible(courseAssignments.currentUser(), mockExam.getCourse());
         return convertToResponse(mockExam);
     }
 
@@ -275,10 +280,15 @@ public class MockExamService {
                         new RuntimeException(
                                 "Mock exam not found with id: " + mockExamId));
 
+        courseAssignments.requireEligible(courseAssignments.currentUser(), mockExam.getCourse());
         if (authentication != null && isStudent(authentication)) {
-//            entitlementService.requireCourseAccess(
-//                    authentication.getName(),
-//                    mockExam.getCourse().getCourseId());
+            entitlementService.requireMockTestAvailable(authentication.getName(), mockExam.getCourse().getCourseId());
+            Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), mockExam.getCourse().getCourseId());
+            boolean restricted = mockExamQuestionRepository.findByMockExam_MockExamId(mockExamId).stream()
+                    .anyMatch(row -> !permitted.contains(row.getQuestion().getQuestionId()));
+            if (restricted) throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN,
+                    "This mock exam contains questions outside your active subscription");
         }
 
         return getMockExamQuestions(mockExamId);
@@ -319,6 +329,17 @@ public class MockExamService {
                         .toList();
 
         return questionService.getQuestionsByIds(availableQuestionIds);
+    }
+
+    public List<QuestionResponseDTO> getAvailableMockExamQuestions(Long mockExamId, Authentication authentication) {
+        MockExam exam = mockExamRepository.findById(mockExamId)
+                .orElseThrow(() -> new RuntimeException("Mock exam not found with id: " + mockExamId));
+        courseAssignments.requireEligible(courseAssignments.currentUser(), exam.getCourse());
+        List<QuestionResponseDTO> available = getAvailableMockExamQuestions(mockExamId);
+        if (authentication == null || !isStudent(authentication)) return available;
+        entitlementService.requireMockTestAvailable(authentication.getName(), exam.getCourse().getCourseId());
+        Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), exam.getCourse().getCourseId());
+        return available.stream().filter(question -> permitted.contains(question.getQuestionId())).toList();
     }
 
 
@@ -434,6 +455,7 @@ public class MockExamService {
         }
 
         User caller = getLoggedInUser(authentication);
+        learningAccess.requireReviewOwner(caller, result.getUser());
         boolean isOwner = caller != null
                 && caller.getUserId().equals(result.getUser().getUserId());
         boolean isManager = caller != null
@@ -484,6 +506,7 @@ public class MockExamService {
         }
 
         User caller = getLoggedInUser(authentication);
+        learningAccess.requireReviewOwner(caller, result.getUser());
         boolean isOwner = caller != null
                 && caller.getUserId().equals(result.getUser().getUserId());
         boolean isManager = caller != null
@@ -536,16 +559,30 @@ public class MockExamService {
     }
 
 
+    @Transactional
     public MockExamSubmitResponseDTO submitMockExam(
             Long mockExamId,
             MockExamSubmitRequestDTO request,
             Authentication authentication) {
+        MockExam audiencePaper = mockExamRepository.findById(mockExamId).orElseThrow(() -> new IllegalArgumentException("Mock exam not found"));
+        courseAssignments.requireEligible(courseAssignments.currentUser(), audiencePaper.getCourse());
 
         if (authentication != null) {
             request.setUserId(userRepository.findByEmail(authentication.getName())
                     .orElseThrow(() ->
                             new RuntimeException("Authenticated user not found"))
                     .getUserId());
+            if (isStudent(authentication)) {
+                MockExam mockExam = mockExamRepository.findById(mockExamId)
+                        .orElseThrow(() -> new RuntimeException("Mock exam not found with id: " + mockExamId));
+                Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), mockExam.getCourse().getCourseId());
+                boolean restricted = mockExamQuestionRepository.findByMockExam_MockExamId(mockExamId).stream()
+                        .anyMatch(row -> !permitted.contains(row.getQuestion().getQuestionId()));
+                if (restricted) throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.FORBIDDEN,
+                        "This mock exam contains questions outside your active subscription");
+                entitlementService.consumeMockTest(request.getUserId(), mockExam.getCourse().getCourseId());
+            }
         }
 
         return submitMockExam(mockExamId, request);

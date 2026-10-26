@@ -44,14 +44,21 @@ public class DashboardRepository {
                     AND (CAST(:branchId AS bigint) IS NULL OR s.branch_id = :branchId)
                     AND NOT :selfOnly) AS sections,
                   (SELECT COUNT(*) FROM courses c WHERE COALESCE(c.active_row, true)
-                    AND (CAST(:collegeId AS bigint) IS NULL OR c.college_id = :collegeId)
-                    AND (CAST(:branchId AS bigint) IS NULL OR c.branch_id = :branchId)
+                    AND ((CAST(:collegeId AS bigint) IS NULL AND CAST(:branchId AS bigint) IS NULL) OR EXISTS (
+                      SELECT 1 FROM courseassignment ca JOIN branch cb ON cb.branch_id = ca.branch_id
+                      WHERE ca.course_id = c.course_id AND ca.active_row AND COALESCE(cb.active_row, true)
+                        AND (CAST(:collegeId AS bigint) IS NULL OR cb.college_id = :collegeId)
+                        AND (CAST(:branchId AS bigint) IS NULL OR ca.branch_id = :branchId)))
                     AND NOT :selfOnly) AS courses,
                   (SELECT COUNT(DISTINCT c.course_id) FROM user_subscriptions us
                     JOIN courses c ON c.course_id = us.course_id AND COALESCE(c.active_row, true)
                     JOIN subscription_plans sp ON sp.plan_id = us.plan_id AND sp.active
                     WHERE us.user_id = :userId AND us.active AND us.starts_at <= (now() AT TIME ZONE 'Asia/Calcutta')
-                      AND (us.expires_at IS NULL OR us.expires_at > (now() AT TIME ZONE 'Asia/Calcutta'))) AS my_courses
+                      AND (us.expires_at IS NULL OR us.expires_at > (now() AT TIME ZONE 'Asia/Calcutta')) AND EXISTS (SELECT 1 FROM users eligibility_user WHERE eligibility_user.user_id = us.user_id
+                        AND ((eligibility_user.branch_id IS NULL AND eligibility_user.college_id IS NULL)
+                          OR EXISTS (SELECT 1 FROM courseassignment ca JOIN branch cb ON cb.branch_id = ca.branch_id
+                              WHERE ca.course_id = us.course_id AND ca.active_row AND COALESCE(cb.active_row, true)
+                                AND ca.branch_id = eligibility_user.branch_id AND cb.college_id = eligibility_user.college_id)))) AS my_courses
                 """, p);
         result.setTotalColleges(((Number) counts.get("colleges")).longValue());
         result.setTotalBranches(((Number) counts.get("branches")).longValue());
@@ -67,12 +74,21 @@ public class DashboardRepository {
                     AND ((:subscribedOnly AND EXISTS (
                       SELECT 1 FROM user_subscriptions us
                       JOIN subscription_plans sp ON sp.plan_id = us.plan_id AND sp.active
+                      JOIN plan_courses pc ON pc.plan_id = us.plan_id AND pc.course_id = us.course_id
                       WHERE us.user_id = :userId AND us.course_id = q.course_id AND us.active
+                        AND (pc.all_course_questions OR EXISTS (SELECT 1 FROM plan_questions pq WHERE pq.plan_course_id = pc.plan_course_id AND pq.question_id = q.question_id))
                         AND us.starts_at <= (now() AT TIME ZONE 'Asia/Calcutta')
-                        AND (us.expires_at IS NULL OR us.expires_at > (now() AT TIME ZONE 'Asia/Calcutta'))))
+                        AND (us.expires_at IS NULL OR us.expires_at > (now() AT TIME ZONE 'Asia/Calcutta')) AND EXISTS (SELECT 1 FROM users eligibility_user WHERE eligibility_user.user_id = us.user_id
+                        AND ((eligibility_user.branch_id IS NULL AND eligibility_user.college_id IS NULL)
+                          OR EXISTS (SELECT 1 FROM courseassignment ca JOIN branch cb ON cb.branch_id = ca.branch_id
+                              WHERE ca.course_id = us.course_id AND ca.active_row AND COALESCE(cb.active_row, true)
+                                AND ca.branch_id = eligibility_user.branch_id AND cb.college_id = eligibility_user.college_id)))))
                       OR (NOT :subscribedOnly AND NOT :selfOnly
-                        AND (CAST(:collegeId AS bigint) IS NULL OR c.college_id = :collegeId)
-                        AND (CAST(:branchId AS bigint) IS NULL OR c.branch_id = :branchId)))
+                        AND ((CAST(:collegeId AS bigint) IS NULL AND CAST(:branchId AS bigint) IS NULL) OR EXISTS (
+                      SELECT 1 FROM courseassignment ca JOIN branch cb ON cb.branch_id = ca.branch_id
+                      WHERE ca.course_id = c.course_id AND ca.active_row AND COALESCE(cb.active_row, true)
+                        AND (CAST(:collegeId AS bigint) IS NULL OR cb.college_id = :collegeId)
+                        AND (CAST(:branchId AS bigint) IS NULL OR ca.branch_id = :branchId)))))
                 ), question_kinds AS (
                   SELECT q.question_id, CASE
                     WHEN EXISTS (SELECT 1 FROM mcq_questions m WHERE m.question_id = q.question_id AND m.active_row) THEN 'MCQ'
