@@ -98,9 +98,9 @@ public class ExamController {
     }
 
     @GetMapping("/{examId}/available-questions")
-    public ResponseEntity<List<QuestionResponseDTO>> getAvailableQuestions(@PathVariable Long examId) {
+    public ResponseEntity<List<QuestionResponseDTO>> getAvailableQuestions(@PathVariable Long examId, Authentication authentication) {
         log.info("Fetching available questions for examId={}", examId);
-        List<QuestionResponseDTO> response = examService.getAvailableQuestions(examId);
+        List<QuestionResponseDTO> response = examService.getAvailableQuestions(examId, authentication);
         log.info("Fetched {} available questions for examId={}", response.size(), examId);
         return ResponseEntity.ok(response);
     }

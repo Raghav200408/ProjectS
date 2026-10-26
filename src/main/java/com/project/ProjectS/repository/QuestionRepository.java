@@ -16,6 +16,10 @@ public interface QuestionRepository
 
 
     List<Question> findByActiveRowTrue();
+
+    List<Question> findByCourse_CourseIdAndActiveRowTrue(Long courseId);
+
+    List<Question> findByCourse_CourseIdAndQuestionIdInAndActiveRowTrue(Long courseId, List<Long> questionIds);
    
     List<Question>
     findByCourse_CourseIdAndChapter_ChapterIdAndTopic_TopicIdAndActiveRowTrue(

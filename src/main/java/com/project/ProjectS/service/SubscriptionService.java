@@ -18,27 +18,133 @@ public class SubscriptionService {
     private static final Logger log = LogManager.getLogger(SubscriptionService.class);
     private final SubscriptionPlanRepository plans;
     private final PlanCourseRepository planCourses;
+    private final PlanQuestionRepository planQuestions;
+    private final QuestionRepository questions;
     private final UserSubscriptionRepository subscriptions;
     private final CourseRepository courses;
     private final UserRepository users;
     private final AuditLogger auditLogger;
 
     public SubscriptionService(SubscriptionPlanRepository plans, PlanCourseRepository planCourses,
+                                PlanQuestionRepository planQuestions, QuestionRepository questions,
                                 UserSubscriptionRepository subscriptions, CourseRepository courses,
                                 UserRepository users, AuditLogger auditLogger) {
-        this.plans = plans; this.planCourses = planCourses; this.subscriptions = subscriptions;
+        this.plans = plans; this.planCourses = planCourses; this.planQuestions = planQuestions;
+        this.questions = questions; this.subscriptions = subscriptions;
         this.courses = courses; this.users = users;
         this.auditLogger = auditLogger;
     }
 
+    @Transactional(readOnly = true)
     public List<SubscriptionPlanResponseDTO> activePlans(Long courseId) {
         log.info("Fetching active plans for courseId={}", courseId);
         return planCourses.findByCourse_CourseIdAndPlan_ActiveTrue(courseId).stream()
-                .map(pc -> toPlan(pc.getPlan())).distinct().collect(Collectors.toList());
+                .map(pc -> {
+                    SubscriptionPlanResponseDTO dto = toPlan(pc.getPlan());
+                    dto.setPracticeQuestionLimit(pc.isAllCourseQuestions() ? -1
+                            : pc.getQuestionLimit() == null ? pc.getPlan().getPracticeQuestionLimit() : pc.getQuestionLimit());
+                    dto.setAllCourseQuestions(pc.isAllCourseQuestions());
+                    dto.setAvailableQuestionCount(pc.isAllCourseQuestions()
+                            ? questions.findByCourse_CourseIdAndActiveRowTrue(courseId).size()
+                            : (int) planQuestions.findByPlanCourse_PlanCourseId(pc.getPlanCourseId()).stream()
+                                    .filter(pq -> Boolean.TRUE.equals(pq.getQuestion().getActiveRow())).count());
+                    return dto;
+                }).distinct().collect(Collectors.toList());
     }
 
     public List<SubscriptionPlanResponseDTO> plansForCourseOrAll(Long courseId) {
         return courseId == null ? allPlans() : activePlans(courseId);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getQuestionAssignments(Long planId, Long courseId) {
+        PlanCourse mapping = requirePlanCourse(planId, courseId);
+        Integer configuredLimit = mapping.getQuestionLimit() == null
+                ? mapping.getPlan().getPracticeQuestionLimit() : mapping.getQuestionLimit();
+        return Map.of("questionLimit", configuredLimit == null ? -1 : configuredLimit,
+                "allCourseQuestions", mapping.isAllCourseQuestions(),
+                "questionIds", mapping.isAllCourseQuestions() ? List.of() : planQuestions
+                        .findByPlanCourse_PlanCourseId(mapping.getPlanCourseId()).stream()
+                        .map(pq -> pq.getQuestion().getQuestionId()).toList());
+    }
+
+    @Transactional
+    public Map<String, Object> setQuestionAssignments(Long planId, Long courseId,
+                                                        PlanQuestionAssignmentRequestDTO request) {
+        PlanCourse mapping = requirePlanCourse(planId, courseId);
+        int limit = request.getQuestionLimit() == null
+                ? (mapping.getPlan().getPracticeQuestionLimit() == null ? -1 : mapping.getPlan().getPracticeQuestionLimit())
+                : request.getQuestionLimit();
+        List<Long> ids = request.getQuestionIds() == null ? List.of() : request.getQuestionIds().stream()
+                .filter(Objects::nonNull).distinct().toList();
+        if (limit < -1) throw new IllegalArgumentException("Question limit must be -1 (unlimited) or non-negative");
+        if (request.isAllCourseQuestions() && limit != -1) {
+            throw new IllegalArgumentException("All course questions requires an unlimited question limit");
+        }
+        if (!request.isAllCourseQuestions() && limit >= 0 && ids.size() > limit) {
+            throw new IllegalArgumentException("Selected question count exceeds the plan limit");
+        }
+        if (!ids.isEmpty()) {
+            Set<Long> found = questions.findByCourse_CourseIdAndQuestionIdInAndActiveRowTrue(courseId, ids)
+                    .stream().map(Question::getQuestionId).collect(Collectors.toSet());
+            if (found.size() != ids.size()) throw new IllegalArgumentException("Every selected question must be active and belong to this course");
+        }
+        validateCumulativeSet(mapping, request.isAllCourseQuestions(), new HashSet<>(ids));
+        mapping.setQuestionLimit(limit);
+        mapping.setAllCourseQuestions(request.isAllCourseQuestions());
+        planCourses.save(mapping);
+        planQuestions.deleteByPlanCourse_PlanCourseId(mapping.getPlanCourseId());
+        if (!request.isAllCourseQuestions()) {
+            for (Long id : ids) {
+                PlanQuestion assignment = new PlanQuestion();
+                assignment.setPlanCourse(mapping);
+                assignment.setQuestion(questions.getReferenceById(id));
+                planQuestions.save(assignment);
+            }
+        }
+        return getQuestionAssignments(planId, courseId);
+    }
+
+    private PlanCourse requirePlanCourse(Long planId, Long courseId) {
+        return planCourses.findByPlan_PlanIdAndCourse_CourseId(planId, courseId)
+                .orElseThrow(() -> new NoSuchElementException("Plan is not assigned to this course"));
+    }
+
+    private void validateCumulativeSet(PlanCourse current, boolean allQuestions, Set<Long> selectedIds) {
+        int currentTier = planTier(current.getPlan().getName());
+        if (currentTier < 0) return;
+        for (PlanCourse other : planCourses.findByCourse_CourseIdAndPlan_ActiveTrue(
+                current.getCourse().getCourseId())) {
+            int otherTier = planTier(other.getPlan().getName());
+            if (other.getPlanCourseId().equals(current.getPlanCourseId()) || otherTier < 0 || otherTier == currentTier) continue;
+            Set<Long> otherIds = planQuestions.findByPlanCourse_PlanCourseId(other.getPlanCourseId()).stream()
+                    .map(row -> row.getQuestion().getQuestionId()).collect(Collectors.toSet());
+            if (otherTier < currentTier) {
+                if (other.isAllCourseQuestions() && !allQuestions) {
+                    throw new IllegalArgumentException("This plan must include all questions included in the lower tier");
+                }
+                if (!allQuestions && !selectedIds.containsAll(otherIds)) {
+                    throw new IllegalArgumentException("This plan must include all questions assigned to lower tiers");
+                }
+            }
+            if (otherTier > currentTier) {
+                if (allQuestions && !other.isAllCourseQuestions()) {
+                    throw new IllegalArgumentException("Update higher tiers to include all questions before changing this plan to all-access");
+                }
+                if (!other.isAllCourseQuestions() && !otherIds.containsAll(selectedIds)) {
+                    throw new IllegalArgumentException("Update higher-tier question sets before adding questions to this tier");
+                }
+            }
+        }
+    }
+
+    private int planTier(String name) {
+        String normalized = name == null ? "" : name.toLowerCase(Locale.ROOT);
+        if (normalized.contains("free")) return 0;
+        if (normalized.contains("basic")) return 1;
+        if (normalized.contains("standard")) return 2;
+        if (normalized.contains("premium")) return 3;
+        return -1;
     }
 
     @Transactional
@@ -60,8 +166,7 @@ public class SubscriptionService {
         boolean reactivatingPlan = !plan.isActive() && request.isActive();
         copy(plan, request);
         plans.save(plan);
-        planCourses.deleteByPlan_PlanId(id);
-        replaceCourses(plan, request.getCourseIds());
+        syncCourses(plan, request.getCourseIds());
         if (reactivatingPlan) {
             subscriptions.findInactiveValidByPlan(id, LocalDateTime.now()).forEach(subscription -> {
                 subscription.setActive(true);
@@ -94,7 +199,11 @@ public class SubscriptionService {
         SubscriptionPlan plan = plans.findById(planId).orElseThrow(() -> new NoSuchElementException("Subscription plan not found"));
         Course course = courses.findById(courseId).orElseThrow(() -> new NoSuchElementException("Course not found"));
         if (planCourses.findByPlan_PlanId(planId).stream().noneMatch(pc -> pc.getCourse().getCourseId().equals(courseId))) {
-            PlanCourse mapping = new PlanCourse(); mapping.setPlan(plan); mapping.setCourse(course); planCourses.save(mapping);
+            PlanCourse mapping = new PlanCourse();
+            mapping.setPlan(plan);
+            mapping.setCourse(course);
+            mapping.setQuestionLimit(plan.getPracticeQuestionLimit());
+            planCourses.save(mapping);
         }
     }
 
@@ -247,6 +356,18 @@ public class SubscriptionService {
             pc.setCourse(courses.findById(id).orElseThrow(() -> new NoSuchElementException("Course not found: " + id)));
             planCourses.save(pc);
         }
+    }
+
+    private void syncCourses(SubscriptionPlan plan, List<Long> ids) {
+        Set<Long> desired = ids == null ? Set.of() : ids.stream().filter(Objects::nonNull).collect(Collectors.toSet());
+        for (PlanCourse mapping : planCourses.findByPlan_PlanId(plan.getPlanId())) {
+            Long courseId = mapping.getCourse().getCourseId();
+            if (!desired.contains(courseId)) {
+                planQuestions.deleteByPlanCourse_PlanCourseId(mapping.getPlanCourseId());
+                planCourses.delete(mapping);
+            }
+        }
+        replaceCourses(plan, new ArrayList<>(desired));
     }
     private SubscriptionPlanResponseDTO toPlan(SubscriptionPlan p) {
         SubscriptionPlanResponseDTO d = new SubscriptionPlanResponseDTO();

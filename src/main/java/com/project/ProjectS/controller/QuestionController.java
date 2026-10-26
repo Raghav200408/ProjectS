@@ -41,18 +41,21 @@ public class QuestionController {
 
     // GET ALL QUESTIONS
     @GetMapping
-    public ResponseEntity<List<QuestionResponseDTO>> getAllQuestions() {
+    public ResponseEntity<List<QuestionResponseDTO>> getAllQuestions(Authentication authentication) {
 
         List<QuestionResponseDTO> questions =
                 questionService.getAllQuestions();
 
-        return ResponseEntity.ok(questions);
+        return ResponseEntity.ok(isLearner(authentication)
+                ? questionService.filterQuestionsForUser(questions, authentication.getName()) : questions);
     }
 
     // GET QUESTION BY ID
     @GetMapping("/{questionId}")
     public ResponseEntity<QuestionResponseDTO> getQuestionById(
-            @PathVariable Long questionId) {
+            @PathVariable Long questionId, Authentication authentication) {
+
+        if (isLearner(authentication)) questionService.requireQuestionAccess(questionId, authentication.getName());
 
         QuestionResponseDTO question =
                 questionService.getQuestionById(questionId);
@@ -62,12 +65,13 @@ public class QuestionController {
 
     // GET ALL QUESTION TEXT
     @GetMapping("/QuestionText")
-    public ResponseEntity<List<QuestionResponseDTO>> getAllQuestionText() {
+    public ResponseEntity<List<QuestionResponseDTO>> getAllQuestionText(Authentication authentication) {
 
         List<QuestionResponseDTO> questions =
                 questionService.getAllQuestionText();
 
-        return ResponseEntity.ok(questions);
+        return ResponseEntity.ok(isLearner(authentication)
+                ? questionService.filterQuestionsForUser(questions, authentication.getName()) : questions);
     }
 
     // UPDATE QUESTION
@@ -131,10 +135,6 @@ public class QuestionController {
             @RequestParam Long topicId,
             Authentication authentication) {
 
-//        if (authentication != null) {
-//            questionService.requireCourseAccess(courseId, authentication.getName());
-//        }
-
         List<QuestionResponseDTO> questions =
                 questionService.getQuestionsByMapping(
                         courseId,
@@ -142,6 +142,15 @@ public class QuestionController {
                         topicId
                 );
 
+        if (isLearner(authentication)) {
+            questionService.requireCourseAccess(courseId, authentication.getName());
+            questions = questionService.filterQuestionsForUser(questions, authentication.getName());
+        }
         return ResponseEntity.ok(questions);
+    }
+
+    private boolean isLearner(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream().anyMatch(authority ->
+                authority.getAuthority().equals("ROLE_STUDENT") || authority.getAuthority().equals("ROLE_GUEST"));
     }
 }
