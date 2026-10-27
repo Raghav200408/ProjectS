@@ -49,9 +49,7 @@ public class McqQuestionController {
 
     @GetMapping("/{questionId}")
     public ResponseEntity<McqQuestionResponseDTO> getMcqQuestionById(
-            @PathVariable Long questionId, Authentication authentication) {
-
-        if (isLearner(authentication)) mcqQuestionService.requireQuestionAccess(questionId, authentication.getName());
+            @PathVariable Long questionId) {
 
         McqQuestionResponseDTO response =
                 mcqQuestionService.getMcqQuestionById(
@@ -63,13 +61,12 @@ public class McqQuestionController {
 
     @GetMapping
     public ResponseEntity<List<McqQuestionResponseDTO>>
-    getAllMcqQuestions(Authentication authentication) {
+    getAllMcqQuestions() {
 
         List<McqQuestionResponseDTO> response =
                 mcqQuestionService.getAllMcqQuestions();
 
-        return ResponseEntity.ok(isLearner(authentication)
-                ? mcqQuestionService.filterQuestionsForUser(response, authentication.getName()) : response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/filter")
@@ -86,7 +83,9 @@ public class McqQuestionController {
             Long topicId,
             Authentication authentication) {
 
-        if (isLearner(authentication)) mcqQuestionService.requireCourseAccess(courseId, authentication.getName());
+//        if (authentication != null) {
+//            mcqQuestionService.requireCourseAccess(courseId, authentication.getName());
+//        }
 
         List<McqQuestionResponseDTO> response =
                 mcqQuestionService.getMcqQuestionsByFilter(
@@ -95,8 +94,7 @@ public class McqQuestionController {
                         topicId
                 );
 
-        return ResponseEntity.ok(isLearner(authentication)
-                ? mcqQuestionService.filterQuestionsForUser(response, authentication.getName()) : response);
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{questionId}")
@@ -163,10 +161,5 @@ public class McqQuestionController {
             result.setMessage(ex.getMessage());
             return ResponseEntity.badRequest().body(result);
         }
-    }
-
-    private boolean isLearner(Authentication authentication) {
-        return authentication != null && authentication.getAuthorities().stream().anyMatch(authority ->
-                "ROLE_STUDENT".equals(authority.getAuthority()) || "ROLE_GUEST".equals(authority.getAuthority()));
     }
 }

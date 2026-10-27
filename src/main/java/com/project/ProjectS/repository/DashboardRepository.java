@@ -76,7 +76,6 @@ public class DashboardRepository {
                       JOIN subscription_plans sp ON sp.plan_id = us.plan_id AND sp.active
                       JOIN plan_courses pc ON pc.plan_id = us.plan_id AND pc.course_id = us.course_id
                       WHERE us.user_id = :userId AND us.course_id = q.course_id AND us.active
-                        AND (pc.all_course_questions OR EXISTS (SELECT 1 FROM plan_questions pq WHERE pq.plan_course_id = pc.plan_course_id AND pq.question_id = q.question_id))
                         AND us.starts_at <= (now() AT TIME ZONE 'Asia/Calcutta')
                         AND (us.expires_at IS NULL OR us.expires_at > (now() AT TIME ZONE 'Asia/Calcutta')) AND EXISTS (SELECT 1 FROM users eligibility_user WHERE eligibility_user.user_id = us.user_id
                         AND ((eligibility_user.branch_id IS NULL AND eligibility_user.college_id IS NULL)

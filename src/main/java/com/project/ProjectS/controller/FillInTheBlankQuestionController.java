@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
@@ -48,9 +47,7 @@ public class FillInTheBlankQuestionController {
     @GetMapping("/{questionId}")
     public ResponseEntity<FillInTheBlankQuestionResponseDTO>
     getFillInTheBlankQuestionById(
-            @PathVariable Long questionId, Authentication authentication) {
-
-        if (isLearner(authentication)) questionService.requireQuestionAccess(questionId, authentication.getName());
+            @PathVariable Long questionId) {
 
         return ResponseEntity.ok(
                 fillInTheBlankQuestionService
@@ -65,18 +62,12 @@ public class FillInTheBlankQuestionController {
 
     @GetMapping
     public ResponseEntity<List<FillInTheBlankQuestionResponseDTO>>
-    getAllFillInTheBlankQuestions(Authentication authentication) {
+    getAllFillInTheBlankQuestions() {
 
-        List<FillInTheBlankQuestionResponseDTO> questions = fillInTheBlankQuestionService.getAllFillInTheBlankQuestions();
-        if (isLearner(authentication)) questions = questions.stream().filter(question ->
-                questionService.isQuestionAllowedForUser(question.getQuestionId(), question.getCourseId(), authentication.getName())).toList();
-
-        return ResponseEntity.ok(questions);
-    }
-
-    private boolean isLearner(Authentication authentication) {
-        return authentication != null && authentication.getAuthorities().stream().anyMatch(authority ->
-                "ROLE_STUDENT".equals(authority.getAuthority()) || "ROLE_GUEST".equals(authority.getAuthority()));
+        return ResponseEntity.ok(
+                fillInTheBlankQuestionService
+                        .getAllFillInTheBlankQuestions()
+        );
     }
 
 

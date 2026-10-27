@@ -7,7 +7,7 @@ These are manual acceptance cases, not a record of tests already executed. Mark 
 ## 1. Preparation
 
 1. Use a local or staging database with test accounts. Deactivation and expiry cases must use disposable records.
-2. Apply `src/main/java/DataBase/add_subscription_plan_question_access.sql` if needed, then `src/main/java/DataBase/courseassignment.sql`. Start the updated backend and frontend. These instructions do not execute migrations.
+2. Apply `src/main/java/DataBase/courseassignment.sql`. Start the updated backend and frontend. These instructions do not execute migrations.
 3. Use separate browser profiles or private sessions for administrators and students. Refresh after changing assignments or subscriptions.
 4. Create the fixture below. Record real IDs; do not assume generated IDs.
 5. For rejected saves, verify that data did not change. If the interface displays a generic error, use the browser Network response and backend log to identify the reason.
@@ -36,25 +36,15 @@ Create students after assigning C1 to A1 and B1 and creating their sections. Bot
 ### Plans to prepare
 
 Use paid test activation where appropriate; these tests do not require a payment-gateway transaction.
+Map each plan to C1 and use a positive duration, such as 30 days. These plans grant course-level access. There is no per-plan question-selection screen or tier inclusion rule on this test branch.
 
-| Plan name | Course question access | Practice usage limit | Mock tests | Exam attempts |
-| --- | --- | --- | --- | --- |
-| QA Limited | Select Q1–Q4; maximum selected questions = 4 | 2 | Enabled; limit 1 | Enabled; limit 1 |
-| QA Unlimited | Include all active course questions | -1 | Enabled; limit -1 | Enabled; limit -1 |
-| QA Practice Only | Select Q1–Q4; maximum selected questions = 4 | 2 | Disabled | Disabled |
+| Plan name | Practice usage limit | Mock tests | Exam attempts |
+| --- | --- | --- | --- |
+| QA Limited | 2 | Enabled; limit 1 | Enabled; limit 1 |
+| QA Unlimited | -1 | Enabled; limit -1 | Enabled; limit -1 |
+| QA Practice Only | 2 | Disabled | Disabled |
 
-Map these plans to C1. Use a positive duration, such as 30 days. Keep package selection limits separate from per-student practice usage limits: selecting four accessible questions with a practice usage limit of two lets you test exhaustion.
-
-For the tier cases, create active QA Free, QA Basic, QA Standard and QA Premium plans mapped to C1. Save their question access **Premium → Standard → Basic → Free**:
-
-| Tier | Question package |
-| --- | --- |
-| QA Premium | Include all active course questions |
-| QA Standard | Q1, Q2, Q3; selected-question maximum 3 |
-| QA Basic | Q1, Q2; selected-question maximum 2 |
-| QA Free | Q1; selected-question maximum 1 |
-
-The current tier validation recognises free/basic/standard/premium in plan names. Use the custom QA plans for quota tests so tier dependencies do not interfere.
+Use fresh personal subscriptions when testing counters. C1 should contain Q1–Q4 so you can test the practice limit without exhausting the course's content first.
 
 ## 2. Course creation and branch assignments
 
@@ -145,7 +135,7 @@ The current tier validation recognises free/basic/standard/premium in plan names
 - **Result:** __________ **Actual / evidence:** __________
 
 ### EF-06 — Exam audience stays branch/section specific
-- **Role / setup:** EF-05 passed; S-A and S-B have an exam-enabled subscription including the exam's questions.
+- **Role / setup:** EF-05 passed; S-A and S-B have an exam-enabled subscription.
 - **Steps:** Open/attempt the B1 exam as S-B. As S-A, try its saved URL and question/submit requests in a test API client.
 - **Expected:** S-B can participate during the valid exam window. S-A cannot access or submit B1's exam despite sharing C1. No unauthorized result or quota charge is created.
 - **Result:** __________ **Actual / evidence:** __________
@@ -156,75 +146,39 @@ The current tier validation recognises free/basic/standard/premium in plan names
 - **Expected:** C1 remains available. The branch-only exam dropdown fix does not impose institution fields on mock-exam creation.
 - **Result:** __________ **Actual / evidence:** __________
 
-## 4. Plan question packages and activation
+## 4. Course plans and activation
 
-### SU-01 — Save and reload a selected question package
-- **Role / setup:** SA; QA Limited mapped to C1.
-- **Steps:** Open Plans → QA Limited → Question access. Select C1, disable Include all active course questions, set maximum selected questions to 4, select Q1–Q4, and save. Refresh and reopen.
-- **Expected:** Selected question IDs and maximum persist. The same plan/C1 package applies to A1 and B1; no separate branch package is needed.
-- **Result:** __________ **Actual / evidence:** __________
-
-### SU-02 — Reject selections over the package maximum
-- **Role / setup:** SA; preserve SU-01 settings.
-- **Steps:** Change the maximum to 2 while three or more questions remain selected, then save. Reload settings.
-- **Expected:** Save is rejected and persisted settings remain unchanged. The backend reason is selected count exceeding the limit. Restore maximum 4.
-- **Result:** __________ **Actual / evidence:** __________
-
-### SU-03 — All-question access excludes inactive and other-course questions
-- **Role / setup:** SA; QA Unlimited mapped to C1; QX belongs to C2.
-- **Steps:** Enable Include all active course questions and save. Activate this plan for a test student. Try Q1 and QX; deactivate a disposable C1 question and try it again.
-- **Expected:** Active C1 questions are accessible. C2 questions and inactive C1 questions are excluded. Restore the disposable question afterward.
-- **Result:** __________ **Actual / evidence:** __________
-
-### SU-04 — Initial tier setup succeeds from highest to lowest
-- **Role / setup:** SA; the four QA tier plans prepared above.
-- **Steps:** Save QA Premium all-access; QA Standard Q1–Q3; QA Basic Q1–Q2; QA Free Q1. Reopen each package.
-- **Expected:** Each save succeeds. Free is a subset of Basic, Basic of Standard, and Standard of Premium.
-- **Result:** __________ **Actual / evidence:** __________
-
-### SU-05 — Reproduce the higher-tier validation error
-- **Role / setup:** SU-04 passed.
-- **Steps:** Increase QA Basic's selected maximum to 3 and add Q4 without adding Q4 to QA Standard. Try saving; then add Q4 to Standard with maximum 4, save, and retry Basic.
-- **Expected:** First save is rejected with backend reason `Update higher-tier question sets before adding questions to this tier`; no changes persist. After Standard includes Q4, Basic can save. Restore the original packages afterward.
-- **Result:** __________ **Actual / evidence:** __________
-
-### SU-06 — Higher tiers cannot omit lower-tier questions
-- **Role / setup:** SU-04 configuration restored.
-- **Steps:** Remove Q1 from QA Standard while QA Basic/Free still include Q1, then save.
-- **Expected:** Save is rejected because the higher tier must include lower-tier questions. No persisted selection changes.
-- **Result:** __________ **Actual / evidence:** __________
-
-### SU-07 — Branch assignment alone does not grant student question access
+### SU-01 — Branch assignment alone does not grant student question access
 - **Role / setup:** C1 assigned to A1; a fresh A1 student has no C1 subscription.
 - **Steps:** Try opening and answering a C1 question through the UI and saved question URL.
 - **Expected:** Learning access is denied until a valid subscription is activated. Administrator preview access is not used for this test.
 - **Result:** __________ **Actual / evidence:** __________
 
-### SU-08 — Bulk assignment creates individual student subscriptions
+### SU-02 — Bulk assignment creates individual student subscriptions
 - **Role / setup:** BA-A1; S-A and S-A2 eligible for C1.
 - **Steps:** Open Subscriptions → Assign a course plan to students. Select C1, QA Limited and S-A/S-A2. Assign and check history and each student's own subscription response.
 - **Expected:** Both receive separate subscription IDs with their own dates and counters. Assigning a plan does not create a single subscription shared by the branch.
 - **Result:** __________ **Actual / evidence:** __________
 
-### SU-09 — Same course/plan in another college stays personal
+### SU-03 — Same course/plan in another college stays personal
 - **Role / setup:** BA-B1; S-B eligible for C1.
 - **Steps:** Assign QA Limited/C1 to S-B. Compare with S-A's subscription and course IDs.
 - **Expected:** Both reference the same C1 and plan, but subscription IDs, dates, counters and results belong to each student individually.
 - **Result:** __________ **Actual / evidence:** __________
 
-### SU-10 — Reject subscription activation for an unassigned branch or wrong course plan
+### SU-04 — Reject subscription activation for an unassigned branch or wrong course plan
 - **Role / setup:** A2 unassigned; test API client with authorized test admin session.
 - **Steps:** Attempt to activate C1 for a test student in A2. Separately try activating a C2-only plan for C1.
 - **Expected:** Both requests fail. No new subscription is created and an existing valid subscription is not replaced.
 - **Result:** __________ **Actual / evidence:** __________
 
-### SU-11 — Replacing a student's subscription preserves others and history
+### SU-05 — Replacing a student's subscription preserves others and history
 - **Role / setup:** S-A and S-A2 have QA Limited/C1.
 - **Steps:** Assign QA Unlimited/C1 to S-A only. Inspect S-A's current subscription and history, then S-A2's.
 - **Expected:** S-A gets a new subscription; the prior active C1 subscription is deactivated and retained in history. S-A2 is unchanged. New-subscription counters are separate from the previous subscription's counters.
 - **Result:** __________ **Actual / evidence:** __________
 
-### SU-12 — Local administrators cannot subscribe another institution's student
+### SU-06 — Local administrators cannot subscribe another institution's student
 - **Role / setup:** BA-A1; S-B belongs to B1.
 - **Steps:** Using BA-A1's session, attempt a bulk activation request containing S-B. Also test an invalid batch containing S-A and S-B; inspect subscriptions afterward.
 - **Expected:** The out-of-scope request fails. The invalid batch does not partially activate valid members. No unauthorized student subscription changes.
@@ -235,7 +189,7 @@ The current tier validation recognises free/basic/standard/premium in plan names
 ### US-01 — First use of distinct practice questions consumes quota
 - **Role / setup:** Fresh QA Limited subscription for S-A; practice usage starts at 0.
 - **Steps:** Answer Q1, then Q2, checking the student's counters after each. Attempt Q3.
-- **Expected:** Usage becomes 1 then 2. First use of Q3 is rejected because the usage limit is 2 even though Q3 is in the selected package. Rejection does not increase the counter.
+- **Expected:** Usage becomes 1 then 2. First use of Q3 is rejected because the usage limit is 2 even though Q3 belongs to C1. Rejection does not increase the counter.
 - **Result:** __________ **Actual / evidence:** __________
 
 ### US-02 — Retries and multiple adjustment effects do not double-charge
@@ -280,10 +234,10 @@ The current tier validation recognises free/basic/standard/premium in plan names
 - **Expected:** S-A loses access through that subscription; S-A2 retains access. History and the branch's C1 assignment remain.
 - **Result:** __________ **Actual / evidence:** __________
 
-### US-09 — Curated packages are enforced across learning routes
-- **Role / setup:** Student on QA Basic with Q1/Q2 only; enough unused quota.
-- **Steps:** Open Q1, then try Q3's direct URL and answer request. Start a mock test. Attempt an exam containing Q3 using the normal student flow.
-- **Expected:** Q1 works; Q3 is excluded/denied. Generated mock questions come only from the accessible package. An exam with an inaccessible question cannot bypass package checks or consume a successful attempt.
+### US-09 — Course access is enforced without question selection
+- **Role / setup:** Student has a valid C1 subscription and no C2 subscription. C1 is assigned to the student's branch.
+- **Steps:** Open and answer a C1 question without configuring any question package. Try QX from C2 using its direct URL and answer request. Generate a C1 mock test.
+- **Expected:** C1 works within normal subscription limits. C2 access is denied without a valid eligible C2 subscription. The mock test draws from C1's active questions; no curated question tables or plan-question endpoints are required.
 - **Result:** __________ **Actual / evidence:** __________
 
 ### US-10 — Persistence after logout and restart
@@ -339,15 +293,14 @@ ORDER BY u.subscription_id, u.question_id;
 
 ## 7. Current UI observations to record
 
-- The recent question-access error-message improvement was undone at the user's request. A tier validation failure may still show the generic save error; use the backend reason to distinguish tier validation from count validation or an unexpected failure. Record poor error visibility separately.
 - Bulk student subscription assignment is currently exposed on the Subscriptions page for Branch Admin. Do not mark a missing College Admin bulk panel as a failure of branch assignment.
 - Subscription-history scope/deactivation for College Admin should be recorded as a separate observation: existing logic is branch-based, and a College Admin without a branch may see no history. Do not use that account as the baseline for BA or SA history cases.
-- All-question package access and unlimited per-student usage are separate settings. An all-question package does not automatically remove the plan's practice usage cap.
+- Plans grant course-level access. The subscription-question-access feature, including question selection and tier package rules, has been removed from this test branch.
 - Existing duplicated legacy courses are not merged by this migration. Compare IDs for the newly shared test course.
 
 ## 8. Execution summary
 
-Total cases: **39** (CA 9 + EF 7 + SU 12 + US 11).
+Total cases: **33** (CA 9 + EF 7 + SU 6 + US 11).
 
 | Run result | Count |
 | --- | --- |
@@ -356,7 +309,7 @@ Total cases: **39** (CA 9 + EF 7 + SU 12 + US 11).
 | Blocked | |
 | Not run | |
 
-Recommended first run: CA-01–CA-07 → EF-01–EF-05 → SU-01, SU-07–SU-09 → US-01–US-03. Then run the remaining negative, expiry, role and tier cases.
+Recommended first run: CA-01–CA-07 → EF-01–EF-05 → SU-01–SU-03 → US-01–US-03. Then run the remaining negative, expiry and role cases.
 
 ### Defect record template
 

@@ -8,7 +8,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -20,12 +19,10 @@ class CourseAssignmentAccessTest {
     private final BranchRepository branches = mock(BranchRepository.class);
     private final UserRepository users = mock(UserRepository.class);
     private final UserSubscriptionRepository subscriptions = mock(UserSubscriptionRepository.class);
-    private final PlanCourseRepository plans = mock(PlanCourseRepository.class);
-    private final PlanQuestionRepository selected = mock(PlanQuestionRepository.class);
     private final QuestionRepository questions = mock(QuestionRepository.class);
     private final SubscriptionQuestionUsageRepository usage = mock(SubscriptionQuestionUsageRepository.class);
     private final CourseAssignmentService assignments = new CourseAssignmentService(mappings, courses, branches, users);
-    private final SubscriptionEntitlementService entitlements = new SubscriptionEntitlementService(subscriptions, users, plans, selected, questions);
+    private final SubscriptionEntitlementService entitlements = new SubscriptionEntitlementService(subscriptions, users);
     private final LearningAccessService access = new LearningAccessService(assignments, entitlements, users, questions, usage);
     private final Course course = course();
     private final Branch branchA = branch(10, 1), branchB = branch(20, 2), branchC = branch(30, 2);
@@ -44,10 +41,7 @@ class CourseAssignmentAccessTest {
         when(mappings.existsByCourse_CourseIdAndBranch_BranchIdAndActiveRowTrue(101L, 10L)).thenReturn(true);
         when(mappings.existsByCourse_CourseIdAndBranch_BranchIdAndActiveRowTrue(101L, 20L)).thenReturn(true);
         when(subscriptions.findEntitledSubscription(anyLong(), eq(101L), any())).thenAnswer(call -> Optional.ofNullable(personal.get(call.getArgument(0))));
-        PlanCourse plan = new PlanCourse(); plan.setPlanCourseId(5L); plan.setCourse(course); plan.setAllCourseQuestions(true);
-        when(plans.findByPlan_PlanIdAndCourse_CourseId(1L, 101L)).thenReturn(Optional.of(plan));
         Question question = question(11L); when(questions.findById(11L)).thenReturn(Optional.of(question));
-        when(questions.findByCourse_CourseIdAndActiveRowTrue(101L)).thenReturn(List.of(question));
     }
     @AfterEach void cleanup() { SecurityContextHolder.clearContext(); }
 
@@ -67,32 +61,28 @@ class CourseAssignmentAccessTest {
     }
     @Test void noActiveSubscriptionAndDisabledPlanAreRejected() {
         personal.remove(1L);
-        assertThrows(ResponseStatusException.class, () -> entitlements.requireCourseAccess(1L, 101L));
+        assertThrows(IllegalStateException.class, () -> entitlements.requireCourseAccess(1L, 101L));
         personal.get(2L).getPlan().setActive(false);
-        assertThrows(ResponseStatusException.class, () -> entitlements.requireCourseAccess(2L, 101L));
+        assertThrows(IllegalStateException.class, () -> entitlements.requireCourseAccess(2L, 101L));
     }
-    @Test void questionSelectionIsSharedByPlanWhileAccessRemainsPersonal() {
-        PlanCourse plan = new PlanCourse(); plan.setPlanCourseId(5L); plan.setCourse(course); plan.setAllCourseQuestions(false);
-        when(plans.findByPlan_PlanIdAndCourse_CourseId(1L, 101L)).thenReturn(Optional.of(plan));
-        PlanQuestion row = new PlanQuestion(); row.setQuestion(question(11L));
-        when(selected.findByPlanCourse_PlanCourseId(5L)).thenReturn(List.of(row));
-        when(questions.findByCourse_CourseIdAndQuestionIdInAndActiveRowTrue(eq(101L), anyList())).thenReturn(List.of(row.getQuestion()));
-        assertEquals(Set.of(11L), entitlements.accessibleQuestionIds(studentA.getEmail(), 101L));
-        assertEquals(Set.of(11L), entitlements.accessibleQuestionIds(studentB.getEmail(), 101L));
-        assertThrows(ResponseStatusException.class, () -> entitlements.requireQuestionAccess(studentA.getEmail(), 101L, 12L));
+    @Test void assignedCoursePracticeNeedsNoPerPlanQuestionSelection() {
+        assertDoesNotThrow(() -> access.practice(1L, 11L));
+        assertEquals(1, personal.get(1L).getPracticeQuestionsUsed());
+        assertDoesNotThrow(() -> access.practice(2L, 11L));
+        assertEquals(1, personal.get(2L).getPracticeQuestionsUsed());
     }
     @Test void expiredAndFutureSubscriptionsCannotGrantAccessToAnAssignedBranch() {
         personal.get(1L).setExpiresAt(LocalDateTime.now().minusSeconds(1));
-        assertThrows(ResponseStatusException.class, () -> entitlements.requireCourseAccess(1L, 101L));
+        assertThrows(IllegalStateException.class, () -> entitlements.requireCourseAccess(1L, 101L));
         personal.get(2L).setStartsAt(LocalDateTime.now().plusDays(1));
-        assertThrows(ResponseStatusException.class, () -> entitlements.requireCourseAccess(2L, 101L));
+        assertThrows(IllegalStateException.class, () -> entitlements.requireCourseAccess(2L, 101L));
     }
     @Test void moduleLimitsAndCountersStaySeparateForEachStudent() {
         entitlements.consumeMockTest(1L, 101L); entitlements.consumeExamAttempt(1L, 101L);
         assertEquals(1, personal.get(1L).getMockTestsUsed()); assertEquals(1, personal.get(1L).getExamAttemptsUsed());
         assertEquals(0, personal.get(2L).getMockTestsUsed()); assertEquals(0, personal.get(2L).getExamAttemptsUsed());
-        assertThrows(ResponseStatusException.class, () -> entitlements.consumeMockTest(1L, 101L));
-        assertThrows(ResponseStatusException.class, () -> entitlements.consumeExamAttempt(1L, 101L));
+        assertThrows(IllegalStateException.class, () -> entitlements.consumeMockTest(1L, 101L));
+        assertThrows(IllegalStateException.class, () -> entitlements.consumeExamAttempt(1L, 101L));
         entitlements.consumeMockTest(2L, 101L); assertEquals(1, personal.get(2L).getMockTestsUsed());
     }
     @Test void effectsRetriesAndAnswerEventPairsChargeOneQuestionPerSubscription() {
@@ -106,8 +96,8 @@ class CourseAssignmentAccessTest {
     @Test void disabledModuleAndPracticeLimitRejectFurtherConsumption() {
         personal.get(1L).getPlan().setMockTestEnabled(false);
         personal.get(1L).getPlan().setExamEnabled(false);
-        assertThrows(ResponseStatusException.class, () -> entitlements.consumeMockTest(1L, 101L));
-        assertThrows(ResponseStatusException.class, () -> entitlements.consumeExamAttempt(1L, 101L));
+        assertThrows(IllegalStateException.class, () -> entitlements.consumeMockTest(1L, 101L));
+        assertThrows(IllegalStateException.class, () -> entitlements.consumeExamAttempt(1L, 101L));
         personal.get(1L).setPracticeQuestionsUsed(1);
         assertThrows(IllegalStateException.class, () -> access.practice(1L, 11L));
         verify(usage, never()).save(any());
@@ -155,19 +145,21 @@ class CourseAssignmentAccessTest {
         assertThrows(IllegalArgumentException.class, () -> assignments.requireAssignment(2L, 30L, 101L));
         assertThrows(IllegalArgumentException.class, () -> assignments.requireAssignment(1L, 20L, 101L));
     }
-    @Test void generatedMockTestsOnlySelectSubscribedQuestions() {
+    @Test void generatedMockTestsIncludeCourseQuestionsWithoutASelectedPackage() {
         var mcqs = mock(McqQuestionRepository.class); var mcqService = mock(McqQuestionService.class);
         var entitled = mock(SubscriptionEntitlementService.class);
         var service = new MockTestService(questions, mcqs, mcqService, entitled);
         when(questions.findByActiveRowTrue()).thenReturn(List.of(question(11L), question(12L)));
         McqQuestion mcq = new McqQuestion(); mcq.setActiveRow(true); when(mcqs.findById(anyLong())).thenReturn(Optional.of(mcq));
-        when(entitled.accessibleQuestionIds(studentA.getEmail(), 101L)).thenReturn(Set.of(11L));
         when(entitled.requireCourseAccess(studentA.getEmail(), 101L)).thenReturn(personal.get(1L));
         McqQuestionResponseDTO dto = new McqQuestionResponseDTO(); dto.setQuestionId(11L); dto.setOptions(List.of());
         when(mcqService.getMcqQuestionById(11L)).thenReturn(dto);
+        McqQuestionResponseDTO second = new McqQuestionResponseDTO(); second.setQuestionId(12L); second.setOptions(List.of());
+        when(mcqService.getMcqQuestionById(12L)).thenReturn(second);
         MockTestStartRequestDTO request = new MockTestStartRequestDTO(); request.setCourseId(101L); request.setQuestionCount(2);
         var result = service.start(request, studentA.getEmail());
-        assertEquals(1, result.getQuestionCount()); assertEquals(11L, result.getQuestions().get(0).getQuestionId());
+        assertEquals(2, result.getQuestionCount());
+        assertEquals(Set.of(11L, 12L), new HashSet<>(result.getQuestions().stream().map(McqQuestionResponseDTO::getQuestionId).toList()));
         verify(entitled).consumeMockTest(1L, 101L);
     }
     @Test void courseUploadReusesOneCourseForRowsFromDifferentBranches() {

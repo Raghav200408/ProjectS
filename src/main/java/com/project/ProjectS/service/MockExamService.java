@@ -280,23 +280,20 @@ public class MockExamService {
                         new RuntimeException(
                                 "Mock exam not found with id: " + mockExamId));
 
-        courseAssignments.requireEligible(courseAssignments.currentUser(), mockExam.getCourse());
         if (authentication != null && isStudent(authentication)) {
-            entitlementService.requireMockTestAvailable(authentication.getName(), mockExam.getCourse().getCourseId());
-            Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), mockExam.getCourse().getCourseId());
-            boolean restricted = mockExamQuestionRepository.findByMockExam_MockExamId(mockExamId).stream()
-                    .anyMatch(row -> !permitted.contains(row.getQuestion().getQuestionId()));
-            if (restricted) throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.FORBIDDEN,
-                    "This mock exam contains questions outside your active subscription");
+//            entitlementService.requireCourseAccess(
+//                    authentication.getName(),
+//                    mockExam.getCourse().getCourseId());
         }
 
+        courseAssignments.requireEligible(courseAssignments.currentUser(), mockExam.getCourse());
         return getMockExamQuestions(mockExamId);
     }
 
 
     @Transactional(readOnly = true)
     public List<QuestionResponseDTO> getAvailableMockExamQuestions(Long mockExamId) {
+        getMockExamById(mockExamId);
 
         MockExam mockExam = mockExamRepository.findById(mockExamId)
                 .orElseThrow(() ->
@@ -329,17 +326,6 @@ public class MockExamService {
                         .toList();
 
         return questionService.getQuestionsByIds(availableQuestionIds);
-    }
-
-    public List<QuestionResponseDTO> getAvailableMockExamQuestions(Long mockExamId, Authentication authentication) {
-        MockExam exam = mockExamRepository.findById(mockExamId)
-                .orElseThrow(() -> new RuntimeException("Mock exam not found with id: " + mockExamId));
-        courseAssignments.requireEligible(courseAssignments.currentUser(), exam.getCourse());
-        List<QuestionResponseDTO> available = getAvailableMockExamQuestions(mockExamId);
-        if (authentication == null || !isStudent(authentication)) return available;
-        entitlementService.requireMockTestAvailable(authentication.getName(), exam.getCourse().getCourseId());
-        Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), exam.getCourse().getCourseId());
-        return available.stream().filter(question -> permitted.contains(question.getQuestionId())).toList();
     }
 
 
@@ -564,25 +550,14 @@ public class MockExamService {
             Long mockExamId,
             MockExamSubmitRequestDTO request,
             Authentication authentication) {
-        MockExam audiencePaper = mockExamRepository.findById(mockExamId).orElseThrow(() -> new IllegalArgumentException("Mock exam not found"));
-        courseAssignments.requireEligible(courseAssignments.currentUser(), audiencePaper.getCourse());
+        MockExam audience = mockExamRepository.findById(mockExamId).orElseThrow(() -> new IllegalArgumentException("Exam not found"));
+        courseAssignments.requireEligible(courseAssignments.currentUser(), audience.getCourse());
 
         if (authentication != null) {
             request.setUserId(userRepository.findByEmail(authentication.getName())
                     .orElseThrow(() ->
                             new RuntimeException("Authenticated user not found"))
                     .getUserId());
-            if (isStudent(authentication)) {
-                MockExam mockExam = mockExamRepository.findById(mockExamId)
-                        .orElseThrow(() -> new RuntimeException("Mock exam not found with id: " + mockExamId));
-                Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), mockExam.getCourse().getCourseId());
-                boolean restricted = mockExamQuestionRepository.findByMockExam_MockExamId(mockExamId).stream()
-                        .anyMatch(row -> !permitted.contains(row.getQuestion().getQuestionId()));
-                if (restricted) throw new org.springframework.web.server.ResponseStatusException(
-                        org.springframework.http.HttpStatus.FORBIDDEN,
-                        "This mock exam contains questions outside your active subscription");
-                entitlementService.consumeMockTest(request.getUserId(), mockExam.getCourse().getCourseId());
-            }
         }
 
         return submitMockExam(mockExamId, request);

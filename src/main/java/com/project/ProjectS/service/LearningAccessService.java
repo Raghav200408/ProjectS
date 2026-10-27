@@ -26,7 +26,6 @@ public class LearningAccessService {
         assignments.requireEligible(user, question.getCourse());
         if (CourseAssignmentService.isManager(user)) return;
         UserSubscription subscription = entitlements.requireCourseAccess(userId, question.getCourse().getCourseId());
-        entitlements.requireQuestionAccess(user.getEmail(), question.getCourse().getCourseId(), questionId);
         if (!usage.existsBySubscription_SubscriptionIdAndQuestion_QuestionId(subscription.getSubscriptionId(), questionId)) {
             entitlements.consumePracticeQuestions(userId, question.getCourse().getCourseId(), 1);
             SubscriptionQuestionUsage record = new SubscriptionQuestionUsage(); record.setSubscription(subscription); record.setQuestion(question);

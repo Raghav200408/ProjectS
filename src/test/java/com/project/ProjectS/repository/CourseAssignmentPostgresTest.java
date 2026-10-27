@@ -31,8 +31,7 @@ class CourseAssignmentPostgresTest {
                     active BOOLEAN, starts_at TIMESTAMP, expires_at TIMESTAMP);
                 CREATE TABLE questions(question_id BIGINT PRIMARY KEY, course_id BIGINT REFERENCES courses, active_row BOOLEAN);
                 CREATE TABLE plan_courses(plan_course_id BIGINT PRIMARY KEY, course_id BIGINT REFERENCES courses,
-                    plan_id BIGINT REFERENCES subscription_plans, all_course_questions BOOLEAN);
-                CREATE TABLE plan_questions(plan_course_id BIGINT REFERENCES plan_courses, question_id BIGINT REFERENCES questions);
+                    plan_id BIGINT REFERENCES subscription_plans);
                 CREATE TABLE mcq_questions(question_id BIGINT REFERENCES questions, active_row BOOLEAN);
                 CREATE TABLE question_matching_pairs(question_id BIGINT, pair_id BIGINT);
                 CREATE TABLE question_fill_blank_answers(question_id BIGINT, blank_number INTEGER);
@@ -51,7 +50,7 @@ class CourseAssignmentPostgresTest {
                     (3,3,101,1,true,CURRENT_TIMESTAMP - INTERVAL '1 day',CURRENT_TIMESTAMP + INTERVAL '5 days'),
                     (4,4,101,1,true,CURRENT_TIMESTAMP - INTERVAL '10 days',CURRENT_TIMESTAMP - INTERVAL '5 days');
                 INSERT INTO questions VALUES (11,101,true);
-                INSERT INTO plan_courses VALUES (1,101,1,true);
+                INSERT INTO plan_courses VALUES (1,101,1);
                 INSERT INTO mcq_questions VALUES (11,true);
                 INSERT INTO practice_results VALUES (1,1,11,'MCQ');
                 """);
@@ -80,10 +79,7 @@ class CourseAssignmentPostgresTest {
             dashboard.populateCounts(expired, 4, new DashboardRepository.Scope(2L, 20L, true, true));
             assertEquals(0, unassigned.getMyCourses()); assertEquals(0, unassigned.getPracticeQuestions());
             assertEquals(0, expired.getMyCourses()); assertEquals(0, expired.getPracticeQuestions());
-            sql.execute("UPDATE plan_courses SET all_course_questions=false");
-            dashboard.populateCounts(studentA, 1, new DashboardRepository.Scope(1L, 10L, true, true));
-            assertEquals(0, studentA.getPracticeQuestions());
-            sql.execute("INSERT INTO plan_questions VALUES (1,11)");
+            // Course access is independent of curated question tables/columns.
             dashboard.populateCounts(studentA, 1, new DashboardRepository.Scope(1L, 10L, true, true));
             assertEquals(1, studentA.getPracticeQuestions());
             sql.execute("UPDATE courseassignment SET active_row=false WHERE branch_id=20");

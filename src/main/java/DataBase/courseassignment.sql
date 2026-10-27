@@ -1,4 +1,4 @@
--- Review and apply with the subscription-question-access migration before deploying.
+-- Review and apply before deploying the course-assignment changes.
 -- Existing courses/content/subscriptions keep their IDs; no course data is copied.
 BEGIN;
 CREATE TABLE IF NOT EXISTS public.courseassignment (

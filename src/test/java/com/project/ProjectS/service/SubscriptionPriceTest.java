@@ -15,7 +15,6 @@ import static org.mockito.Mockito.*;
 class SubscriptionPriceTest {
     private final SubscriptionPlanRepository plans = mock(SubscriptionPlanRepository.class);
     private final SubscriptionService service = new SubscriptionService(plans, mock(PlanCourseRepository.class),
-            mock(PlanQuestionRepository.class), mock(QuestionRepository.class),
             mock(UserSubscriptionRepository.class), mock(CourseRepository.class), mock(UserRepository.class), mock(AuditLogger.class));
 
     private SubscriptionPlanRequestDTO request(String price) {
