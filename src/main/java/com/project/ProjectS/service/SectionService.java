@@ -5,6 +5,7 @@ import com.project.ProjectS.entity.Section;
 import com.project.ProjectS.model.SectionRequestDTO;
 import com.project.ProjectS.model.SectionResponseDTO;
 import com.project.ProjectS.repository.CourseRepository;
+import com.project.ProjectS.repository.CourseAssignmentRepository;
 import com.project.ProjectS.repository.SectionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,11 +25,12 @@ import java.util.stream.Collectors;
 @Service
 public class SectionService {
     @Autowired
-    public SectionService(SectionRepository sectionRepository, CourseRepository courseRepository, CollegeRepository collegeRepository, BranchRepository branchRepository) {
+    public SectionService(SectionRepository sectionRepository, CourseRepository courseRepository, CollegeRepository collegeRepository, BranchRepository branchRepository, CourseAssignmentRepository courseAssignmentRepository) {
         this.sectionRepository = sectionRepository;
         this.courseRepository = courseRepository;
         this.collegeRepository = collegeRepository;
         this.branchRepository = branchRepository;
+        this.courseAssignmentRepository = courseAssignmentRepository;
     }
 
 
@@ -38,6 +40,7 @@ public class SectionService {
     private final CourseRepository courseRepository;
     private final CollegeRepository collegeRepository;
     private final BranchRepository branchRepository;
+    private final CourseAssignmentRepository courseAssignmentRepository;
 
     public String create(SectionRequestDTO request) {
 
@@ -90,6 +93,8 @@ public class SectionService {
                             "Course not found"
                     );
                 });
+
+        requireCourseAssignment(course, college, branch);
 
 
 
@@ -212,6 +217,8 @@ public class SectionService {
                     return new RuntimeException("Course not found");
                 });
 
+        requireCourseAssignment(course, college, branch);
+
         if ((!entity.getSectionName().equals(request.getSectionName())) ||
                 (!entity.getCourse().getCourseId().equals(request.getCourseId()))) {
 
@@ -245,6 +252,16 @@ public class SectionService {
         log.info("Section updated successfully with ID: {}", id);
 
         return "Section updated successfully";
+    }
+
+    private void requireCourseAssignment(Course course, College college, Branch branch) {
+        boolean assigned = courseAssignmentRepository.findActiveForScope(
+                        college.getCollegeId(), branch.getBranchId())
+                .stream().anyMatch(assignment ->
+                        assignment.getCourse().getCourseId().equals(course.getCourseId()));
+        if (!assigned) {
+            throw new IllegalArgumentException("Course is not assigned to the selected college and branch");
+        }
     }
 
     public String delete(Long id) {

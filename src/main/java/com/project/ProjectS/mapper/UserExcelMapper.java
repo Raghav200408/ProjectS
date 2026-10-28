@@ -9,6 +9,7 @@ import com.project.ProjectS.entity.User;
 import com.project.ProjectS.repository.BranchRepository;
 import com.project.ProjectS.repository.CollegeRepository;
 import com.project.ProjectS.repository.CourseRepository;
+import com.project.ProjectS.repository.CourseAssignmentRepository;
 import com.project.ProjectS.repository.RoleRepository;
 import com.project.ProjectS.repository.SectionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,12 +21,13 @@ import java.util.Map;
 @Component
 public class UserExcelMapper implements ExcelRowMapper<User> {
     @Autowired
-    public UserExcelMapper(CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository, SectionRepository sectionRepository, RoleRepository roleRepository) {
+    public UserExcelMapper(CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository, SectionRepository sectionRepository, RoleRepository roleRepository, CourseAssignmentRepository courseAssignmentRepository) {
         this.collegeRepository = collegeRepository;
         this.branchRepository = branchRepository;
         this.courseRepository = courseRepository;
         this.sectionRepository = sectionRepository;
         this.roleRepository = roleRepository;
+        this.courseAssignmentRepository = courseAssignmentRepository;
     }
 
     private final CollegeRepository collegeRepository;
@@ -33,6 +35,7 @@ public class UserExcelMapper implements ExcelRowMapper<User> {
     private final CourseRepository courseRepository;
     private final SectionRepository sectionRepository;
     private final RoleRepository roleRepository;
+    private final CourseAssignmentRepository courseAssignmentRepository;
 
     @Override
     public User map(Map<String, String> row) {
@@ -171,20 +174,19 @@ public class UserExcelMapper implements ExcelRowMapper<User> {
             }
 
             String selectedBranchName = branch.getBranchName();
-
-            course = courseRepository
-                    .findByNameAndBranch(
-                            courseName.trim(),
-                            branch
-                    )
-                    .orElseThrow(
-                            () -> new RuntimeException(
-                                    "Course not found: "
-                                            + courseName
-                                            + " for branch: "
-                                            + selectedBranchName
-                            )
-                    );
+            var matches = courseAssignmentRepository.findActiveForScope(
+                            branch.getCollege().getCollegeId(), branch.getBranchId())
+                    .stream()
+                    .map(assignment -> assignment.getCourse())
+                    .filter(candidate -> candidate.getName().equalsIgnoreCase(courseName.trim()))
+                    .distinct()
+                    .toList();
+            if (matches.size() != 1) {
+                throw new RuntimeException(matches.isEmpty()
+                        ? "Course not assigned to branch: " + courseName + " for " + selectedBranchName
+                        : "Multiple catalog courses match " + courseName + " for " + selectedBranchName);
+            }
+            course = matches.get(0);
         }
         // =========================
         // Find Section

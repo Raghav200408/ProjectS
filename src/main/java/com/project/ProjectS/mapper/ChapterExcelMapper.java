@@ -6,6 +6,7 @@ import com.project.ProjectS.entity.Course;
 import com.project.ProjectS.entity.Subject;
 import com.project.ProjectS.repository.BranchRepository;
 import com.project.ProjectS.repository.CourseRepository;
+import com.project.ProjectS.repository.CourseAssignmentRepository;
 import com.project.ProjectS.repository.SubjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -16,15 +17,17 @@ import java.util.Map;
 @Component
 public class ChapterExcelMapper implements ExcelRowMapper<Chapter> {
     @Autowired
-    public ChapterExcelMapper(BranchRepository branchRepository, CourseRepository courseRepository, SubjectRepository subjectRepository) {
+    public ChapterExcelMapper(BranchRepository branchRepository, CourseRepository courseRepository, SubjectRepository subjectRepository, CourseAssignmentRepository courseAssignmentRepository) {
         this.branchRepository = branchRepository;
         this.courseRepository = courseRepository;
         this.subjectRepository = subjectRepository;
+        this.courseAssignmentRepository = courseAssignmentRepository;
     }
 
     private final BranchRepository branchRepository;
     private final CourseRepository courseRepository;
     private final SubjectRepository subjectRepository;
+    private final CourseAssignmentRepository courseAssignmentRepository;
 
 
 
@@ -62,19 +65,20 @@ public class ChapterExcelMapper implements ExcelRowMapper<Chapter> {
 
 
 
-        // Find Course using Branch + Course Name
-
-        Course course =
-                courseRepository.findByNameAndBranch(
-                                courseName,
-                                branch
-                        )
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Course not found : "
-                                                + courseName
-                                )
-                        );
+        // Resolve shared catalog content through the selected branch assignment.
+        var matches = courseAssignmentRepository.findActiveForScope(
+                        branch.getCollege().getCollegeId(), branch.getBranchId())
+                .stream()
+                .map(assignment -> assignment.getCourse())
+                .filter(candidate -> candidate.getName().equalsIgnoreCase(courseName.trim()))
+                .distinct()
+                .toList();
+        if (matches.size() != 1) {
+            throw new RuntimeException(matches.isEmpty()
+                    ? "Course not assigned to branch: " + courseName
+                    : "Multiple catalog courses match " + courseName + " for branch " + branch.getBranchName());
+        }
+        Course course = matches.get(0);
 
 
 

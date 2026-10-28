@@ -3,6 +3,8 @@ package com.project.ProjectS.controller;
 import com.project.ProjectS.mapper.CourseExcelMapper;
 import com.project.ProjectS.model.CourseRequestDTO;
 import com.project.ProjectS.model.CourseResponseDTO;
+import com.project.ProjectS.model.CourseAssignmentBulkRequestDTO;
+import com.project.ProjectS.model.CourseAssignmentResponseDTO;
 import com.project.ProjectS.processor.CourseExcelProcessor;
 import com.project.ProjectS.repository.CourseRepository;
 import com.project.ProjectS.service.CourseService;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 import java.util.Map;
@@ -45,11 +48,12 @@ public class CourseController {
 
     @PostMapping
     public ResponseEntity<String> create(
-            @Valid @RequestBody CourseRequestDTO request) {
+            @Valid @RequestBody CourseRequestDTO request,
+            Authentication authentication) {
 
         log.info("Received request to create course.");
 
-        String response = service.create(request);
+        String response = service.create(request, authentication);
 
         log.info("Create course request completed successfully.");
 
@@ -57,23 +61,39 @@ public class CourseController {
     }
 
     @GetMapping
-    public List<CourseResponseDTO> getAll() {
+    public List<CourseResponseDTO> getAll(
+            @RequestParam(required = false) Long collegeId,
+            @RequestParam(required = false) Long branchId,
+            Authentication authentication) {
 
         log.info("Received request to fetch all courses.");
 
-        List<CourseResponseDTO> courses = service.getAll();
+        List<CourseResponseDTO> courses = service.getAll(collegeId, branchId, authentication);
 
         log.info("Fetched {} courses successfully.", courses.size());
 
         return courses;
     }
 
+    @GetMapping("/{id}/assignments")
+    public List<CourseAssignmentResponseDTO> getAssignments(@PathVariable Long id, Authentication authentication) {
+        return service.getAssignments(id, authentication);
+    }
+
+    @PutMapping("/{id}/assignments")
+    public List<CourseAssignmentResponseDTO> replaceAssignments(
+            @PathVariable Long id,
+            @Valid @RequestBody CourseAssignmentBulkRequestDTO request,
+            Authentication authentication) {
+        return service.replaceAssignments(id, request.getAssignments(), authentication);
+    }
+
     @GetMapping("/{id}")
-    public CourseResponseDTO getById(@PathVariable Long id) {
+    public CourseResponseDTO getById(@PathVariable Long id, Authentication authentication) {
 
         log.info("Received request to fetch course with ID: {}", id);
 
-        CourseResponseDTO course = service.getById(id);
+        CourseResponseDTO course = service.getById(id, authentication);
 
         log.info("Course fetched successfully with ID: {}", id);
 
@@ -83,11 +103,12 @@ public class CourseController {
     @PutMapping("/{id}")
     public ResponseEntity<String> update(
             @PathVariable Long id,
-            @Valid @RequestBody CourseRequestDTO request) {
+            @Valid @RequestBody CourseRequestDTO request,
+            Authentication authentication) {
 
         log.info("Received request to update course with ID: {}", id);
 
-        String response = service.update(id, request);
+        String response = service.update(id, request, authentication);
 
         log.info("Course updated successfully with ID: {}", id);
 
@@ -108,7 +129,8 @@ public class CourseController {
 
     @PostMapping("/upload")
     public ResponseEntity<String> uploadCourse(
-            @RequestParam("file") MultipartFile file){
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication){
 
 
         try{
@@ -119,7 +141,7 @@ public class CourseController {
 
 
 
-            courseExcelProcessor.process(excelData);
+            courseExcelProcessor.process(excelData, authentication);
 
 
 

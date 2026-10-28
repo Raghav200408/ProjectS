@@ -6,6 +6,7 @@ import com.project.ProjectS.model.BranchRequestDTO;
 import com.project.ProjectS.model.BranchResponseDTO;
 import com.project.ProjectS.repository.BranchRepository;
 import com.project.ProjectS.repository.CollegeRepository;
+import com.project.ProjectS.repository.CourseAssignmentRepository;
 import org.springframework.stereotype.Service;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,14 +23,17 @@ public class BranchService {
     private final BranchRepository branchRepository;
 
     private final CollegeRepository collegeRepository;
+    private final CourseAssignmentRepository courseAssignmentRepository;
 
 
     public BranchService(
             BranchRepository branchRepository,
-            CollegeRepository collegeRepository
+            CollegeRepository collegeRepository,
+            CourseAssignmentRepository courseAssignmentRepository
     ) {
         this.branchRepository = branchRepository;
         this.collegeRepository = collegeRepository;
+        this.courseAssignmentRepository = courseAssignmentRepository;
     }
 
     public String create(BranchRequestDTO request) {
@@ -116,6 +120,7 @@ public class BranchService {
         return branch;
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public String update(Long id, BranchRequestDTO request) {
 
         log.info("Updating branch with ID: {}", id);
@@ -132,6 +137,18 @@ public class BranchService {
                     return new RuntimeException("College not found");
                 });
 
+        for (var assignment : courseAssignmentRepository.findByBranch_BranchId(id)) {
+            if (!assignment.getCollege().getCollegeId().equals(college.getCollegeId())) {
+                boolean duplicate = courseAssignmentRepository
+                        .existsByCourse_CourseIdAndCollege_CollegeIdAndBranch_BranchId(
+                                assignment.getCourse().getCourseId(), college.getCollegeId(), id);
+                if (duplicate) {
+                    throw new IllegalArgumentException("This branch already has a duplicate course assignment in the selected college");
+                }
+                assignment.setCollege(college);
+                courseAssignmentRepository.save(assignment);
+            }
+        }
         entity.setCollege(college);
         entity.setBranchName(request.getBranchName());
         entity.setAddress(request.getAddress());

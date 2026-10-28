@@ -9,13 +9,11 @@ import lombok.Setter;
 @Setter
 public class CourseRequestDTO {
 
-    @NotNull(message = "Branch Id is required")
     private Long branchId;
 
     @NotBlank(message = "Course name is required")
     private String name;
 
-    @NotNull(message = "College ID is required")
     private Long collegeId;
     // Status fields
     private Boolean activeRow;

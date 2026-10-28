@@ -25,6 +25,7 @@ public class ExamService {
     private final CollegeRepository collegeRepository;
     private final BranchRepository branchRepository;
     private final CourseRepository courseRepository;
+    private final CourseAssignmentRepository courseAssignmentRepository;
     private final SectionRepository sectionRepository;
     private final SubjectRepository subjectRepository;
     private final ChapterRepository chapterRepository;
@@ -45,6 +46,7 @@ public class ExamService {
             CollegeRepository collegeRepository,
             BranchRepository branchRepository,
             CourseRepository courseRepository,
+            CourseAssignmentRepository courseAssignmentRepository,
             SectionRepository sectionRepository,
             SubjectRepository subjectRepository,
             ChapterRepository chapterRepository,
@@ -62,6 +64,7 @@ public class ExamService {
         this.collegeRepository = collegeRepository;
         this.branchRepository = branchRepository;
         this.courseRepository = courseRepository;
+        this.courseAssignmentRepository = courseAssignmentRepository;
         this.sectionRepository = sectionRepository;
         this.subjectRepository = subjectRepository;
         this.chapterRepository = chapterRepository;
@@ -97,6 +100,14 @@ public class ExamService {
                 .findById(request.getCourseId())
                 .orElseThrow(() ->
                         new RuntimeException("Course not found"));
+
+        boolean courseAssigned = courseAssignmentRepository.findActiveForScope(
+                        college.getCollegeId(), branch.getBranchId())
+                .stream().anyMatch(assignment ->
+                        assignment.getCourse().getCourseId().equals(course.getCourseId()));
+        if (!courseAssigned) {
+            throw new IllegalArgumentException("Course is not assigned to the selected college and branch");
+        }
 
         Section section = sectionRepository
                 .findById(request.getSectionId())
@@ -281,6 +292,13 @@ public class ExamService {
                                 "Course not found"
                         ));
 
+        boolean courseAssigned = courseAssignmentRepository.findActiveForScope(
+                        college.getCollegeId(), branch.getBranchId())
+                .stream().anyMatch(assignment ->
+                        assignment.getCourse().getCourseId().equals(course.getCourseId()));
+        if (!courseAssigned) {
+            throw new IllegalArgumentException("Course is not assigned to the selected college and branch");
+        }
 
         Section section = sectionRepository
                 .findById(request.getSectionId())

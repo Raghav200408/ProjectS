@@ -80,6 +80,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/college/**", "/api/branch/**").hasAnyRole(SA, CA)
                         .requestMatchers("/api/section/**").hasAnyRole(ADMINS)
 
+                        // Course assignment details are limited to administrators.
+                        .requestMatchers(HttpMethod.GET, "/api/course/*/assignments").hasAnyRole(ADMINS)
+
                         // Courses, subjects, chapters and topics: student/guest read-only.
                         .requestMatchers(HttpMethod.GET, "/api/course/**", "/api/subjects/**",
                                 "/api/chapter/**", "/api/topics/**").hasAnyRole(ALL)
