@@ -116,11 +116,11 @@ public class CourseController {
     }
 
     @DeleteMapping("/{id}")
-    public String delete(@PathVariable Long id) {
+    public String delete(@PathVariable Long id, Authentication authentication) {
 
         log.info("Received request to delete course with ID: {}", id);
 
-        String response = service.delete(id);
+        String response = service.delete(id, authentication);
 
         log.info("Course deleted successfully with ID: {}", id);
 

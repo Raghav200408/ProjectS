@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface CourseAssignmentRepository extends JpaRepository<CourseAssignment, Long> {
     List<CourseAssignment> findByCourse_CourseId(Long courseId);
@@ -13,6 +14,9 @@ public interface CourseAssignmentRepository extends JpaRepository<CourseAssignme
     List<CourseAssignment> findByBranch_BranchId(Long branchId);
 
     List<CourseAssignment> findByCourse_CourseIdAndActiveRowTrue(Long courseId);
+
+    Optional<CourseAssignment> findByCourse_CourseIdAndCollege_CollegeIdAndBranch_BranchId(
+            Long courseId, Long collegeId, Long branchId);
 
     @Query("""
         select distinct a from CourseAssignment a

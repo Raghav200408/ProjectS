@@ -10,13 +10,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.web.multipart.MultipartFile;
-import com.project.ProjectS.repository.BranchRepository;
-import com.project.ProjectS.repository.CollegeRepository;
 import com.project.ProjectS.service.ExcelUploadService;
-import com.project.ProjectS.service.GenericExcelUploadService;
 
 import java.util.Map;
 
@@ -26,12 +24,10 @@ import java.util.List;
 @RequestMapping("/api/branch")
 public class BranchController {
     @Autowired
-    public BranchController(BranchExcelMapper branchMapper, BranchService service, ExcelUploadService excelUploadService, GenericExcelUploadService genericExcelUploadService, BranchRepository branchRepository) {
+    public BranchController(BranchExcelMapper branchMapper, BranchService service, ExcelUploadService excelUploadService) {
         this.branchMapper = branchMapper;
         this.service = service;
         this.excelUploadService = excelUploadService;
-        this.genericExcelUploadService = genericExcelUploadService;
-        this.branchRepository = branchRepository;
     }
 
 
@@ -40,16 +36,15 @@ public class BranchController {
     private final BranchExcelMapper branchMapper;
     private final BranchService service;
     private final ExcelUploadService excelUploadService;
-    private final GenericExcelUploadService genericExcelUploadService;
-    private final BranchRepository branchRepository;
 
     @PostMapping
     public ResponseEntity<String> create(
-            @Valid @RequestBody BranchRequestDTO request) {
+            @Valid @RequestBody BranchRequestDTO request,
+            Authentication authentication) {
 
         log.info("Received request to create branch.");
 
-        String response = service.create(request);
+        String response = service.create(request, authentication);
 
         log.info("Create branch request completed successfully.");
 
@@ -57,11 +52,11 @@ public class BranchController {
     }
 
     @GetMapping
-    public List<BranchResponseDTO> getAll() {
+    public List<BranchResponseDTO> getAll(Authentication authentication) {
 
         log.info("Received request to fetch all branches.");
 
-        List<BranchResponseDTO> branches = service.getAll();
+        List<BranchResponseDTO> branches = service.getAll(authentication);
 
         log.info("Fetched {} branches successfully.", branches.size());
 
@@ -69,11 +64,11 @@ public class BranchController {
     }
 
     @GetMapping("/{id}")
-    public Branch getById(@PathVariable Long id) {
+    public Branch getById(@PathVariable Long id, Authentication authentication) {
 
         log.info("Received request to fetch branch with ID: {}", id);
 
-        Branch branch = service.getById(id);
+        Branch branch = service.getById(id, authentication);
 
         log.info("Branch fetched successfully with ID: {}", id);
 
@@ -83,11 +78,12 @@ public class BranchController {
     @PutMapping("/{id}")
     public ResponseEntity<String> update(
             @PathVariable Long id,
-            @Valid @RequestBody BranchRequestDTO request) {
+            @Valid @RequestBody BranchRequestDTO request,
+            Authentication authentication) {
 
         log.info("Received request to update branch with ID: {}", id);
 
-        String response = service.update(id, request);
+        String response = service.update(id, request, authentication);
 
         log.info("Branch updated successfully with ID: {}", id);
 
@@ -95,11 +91,11 @@ public class BranchController {
     }
 
     @DeleteMapping("/{id}")
-    public String delete(@PathVariable Long id) {
+    public String delete(@PathVariable Long id, Authentication authentication) {
 
         log.info("Received request to delete branch with ID: {}", id);
 
-        String response = service.delete(id);
+        String response = service.delete(id, authentication);
 
         log.info("Branch deleted successfully with ID: {}", id);
 
@@ -108,20 +104,23 @@ public class BranchController {
 
     @PostMapping("/upload")
     public ResponseEntity<String> uploadBranch(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
 
+        service.authorizeExcelUpload(authentication);
         try {
-
             List<Map<String, String>> excelData =
                     excelUploadService.readExcel(file);
 
-            genericExcelUploadService.process(
-                    excelData,
-                    branchMapper,
-                    branchRepository
-            );
+            for (Map<String, String> row : excelData) {
+                if (row.values().stream().allMatch(String::isBlank)) continue;
+                service.importBranch(branchMapper.map(row), authentication);
+            }
 
             return ResponseEntity.ok("Branch Excel uploaded successfully");
+
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            throw e;
 
         } catch (Exception e) {
 

@@ -156,10 +156,22 @@ public class CourseService {
     public String update(Long id, CourseRequestDTO request, Authentication authentication) {
         Course entity = courseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Course not found with ID: " + id));
-        entity.setName(request.getName().trim());
-        if (request.getActiveRow() != null) entity.setActiveRow(request.getActiveRow());
-        if (request.getRowStatus() != null) entity.setRowStatus(request.getRowStatus());
-        Course saved = courseRepository.save(entity);
+        User actor = requireActor(authentication);
+        String role = actor.getRole() == null ? "" : actor.getRole().getRoleName();
+        boolean superAdmin = "SUPER_ADMIN".equalsIgnoreCase(role);
+
+        if (!superAdmin && (!entity.getName().equals(request.getName().trim())
+                || (request.getActiveRow() != null && !request.getActiveRow().equals(entity.getActiveRow()))
+                || (request.getRowStatus() != null && !request.getRowStatus().equals(entity.getRowStatus())))) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Only a Super Admin can modify shared course catalog details");
+        }
+
+        if (superAdmin) {
+            entity.setName(request.getName().trim());
+            if (request.getActiveRow() != null) entity.setActiveRow(request.getActiveRow());
+            if (request.getRowStatus() != null) entity.setRowStatus(request.getRowStatus());
+        }
 
         // Older clients may still submit a location while editing. Treat it as
         // an additional assignment rather than moving the shared catalog item.
@@ -175,9 +187,10 @@ public class CourseService {
                 assignment.setCollegeId(request.getCollegeId());
                 assignment.setBranchId(request.getBranchId());
                 assignment.setActiveRow(true);
-                addAssignment(saved, assignment);
+                addAssignment(entity, assignment);
             }
         }
+        courseRepository.save(entity);
         return "Course updated successfully";
     }
 
@@ -343,7 +356,14 @@ public class CourseService {
     }
 
     @org.springframework.transaction.annotation.Transactional
-    public String delete(Long id) {
+    public String delete(Long id, Authentication authentication) {
+
+        User actor = requireActor(authentication);
+        String role = actor.getRole() == null ? "" : actor.getRole().getRoleName();
+        if (!"SUPER_ADMIN".equalsIgnoreCase(role)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Only a Super Admin can delete a shared catalog course");
+        }
 
         log.info("Deleting course with ID: {}", id);
 

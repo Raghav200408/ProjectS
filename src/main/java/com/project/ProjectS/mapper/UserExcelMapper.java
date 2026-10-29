@@ -153,6 +153,16 @@ public class UserExcelMapper implements ExcelRowMapper<User> {
 
             branch = branches.get(0);
 
+            if (college != null && !branch.getCollege().getCollegeId().equals(college.getCollegeId())) {
+                throw new RuntimeException("Branch " + branch.getBranchName()
+                        + " does not belong to college " + college.getInstituteName());
+            }
+
+            // Use the branch's college as the authoritative scope when the
+            // spreadsheet omits college_name.
+            college = branch.getCollege();
+            user.setCollege(college);
+
             user.setBranch(branch);
         }
 
@@ -204,9 +214,11 @@ public class UserExcelMapper implements ExcelRowMapper<User> {
             }
 
             Section section =
-                    sectionRepository.findBySectionNameAndCourse(
+                    sectionRepository.findBySectionNameAndCourse_CourseIdAndCollege_CollegeIdAndBranch_BranchId(
                                     sectionName.trim(),
-                                    course
+                                    course.getCourseId(),
+                                    college.getCollegeId(),
+                                    branch.getBranchId()
                             )
                             .orElseThrow(
                                     () -> new RuntimeException(

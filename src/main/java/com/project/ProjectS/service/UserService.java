@@ -238,6 +238,7 @@ public class UserService {
         requireCourseAssignment(course, college.getCollegeId(), branch.getBranchId());
 
         Section section = getSection(request.getSectionId());
+        requireSectionScope(section, course, college.getCollegeId(), branch.getBranchId());
 
         User user = new User();
 
@@ -472,20 +473,20 @@ public class UserService {
         user.setStudentCode(request.getStudentCode());
         user.setAddress(request.getAddress());
 
-        user.setCollege(
-                getCollege(request.getCollegeId())
-        );
-
-        user.setBranch(
-                getBranch(request.getBranchId())
-        );
+        College college = getCollege(request.getCollegeId());
+        Branch branch = getBranch(request.getBranchId());
+        if (!branch.getCollege().getCollegeId().equals(college.getCollegeId())) {
+            throw new IllegalArgumentException("Selected branch does not belong to the selected college");
+        }
+        user.setCollege(college);
+        user.setBranch(branch);
         Course course = getCourse(request.getCourseId());
         requireCourseAssignment(course, request.getCollegeId(), request.getBranchId());
         user.setCourse(course);
 
-        user.setSection(
-                getSection(request.getSectionId())
-        );
+        Section section = getSection(request.getSectionId());
+        requireSectionScope(section, course, college.getCollegeId(), branch.getBranchId());
+        user.setSection(section);
 
         user.setEmail(request.getEmail());
         user.setPhoneNumber(request.getPhoneNumber());
@@ -721,6 +722,14 @@ public class UserService {
                 .stream().anyMatch(row -> row.getCourse().getCourseId().equals(course.getCourseId()));
         if (!assigned) {
             throw new IllegalArgumentException("Course is not assigned to the selected college and branch");
+        }
+    }
+
+    private void requireSectionScope(Section section, Course course, Long collegeId, Long branchId) {
+        if (!java.util.Objects.equals(section.getCourse().getCourseId(), course.getCourseId())
+                || !java.util.Objects.equals(section.getCollege().getCollegeId(), collegeId)
+                || !java.util.Objects.equals(section.getBranch().getBranchId(), branchId)) {
+            throw new IllegalArgumentException("Selected section does not belong to the selected course, college, and branch");
         }
     }
 

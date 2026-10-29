@@ -96,6 +96,10 @@ public class ExamService {
                 .orElseThrow(() ->
                         new RuntimeException("Branch not found"));
 
+        if (!branch.getCollege().getCollegeId().equals(college.getCollegeId())) {
+            throw new IllegalArgumentException("Selected branch does not belong to the selected college");
+        }
+
         Course course = courseRepository
                 .findById(request.getCourseId())
                 .orElseThrow(() ->
@@ -113,6 +117,8 @@ public class ExamService {
                 .findById(request.getSectionId())
                 .orElseThrow(() ->
                         new RuntimeException("Section not found"));
+
+        requireSectionScope(section, course, college.getCollegeId(), branch.getBranchId());
 
 
         List<Chapter> chapters =
@@ -284,6 +290,10 @@ public class ExamService {
                                 "Branch not found"
                         ));
 
+        if (!branch.getCollege().getCollegeId().equals(college.getCollegeId())) {
+            throw new IllegalArgumentException("Selected branch does not belong to the selected college");
+        }
+
 
         Course course = courseRepository
                 .findById(request.getCourseId())
@@ -306,6 +316,8 @@ public class ExamService {
                         new RuntimeException(
                                 "Section not found"
                         ));
+
+        requireSectionScope(section, course, college.getCollegeId(), branch.getBranchId());
 
 
         List<Chapter> chapters =
@@ -792,6 +804,14 @@ public class ExamService {
 
     // An exam is scoped to a single subject: it must sit under the exam's
     // course, and every chapter attached to the paper must belong to it.
+    private void requireSectionScope(Section section, Course course, Long collegeId, Long branchId) {
+        if (!java.util.Objects.equals(section.getCourse().getCourseId(), course.getCourseId())
+                || !java.util.Objects.equals(section.getCollege().getCollegeId(), collegeId)
+                || !java.util.Objects.equals(section.getBranch().getBranchId(), branchId)) {
+            throw new IllegalArgumentException("Selected section does not belong to the selected course, college, and branch");
+        }
+    }
+
     private Subject resolveSubjectForExam(
             Long subjectId,
             Course course,

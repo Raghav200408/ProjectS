@@ -3,8 +3,8 @@ package com.project.ProjectS.repository;
 import com.project.ProjectS.model.DashboardResponseDTO;
 import com.project.ProjectS.model.DashboardResponseDTO.Activity;
 import com.project.ProjectS.model.DashboardResponseDTO.LeaderboardEntry;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,19 +16,20 @@ public class DashboardRepository {
     public static final ZoneId PRACTICE_ZONE = ZoneId.of("Asia/Calcutta");
     public record Scope(Long collegeId, Long branchId, boolean selfOnly, boolean subscribedOnly) {}
     public record Ranking(List<LeaderboardEntry> entries, Long currentRank, long studentCount) {}
-    private final NamedParameterJdbcTemplate jdbc;
+    private final EntityManager entityManager;
 
-    public DashboardRepository(NamedParameterJdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public DashboardRepository(EntityManager entityManager) { this.entityManager = entityManager; }
 
-    private MapSqlParameterSource params(long userId, Scope scope) {
-        return new MapSqlParameterSource("userId", userId)
-                .addValue("collegeId", scope.collegeId()).addValue("branchId", scope.branchId())
-                .addValue("selfOnly", scope.selfOnly()).addValue("subscribedOnly", scope.subscribedOnly());
+    private Query scopedQuery(String sql, long userId, Scope scope) {
+        return entityManager.createNativeQuery(sql)
+                .setParameter("userId", userId)
+                .setParameter("collegeId", scope.collegeId())
+                .setParameter("branchId", scope.branchId())
+                .setParameter("selfOnly", scope.selfOnly());
     }
 
     public void populateCounts(DashboardResponseDTO result, long userId, Scope scope) {
-        var p = params(userId, scope);
-        var counts = jdbc.queryForMap("""
+        Object[] counts = (Object[]) scopedQuery("""
                 SELECT
                   (SELECT COUNT(*) FROM college c WHERE COALESCE(c.active_row, true)
                     AND (CAST(:collegeId AS bigint) IS NULL OR c.college_id = :collegeId)
@@ -43,24 +44,26 @@ public class DashboardRepository {
                     AND (CAST(:collegeId AS bigint) IS NULL OR s.college_id = :collegeId)
                     AND (CAST(:branchId AS bigint) IS NULL OR s.branch_id = :branchId)
                     AND NOT :selfOnly) AS sections,
-                  (SELECT COUNT(*) FROM courses c WHERE COALESCE(c.active_row, true)
-                    AND (CAST(:collegeId AS bigint) IS NULL OR c.college_id = :collegeId)
-                    AND (CAST(:branchId AS bigint) IS NULL OR c.branch_id = :branchId)
+                  (SELECT COUNT(DISTINCT c.course_id) FROM courses c WHERE COALESCE(c.active_row, true)
+                    AND (CAST(:collegeId AS bigint) IS NULL OR EXISTS (
+                      SELECT 1 FROM course_assignments ca
+                      WHERE ca.course_id = c.course_id AND ca.college_id = :collegeId AND ca.active_row
+                        AND (CAST(:branchId AS bigint) IS NULL OR ca.branch_id IS NULL OR ca.branch_id = :branchId)))
                     AND NOT :selfOnly) AS courses,
                   (SELECT COUNT(DISTINCT c.course_id) FROM user_subscriptions us
                     JOIN courses c ON c.course_id = us.course_id AND COALESCE(c.active_row, true)
                     JOIN subscription_plans sp ON sp.plan_id = us.plan_id AND sp.active
                     WHERE us.user_id = :userId AND us.active AND us.starts_at <= (now() AT TIME ZONE 'Asia/Calcutta')
                       AND (us.expires_at IS NULL OR us.expires_at > (now() AT TIME ZONE 'Asia/Calcutta'))) AS my_courses
-                """, p);
-        result.setTotalColleges(((Number) counts.get("colleges")).longValue());
-        result.setTotalBranches(((Number) counts.get("branches")).longValue());
-        result.setTotalSections(((Number) counts.get("sections")).longValue());
-        result.setTotalCourses(((Number) counts.get("courses")).longValue());
-        result.setMyCourses(((Number) counts.get("my_courses")).longValue());
+                """, userId, scope).getSingleResult();
+        result.setTotalColleges(((Number) counts[0]).longValue());
+        result.setTotalBranches(((Number) counts[1]).longValue());
+        result.setTotalSections(((Number) counts[2]).longValue());
+        result.setTotalCourses(((Number) counts[3]).longValue());
+        result.setMyCourses(((Number) counts[4]).longValue());
 
         // Numerator and denominator share the same active unit definitions.
-        var practice = jdbc.queryForMap("""
+        Object[] practice = (Object[]) scopedQuery("""
                 WITH available_questions AS (
                   SELECT q.* FROM questions q JOIN courses c ON c.course_id = q.course_id
                   WHERE COALESCE(q.active_row, true) AND COALESCE(c.active_row, true)
@@ -71,8 +74,10 @@ public class DashboardRepository {
                         AND us.starts_at <= (now() AT TIME ZONE 'Asia/Calcutta')
                         AND (us.expires_at IS NULL OR us.expires_at > (now() AT TIME ZONE 'Asia/Calcutta'))))
                       OR (NOT :subscribedOnly AND NOT :selfOnly
-                        AND (CAST(:collegeId AS bigint) IS NULL OR c.college_id = :collegeId)
-                        AND (CAST(:branchId AS bigint) IS NULL OR c.branch_id = :branchId)))
+                        AND (CAST(:collegeId AS bigint) IS NULL OR EXISTS (
+                          SELECT 1 FROM course_assignments ca
+                          WHERE ca.course_id = c.course_id AND ca.college_id = :collegeId AND ca.active_row
+                            AND (CAST(:branchId AS bigint) IS NULL OR ca.branch_id IS NULL OR ca.branch_id = :branchId)))))
                 ), question_kinds AS (
                   SELECT q.question_id, CASE
                     WHEN EXISTS (SELECT 1 FROM mcq_questions m WHERE m.question_id = q.question_id AND m.active_row) THEN 'MCQ'
@@ -99,15 +104,18 @@ public class DashboardRepository {
                     COUNT(pr.practice_result_id) AS attempted
                 FROM units u LEFT JOIN practice_results pr
                   ON pr.question_id = u.question_id AND pr.unit_key = u.unit_key AND pr.user_id = :userId
-                """, p);
-        result.setPracticeQuestions(((Number) practice.get("questions")).longValue());
-        result.setTotalUnits(((Number) practice.get("total")).longValue());
-        result.setAttemptedUnits(((Number) practice.get("attempted")).longValue());
+                """, userId, scope)
+                .setParameter("subscribedOnly", scope.subscribedOnly())
+                .getSingleResult();
+        result.setPracticeQuestions(((Number) practice[0]).longValue());
+        result.setTotalUnits(((Number) practice[1]).longValue());
+        result.setAttemptedUnits(((Number) practice[2]).longValue());
     }
 
     public Ranking ranking(long userId, Scope scope) {
         // A retake replaces that exam's earlier percentage; exams get equal weight.
-        var rows = jdbc.query("""
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = scopedQuery("""
                 WITH latest AS (
                   SELECT DISTINCT ON (er.user_id, er.exam_id) er.user_id, er.exam_id, er.percentage
                   FROM exam_result er JOIN users u ON u.user_id = er.user_id
@@ -125,36 +133,42 @@ public class DashboardRepository {
                   SELECT a.*, RANK() OVER (ORDER BY percentage DESC) AS position,
                     COUNT(*) OVER () AS students FROM averages a
                 )
-                SELECT r.*, u.name FROM ranked r JOIN users u ON u.user_id = r.user_id
+                SELECT r.user_id, r.percentage, r.exams, r.position, r.students, u.name
+                FROM ranked r JOIN users u ON u.user_id = r.user_id
                 WHERE r.user_id = :userId OR r.user_id IN (
                     SELECT user_id FROM ranked ORDER BY position, user_id LIMIT 5)
                 ORDER BY position, u.name, r.user_id
-                """, params(userId, scope), (rs, index) -> new RankedRow(
-                new LeaderboardEntry(rs.getLong("user_id"), rs.getString("name"), rs.getLong("position"),
-                    rs.getDouble("percentage"), rs.getLong("exams"), rs.getLong("user_id") == userId), rs.getLong("students")));
-        Long rank = rows.stream().map(RankedRow::entry).filter(LeaderboardEntry::current)
+                """, userId, scope).getResultList();
+        List<RankedRow> rankedRows = rows.stream().map(row -> new RankedRow(
+                new LeaderboardEntry(((Number) row[0]).longValue(), (String) row[5], ((Number) row[3]).longValue(),
+                        ((Number) row[1]).doubleValue(), ((Number) row[2]).longValue(), ((Number) row[0]).longValue() == userId),
+                ((Number) row[4]).longValue())).toList();
+        Long rank = rankedRows.stream().map(RankedRow::entry).filter(LeaderboardEntry::current)
                 .map(LeaderboardEntry::rank).findFirst().orElse(null);
-        return new Ranking(rows.stream().map(RankedRow::entry).toList(), rank,
-                rows.isEmpty() ? 0 : rows.get(0).students());
+        return new Ranking(rankedRows.stream().map(RankedRow::entry).toList(), rank,
+                rankedRows.isEmpty() ? 0 : rankedRows.get(0).students());
     }
     private record RankedRow(LeaderboardEntry entry, long students) {}
 
     public List<LocalDate> practiceDays(long userId, LocalDate today) {
-        return jdbc.query("""
+        @SuppressWarnings("unchecked")
+        List<Object> dates = entityManager.createNativeQuery("""
                 SELECT DISTINCT practice_date FROM practice_daily_questions
                 WHERE user_id = :userId AND practice_date <= :today ORDER BY practice_date DESC
-                """, new MapSqlParameterSource("userId", userId).addValue("today", today),
-                (rs, index) -> rs.getObject("practice_date", LocalDate.class));
+                """).setParameter("userId", userId).setParameter("today", today).getResultList();
+        return dates.stream().map(value -> value instanceof LocalDate date ? date
+                : ((java.sql.Date) value).toLocalDate()).toList();
     }
 
     public long todayQuestions(long userId, LocalDate today) {
-        return jdbc.queryForObject("""
+        return ((Number) entityManager.createNativeQuery("""
                 SELECT COUNT(*) FROM practice_daily_questions WHERE user_id = :userId AND practice_date = :today
-                """, new MapSqlParameterSource("userId", userId).addValue("today", today), Long.class);
+                """).setParameter("userId", userId).setParameter("today", today).getSingleResult()).longValue();
     }
 
     public List<Activity> recentActivities(long userId) {
-        return jdbc.query("""
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery("""
                 SELECT * FROM (
                   SELECT 'practice:' || pr.question_id AS id, 'PRACTICE' AS type,
                     'Practiced question #' || pr.question_id AS title,
@@ -176,8 +190,13 @@ public class DashboardRepository {
                     'Course subscription', us.starts_at FROM user_subscriptions us JOIN courses c ON c.course_id = us.course_id
                     WHERE us.user_id = :userId AND us.starts_at <= (now() AT TIME ZONE 'Asia/Calcutta')
                 ) activity WHERE occurred_at IS NOT NULL ORDER BY occurred_at DESC, id DESC LIMIT 12
-                """, new MapSqlParameterSource("userId", userId), (rs, index) -> new Activity(
-                rs.getString("id"), rs.getString("type"), rs.getString("title"), rs.getString("detail"),
-                rs.getObject("occurred_at", LocalDateTime.class).atZone(PRACTICE_ZONE).toOffsetDateTime()));
+                """).setParameter("userId", userId).getResultList();
+        return rows.stream().map(row -> {
+            Object occurredAt = row[4];
+            LocalDateTime localDateTime = occurredAt instanceof LocalDateTime value
+                    ? value : ((java.sql.Timestamp) occurredAt).toLocalDateTime();
+            return new Activity((String) row[0], (String) row[1], (String) row[2], (String) row[3],
+                    localDateTime.atZone(PRACTICE_ZONE).toOffsetDateTime());
+        }).toList();
     }
 }

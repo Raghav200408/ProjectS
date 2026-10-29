@@ -99,7 +99,10 @@ public class CourseExcelProcessor {
                     course = courseRepository.save(course);
                 }
 
-                CourseAssignment assignment = new CourseAssignment();
+                CourseAssignment assignment = assignmentRepository
+                        .findByCourse_CourseIdAndCollege_CollegeIdAndBranch_BranchId(
+                                course.getCourseId(), collegeId, branchId)
+                        .orElseGet(CourseAssignment::new);
                 assignment.setCourse(course);
                 assignment.setCollege(branch.getCollege());
                 assignment.setBranch(branch);
