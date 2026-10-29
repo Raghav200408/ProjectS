@@ -99,7 +99,9 @@ public class SubscriptionEntitlementService {
     @Transactional
     public void consumePracticeQuestions(Long userId, Long courseId, int count) {
         if (count <= 0) return;
-        UserSubscription subscription = requireCourseAccess(userId, courseId);
+        UserSubscription subscription = subscriptions.findEntitledSubscriptionForUpdate(userId, courseId, LocalDateTime.now())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "An active subscription is required for this course"));
         Integer limit = subscription.getPlan().getPracticeQuestionLimit();
         if (isLimited(limit) && used(subscription.getPracticeQuestionsUsed()) + count > limit) {
             throw new IllegalStateException("Practice-question limit reached for this subscription");
@@ -110,7 +112,9 @@ public class SubscriptionEntitlementService {
 
     @Transactional
     public void consumeMockTest(Long userId, Long courseId) {
-        UserSubscription subscription = requireCourseAccess(userId, courseId);
+        UserSubscription subscription = subscriptions.findEntitledSubscriptionForUpdate(userId, courseId, LocalDateTime.now())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "An active subscription is required for this course"));
         if (!subscription.getPlan().isMockTestEnabled()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Mock tests are not included in this subscription");
         }
@@ -124,7 +128,9 @@ public class SubscriptionEntitlementService {
 
     @Transactional
     public void consumeExamAttempt(Long userId, Long courseId) {
-        UserSubscription subscription = requireCourseAccess(userId, courseId);
+        UserSubscription subscription = subscriptions.findEntitledSubscriptionForUpdate(userId, courseId, LocalDateTime.now())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "An active subscription is required for this course"));
         if (!subscription.getPlan().isExamEnabled()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Exams are not included in this subscription");
         }
