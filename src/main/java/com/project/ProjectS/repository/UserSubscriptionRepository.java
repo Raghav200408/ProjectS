@@ -24,13 +24,20 @@ public interface UserSubscriptionRepository extends JpaRepository<UserSubscripti
         List<UserSubscription> findInactiveValidByPlan(@Param("planId") Long planId,
                                 @Param("now") LocalDateTime now);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from UserSubscription s join fetch s.plan join fetch s.course " +
             "where s.user.userId = :userId and s.course.courseId = :courseId " +
             "and s.active = true and (s.expiresAt is null or s.expiresAt > :now)")
     Optional<UserSubscription> findEntitledSubscription(@Param("userId") Long userId,
                                                          @Param("courseId") Long courseId,
                                                          @Param("now") LocalDateTime now);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select s from UserSubscription s join fetch s.plan join fetch s.course " +
+            "where s.user.userId = :userId and s.course.courseId = :courseId " +
+            "and s.active = true and (s.expiresAt is null or s.expiresAt > :now)")
+    Optional<UserSubscription> findEntitledSubscriptionForUpdate(@Param("userId") Long userId,
+                                                                  @Param("courseId") Long courseId,
+                                                                  @Param("now") LocalDateTime now);
 
     @EntityGraph(attributePaths = {"user", "user.branch", "course", "plan"})
     List<UserSubscription> findAllByOrderByStartsAtDesc();

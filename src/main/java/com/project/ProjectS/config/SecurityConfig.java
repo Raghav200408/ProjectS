@@ -66,11 +66,13 @@ public class SecurityConfig {
                         // Dashboard and settings.
                         .requestMatchers("/api/dashboard/**", "/api/settings/**").hasAnyRole(ALL)
 
-                        // Subscription overview/history is administrative; plans are available to all roles.
+                        // Subscription overview/history is administrative; plan listings are available to all roles.
                         .requestMatchers(HttpMethod.GET, "/api/subscriptions/users/**",
                                 "/api/subscriptions/history").hasAnyRole(ADMINS)
-                        .requestMatchers("/api/subscriptions/plans/**",
+                        .requestMatchers("/api/subscriptions/plans/*/courses/*/questions").hasAnyRole(ADMINS)
+                        .requestMatchers(HttpMethod.GET, "/api/subscriptions/plans", "/api/subscriptions/plans/**",
                                 "/api/subscriptions/courses/*/plans").hasAnyRole(ALL)
+                        .requestMatchers("/api/subscriptions/plans", "/api/subscriptions/plans/**").hasAnyRole(ADMINS)
                         .requestMatchers(HttpMethod.POST, "/api/subscriptions/activate").hasAnyRole(ST, GU)
                         .requestMatchers(HttpMethod.GET, "/api/subscriptions/mine").hasAnyRole(ALL)
                         .requestMatchers(HttpMethod.POST, "/api/subscriptions/bulk-assign",
