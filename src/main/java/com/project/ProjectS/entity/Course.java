@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "courses")
@@ -18,12 +19,15 @@ public class Course {
     private Long courseId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "branch_id", nullable = false)
+    @JoinColumn(name = "branch_id")
     private Branch branch;
 
     @ManyToOne
-    @JoinColumn(name = "college_id", nullable = false)
+    @JoinColumn(name = "college_id")
     private College college;
+
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CourseAssignment> assignments;
 
     @Column(name = "name", nullable = false)
     private String name;

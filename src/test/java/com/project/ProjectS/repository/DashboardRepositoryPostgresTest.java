@@ -1,6 +1,8 @@
 package com.project.ProjectS.repository;
 
 import com.project.ProjectS.model.DashboardResponseDTO;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -14,6 +16,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
+import java.lang.reflect.Proxy;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** PostgreSQL fixtures use an isolated schema; the entire transaction is rolled back. */
@@ -90,7 +93,42 @@ class DashboardRepositoryPostgresTest {
             INSERT INTO mock_exam_result VALUES (1,1,1,80,now());
             """);
         migrate();
-        repository = new DashboardRepository(new NamedParameterJdbcTemplate(jdbc));
+        repository = new DashboardRepository(entityManagerAdapter(new NamedParameterJdbcTemplate(jdbc)));
+    }
+
+    private EntityManager entityManagerAdapter(NamedParameterJdbcTemplate namedJdbc) {
+        return (EntityManager) Proxy.newProxyInstance(EntityManager.class.getClassLoader(),
+                new Class<?>[]{EntityManager.class}, (proxy, method, args) -> {
+                    if (!method.getName().equals("createNativeQuery")) return null;
+                    String sql = (String) args[0];
+                    Map<String, Object> params = new java.util.LinkedHashMap<>();
+                    final Query[] queryRef = new Query[1];
+                    queryRef[0] = (Query) Proxy.newProxyInstance(Query.class.getClassLoader(),
+                            new Class<?>[]{Query.class}, (queryProxy, queryMethod, queryArgs) -> {
+                                if (queryMethod.getName().equals("setParameter")) {
+                                    params.put((String) queryArgs[0], queryArgs[1]);
+                                    return queryRef[0];
+                                }
+                                if (queryMethod.getName().equals("getResultList"))
+                                    return namedJdbc.query(sql, params, (rs, row) -> {
+                                        int columns = rs.getMetaData().getColumnCount();
+                                        Object[] values = new Object[columns];
+                                        for (int i = 0; i < columns; i++) values[i] = rs.getObject(i + 1);
+                                        return columns == 1 ? values[0] : values;
+                                    });
+                                if (queryMethod.getName().equals("getSingleResult")) {
+                                    var values = namedJdbc.query(sql, params, (rs, row) -> {
+                                        int columns = rs.getMetaData().getColumnCount();
+                                        Object[] result = new Object[columns];
+                                        for (int i = 0; i < columns; i++) result[i] = rs.getObject(i + 1);
+                                        return result;
+                                    });
+                                    return values.get(0).length == 1 ? values.get(0)[0] : values.get(0);
+                                }
+                                return null;
+                            });
+                    return queryRef[0];
+                });
     }
 
     private void migrate() throws Exception {

@@ -11,6 +11,7 @@ import com.project.ProjectS.repository.BranchRepository;
 import com.project.ProjectS.repository.ChapterRepository;
 import com.project.ProjectS.repository.CollegeRepository;
 import com.project.ProjectS.repository.CourseRepository;
+import com.project.ProjectS.repository.CourseAssignmentRepository;
 import com.project.ProjectS.repository.TopicRepository;
 import com.project.ProjectS.repository.SubjectRepository;
 
@@ -27,7 +28,7 @@ import org.apache.logging.log4j.LogManager;
 @Component
 public class TopicExcelProcessor {
     @Autowired
-    public TopicExcelProcessor(TopicExcelMapper topicExcelMapper, TopicRepository topicRepository, CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository, ChapterRepository chapterRepository, SubjectRepository subjectRepository) {
+    public TopicExcelProcessor(TopicExcelMapper topicExcelMapper, TopicRepository topicRepository, CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository, ChapterRepository chapterRepository, SubjectRepository subjectRepository, CourseAssignmentRepository courseAssignmentRepository) {
         this.topicExcelMapper = topicExcelMapper;
         this.topicRepository = topicRepository;
         this.collegeRepository = collegeRepository;
@@ -35,6 +36,7 @@ public class TopicExcelProcessor {
         this.courseRepository = courseRepository;
         this.chapterRepository = chapterRepository;
         this.subjectRepository = subjectRepository;
+        this.courseAssignmentRepository = courseAssignmentRepository;
     }
 
 
@@ -46,6 +48,7 @@ public class TopicExcelProcessor {
     private final CourseRepository courseRepository;
     private final ChapterRepository chapterRepository;
     private final SubjectRepository subjectRepository;
+    private final CourseAssignmentRepository courseAssignmentRepository;
 
 
     @Transactional
@@ -181,13 +184,14 @@ public class TopicExcelProcessor {
                 // Find Course
                 // -----------------------------------------
 
-                Course course =
-                        courseRepository
-                                .findByNameAndBranch(
-                                        courseName.trim(),
-                                        branch
-                                )
-                                .orElse(null);
+                var courseMatches = courseAssignmentRepository.findActiveForScope(
+                                college.getCollegeId(), branch.getBranchId())
+                        .stream()
+                        .map(assignment -> assignment.getCourse())
+                        .filter(candidate -> candidate.getName().equalsIgnoreCase(courseName.trim()))
+                        .distinct()
+                        .toList();
+                Course course = courseMatches.size() == 1 ? courseMatches.get(0) : null;
 
                 if (course == null) {
 

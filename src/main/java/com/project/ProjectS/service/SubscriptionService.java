@@ -219,6 +219,7 @@ public class SubscriptionService {
         log.info("Activating subscription: userId={} courseId={} planId={} activationType={}", request.getUserId(), request.getCourseId(), request.getPlanId(), request.getActivationType());
         User user = users.findById(request.getUserId()).orElseThrow(() -> new NoSuchElementException("User not found"));
         Course course = courses.findById(request.getCourseId()).orElseThrow(() -> new NoSuchElementException("Course not found"));
+        requireCourseAssignment(user, course);
         SubscriptionPlan plan = resolvePlan(request, course.getCourseId());
         if (!planCourses.findByCourse_CourseIdAndPlan_ActiveTrue(course.getCourseId()).stream()
                 .anyMatch(pc -> pc.getPlan().getPlanId().equals(plan.getPlanId())))
@@ -234,6 +235,24 @@ public class SubscriptionService {
         auditLogger.log("SUBSCRIPTION_CHANGE", user.getEmail(), "SUBSCRIPTION", response.getSubscriptionId(), "ACTIVATED",
                 "planId=" + response.getPlanId() + ", courseId=" + response.getCourseId());
         return response;
+    }
+
+    private void requireCourseAssignment(User user, Course course) {
+        String roleName = user.getRole() == null ? "" : user.getRole().getRoleName();
+        if ("GUEST".equalsIgnoreCase(roleName)) return;
+        Long collegeId = user.getCollege() == null ? null : user.getCollege().getCollegeId();
+        Long branchId = user.getBranch() == null ? null : user.getBranch().getBranchId();
+        if (collegeId == null) {
+            throw new IllegalArgumentException("Student must be assigned to a college before subscribing to a course");
+        }
+        boolean assigned = course.getAssignments() != null && course.getAssignments().stream()
+                .filter(row -> Boolean.TRUE.equals(row.getActiveRow()))
+                .anyMatch(row -> row.getCollege().getCollegeId().equals(collegeId)
+                        && (row.getBranch() == null
+                            || (branchId != null && row.getBranch().getBranchId().equals(branchId))));
+        if (!assigned) {
+            throw new IllegalArgumentException("Course is not assigned to the student's college and branch");
+        }
     }
 
     @Transactional

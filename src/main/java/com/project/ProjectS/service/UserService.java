@@ -22,13 +22,14 @@ public class UserService {
     private static final Logger log = LogManager.getLogger(UserService.class);
 
     @Autowired
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository,SectionRepository sectionRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, CollegeRepository collegeRepository, BranchRepository branchRepository, CourseRepository courseRepository,SectionRepository sectionRepository, CourseAssignmentRepository courseAssignmentRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.collegeRepository = collegeRepository;
         this.branchRepository = branchRepository;
         this.courseRepository = courseRepository;
         this.sectionRepository = sectionRepository;
+        this.courseAssignmentRepository = courseAssignmentRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -38,6 +39,7 @@ public class UserService {
     private final BranchRepository branchRepository;
     private final CourseRepository courseRepository;
     private final SectionRepository sectionRepository;
+    private final CourseAssignmentRepository courseAssignmentRepository;
     private final PasswordEncoder passwordEncoder;
 
 
@@ -233,8 +235,10 @@ public class UserService {
         Branch branch = getBranch(request.getBranchId());
 
         Course course = getCourse(request.getCourseId());
+        requireCourseAssignment(course, college.getCollegeId(), branch.getBranchId());
 
         Section section = getSection(request.getSectionId());
+        requireSectionScope(section, course, college.getCollegeId(), branch.getBranchId());
 
         User user = new User();
 
@@ -469,20 +473,20 @@ public class UserService {
         user.setStudentCode(request.getStudentCode());
         user.setAddress(request.getAddress());
 
-        user.setCollege(
-                getCollege(request.getCollegeId())
-        );
+        College college = getCollege(request.getCollegeId());
+        Branch branch = getBranch(request.getBranchId());
+        if (!branch.getCollege().getCollegeId().equals(college.getCollegeId())) {
+            throw new IllegalArgumentException("Selected branch does not belong to the selected college");
+        }
+        user.setCollege(college);
+        user.setBranch(branch);
+        Course course = getCourse(request.getCourseId());
+        requireCourseAssignment(course, request.getCollegeId(), request.getBranchId());
+        user.setCourse(course);
 
-        user.setBranch(
-                getBranch(request.getBranchId())
-        );
-        user.setCourse(
-                getCourse(request.getCourseId())
-        );
-
-        user.setSection(
-                getSection(request.getSectionId())
-        );
+        Section section = getSection(request.getSectionId());
+        requireSectionScope(section, course, college.getCollegeId(), branch.getBranchId());
+        user.setSection(section);
 
         user.setEmail(request.getEmail());
         user.setPhoneNumber(request.getPhoneNumber());
@@ -711,6 +715,24 @@ public class UserService {
                         )
                 );
     }
+    private void requireCourseAssignment(Course course, Long collegeId, Long branchId) {
+        boolean assigned = (branchId == null
+                ? courseAssignmentRepository.findActiveCollegeWide(collegeId)
+                : courseAssignmentRepository.findActiveForScope(collegeId, branchId))
+                .stream().anyMatch(row -> row.getCourse().getCourseId().equals(course.getCourseId()));
+        if (!assigned) {
+            throw new IllegalArgumentException("Course is not assigned to the selected college and branch");
+        }
+    }
+
+    private void requireSectionScope(Section section, Course course, Long collegeId, Long branchId) {
+        if (!java.util.Objects.equals(section.getCourse().getCourseId(), course.getCourseId())
+                || !java.util.Objects.equals(section.getCollege().getCollegeId(), collegeId)
+                || !java.util.Objects.equals(section.getBranch().getBranchId(), branchId)) {
+            throw new IllegalArgumentException("Selected section does not belong to the selected course, college, and branch");
+        }
+    }
+
     //get course
     private Course getCourse(Long courseId) {
 

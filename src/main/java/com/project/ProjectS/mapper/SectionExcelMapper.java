@@ -5,6 +5,7 @@ import com.project.ProjectS.entity.Course;
 import com.project.ProjectS.entity.Section;
 import com.project.ProjectS.repository.BranchRepository;
 import com.project.ProjectS.repository.CourseRepository;
+import com.project.ProjectS.repository.CourseAssignmentRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -14,13 +15,15 @@ import java.util.Map;
 @Component
 public class SectionExcelMapper implements ExcelRowMapper<Section> {
     @Autowired
-    public SectionExcelMapper(CourseRepository courseRepository, BranchRepository branchRepository) {
+    public SectionExcelMapper(CourseRepository courseRepository, BranchRepository branchRepository, CourseAssignmentRepository assignmentRepository) {
         this.courseRepository = courseRepository;
         this.branchRepository = branchRepository;
+        this.assignmentRepository = assignmentRepository;
     }
 
     private final CourseRepository courseRepository;
     private final BranchRepository branchRepository;
+    private final CourseAssignmentRepository assignmentRepository;
 
     @Override
     public Section map(Map<String, String> row) {
@@ -68,14 +71,20 @@ public class SectionExcelMapper implements ExcelRowMapper<Section> {
                         )
                 );
 
-        // Find Course using Branch + Course Name
-        Course course = courseRepository
-                .findByNameAndBranch(finalCourseName, branch)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Course not found : " + finalCourseName
-                        )
-                );
+        // Resolve the shared catalog course through its branch assignment.
+        var matches = assignmentRepository.findActiveForScope(
+                        branch.getCollege().getCollegeId(), branch.getBranchId())
+                .stream()
+                .map(assignment -> assignment.getCourse())
+                .filter(course -> course.getName().equalsIgnoreCase(finalCourseName))
+                .distinct()
+                .toList();
+        if (matches.size() != 1) {
+            throw new RuntimeException(matches.isEmpty()
+                    ? "Course not assigned to branch: " + finalCourseName
+                    : "Multiple catalog courses match " + finalCourseName + "; use a unique course name");
+        }
+        Course course = matches.get(0);
 
         // Create Section
         Section section = new Section();

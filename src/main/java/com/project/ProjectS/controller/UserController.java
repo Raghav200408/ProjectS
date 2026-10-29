@@ -278,7 +278,7 @@ public class UserController {
     }
 
     @PostMapping("/excel/upload")
-    public ResponseEntity<String> uploadUserExcel(
+    public ResponseEntity<?> uploadUserExcel(
             @RequestParam("file") MultipartFile file) {
 
         try {
@@ -286,11 +286,7 @@ public class UserController {
             List<Map<String, String>> excelData =
                     excelUploadService.readExcel(file);
 
-            userExcelProcessor.process(excelData);
-
-            return ResponseEntity.ok(
-                    "User Excel uploaded successfully"
-            );
+            return ResponseEntity.ok(userExcelProcessor.process(excelData));
 
         } catch (Exception e) {
 

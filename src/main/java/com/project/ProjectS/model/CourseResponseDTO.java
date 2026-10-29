@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -16,6 +17,8 @@ public class CourseResponseDTO {
 
     private Long branchId;
     private String branchName;
+
+    private List<CourseAssignmentResponseDTO> assignments;
 
     private String name;
 

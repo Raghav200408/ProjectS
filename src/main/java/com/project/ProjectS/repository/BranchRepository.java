@@ -14,5 +14,7 @@ public interface BranchRepository extends JpaRepository<Branch, Long> {
     );
     List<Branch> findByBranchName(String branchName);
 
+    List<Branch> findByCollege_CollegeId(Long collegeId);
+
 
 }

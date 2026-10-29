@@ -3,15 +3,14 @@ package com.project.ProjectS.controller;
 import com.project.ProjectS.mapper.SectionExcelMapper;
 import com.project.ProjectS.model.SectionRequestDTO;
 import com.project.ProjectS.model.SectionResponseDTO;
-import com.project.ProjectS.repository.SectionRepository;
 import com.project.ProjectS.service.ExcelUploadService;
-import com.project.ProjectS.service.GenericExcelUploadService;
 import com.project.ProjectS.service.SectionService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 import java.util.List;
 import java.util.Map;
 
@@ -23,12 +22,10 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/section")
 public class SectionController {
     @Autowired
-    public SectionController(SectionService service, ExcelUploadService excelUploadService, GenericExcelUploadService genericExcelUploadService, SectionExcelMapper sectionExcelMapper, SectionRepository sectionRepository) {
+    public SectionController(SectionService service, ExcelUploadService excelUploadService, SectionExcelMapper sectionExcelMapper) {
         this.service = service;
         this.excelUploadService = excelUploadService;
-        this.genericExcelUploadService = genericExcelUploadService;
         this.sectionExcelMapper = sectionExcelMapper;
-        this.sectionRepository = sectionRepository;
     }
 
 
@@ -36,17 +33,16 @@ public class SectionController {
             LogManager.getLogger(SectionController.class);
     private final SectionService service;
     private final ExcelUploadService excelUploadService;
-    private final GenericExcelUploadService genericExcelUploadService;
     private final SectionExcelMapper sectionExcelMapper;
-    private final SectionRepository sectionRepository;
 
     @PostMapping
     public ResponseEntity<String> create(
-            @Valid @RequestBody SectionRequestDTO request) {
+            @Valid @RequestBody SectionRequestDTO request,
+            Authentication authentication) {
 
         log.info("Received request to create section.");
 
-        String response = service.create(request);
+        String response = service.create(request, authentication);
 
         log.info("Create section request completed successfully.");
 
@@ -54,11 +50,11 @@ public class SectionController {
     }
 
     @GetMapping
-    public List<SectionResponseDTO> getAll() {
+    public List<SectionResponseDTO> getAll(Authentication authentication) {
 
         log.info("Received request to fetch all sections.");
 
-        List<SectionResponseDTO> sections = service.getAll();
+        List<SectionResponseDTO> sections = service.getAll(authentication);
 
         log.info("Fetched {} sections successfully.", sections.size());
 
@@ -66,11 +62,11 @@ public class SectionController {
     }
 
     @GetMapping("/{id}")
-    public SectionResponseDTO getById(@PathVariable Long id) {
+    public SectionResponseDTO getById(@PathVariable Long id, Authentication authentication) {
 
         log.info("Received request to fetch section with ID: {}", id);
 
-        SectionResponseDTO section = service.getById(id);
+        SectionResponseDTO section = service.getById(id, authentication);
 
         log.info("Section fetched successfully with ID: {}", id);
 
@@ -80,11 +76,12 @@ public class SectionController {
     @PutMapping("/{id}")
     public ResponseEntity<String> update(
             @PathVariable Long id,
-            @Valid @RequestBody SectionRequestDTO request) {
+            @Valid @RequestBody SectionRequestDTO request,
+            Authentication authentication) {
 
         log.info("Received request to update section with ID: {}", id);
 
-        String response = service.update(id, request);
+        String response = service.update(id, request, authentication);
 
         log.info("Section updated successfully with ID: {}", id);
 
@@ -92,11 +89,11 @@ public class SectionController {
     }
 
     @DeleteMapping("/{id}")
-    public String delete(@PathVariable Long id) {
+    public String delete(@PathVariable Long id, Authentication authentication) {
 
         log.info("Received request to delete section with ID: {}", id);
 
-        String response = service.delete(id);
+        String response = service.delete(id, authentication);
 
         log.info("Section deleted successfully with ID: {}", id);
 
@@ -105,7 +102,8 @@ public class SectionController {
 
     @PostMapping("/upload")
     public ResponseEntity<String> uploadSection(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
 
 
         log.info("Received request to upload section Excel file.");
@@ -119,11 +117,10 @@ public class SectionController {
 
 
 
-            genericExcelUploadService.process(
-                    excelData,
-                    sectionExcelMapper,
-                    sectionRepository
-            );
+            for (Map<String, String> row : excelData) {
+                if (row.values().stream().allMatch(String::isBlank)) continue;
+                service.importSection(sectionExcelMapper.map(row), authentication);
+            }
 
 
 
@@ -137,6 +134,9 @@ public class SectionController {
             );
 
 
+        }
+        catch(org.springframework.security.access.AccessDeniedException e){
+            throw e;
         }
         catch(Exception e){
 
