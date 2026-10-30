@@ -10,5 +10,7 @@ public interface SubjectRepository extends JpaRepository<Subject, Long> {
 
     boolean existsBySubjectNameAndCourse(String subjectName, Course course);
 
+    boolean existsBySubjectNameIgnoreCaseAndCourse(String subjectName, Course course);
+
     Optional<Subject> findBySubjectNameAndCourse(String subjectName, Course course);
 }
