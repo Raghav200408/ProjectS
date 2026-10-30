@@ -7,7 +7,7 @@ import lombok.Setter;
 @Setter
 public class StudentRequestDTO {
    private String   name;
-    private Long  studentCode;
+    private String studentCode;
     private Long    collegeId;
     private Long   branchId;
     private Long courseId;

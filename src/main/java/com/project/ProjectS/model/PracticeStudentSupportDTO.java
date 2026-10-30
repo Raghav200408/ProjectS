@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 public class PracticeStudentSupportDTO {
     private Long userId;
     private String studentName;
-    private Long studentCode;
+    private String studentCode;
     private String sectionName;
     private long totalUnits;
     private long attemptedUnits;

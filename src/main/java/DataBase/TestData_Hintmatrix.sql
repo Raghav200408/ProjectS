@@ -1227,7 +1227,7 @@ CREATE TABLE public.users (
     designation character varying(100),
     address text,
     employee_id bigint,
-    student_id bigint,
+    student_id character varying(50),
     course_id bigint,
     college_id bigint,
     branch_id bigint,

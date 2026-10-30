@@ -81,6 +81,10 @@ public class NotificationEventAspect {
         if (body instanceof com.project.ProjectS.model.RuleEngineUploadResponseDTO upload) {
             success = success && upload.isSuccess();
         }
+        if (body instanceof StudentExcelUploadResponseDTO upload) {
+            success = success && upload.isSuccess()
+                    && upload.getStudentsUploaded() > 0 && upload.getSkippedRows() == 0;
+        }
         uploadNotification(success);
         return response;
     }

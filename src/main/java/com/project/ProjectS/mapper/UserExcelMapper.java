@@ -81,15 +81,7 @@ public class UserExcelMapper implements ExcelRowMapper<User> {
         String studentId = row.get("student_id");
 
         if (studentId != null && !studentId.isBlank()) {
-            try {
-                user.setStudentCode(
-                        Long.parseLong(studentId.trim())
-                );
-            } catch (NumberFormatException e) {
-                throw new RuntimeException(
-                        "Invalid Student ID: " + studentId
-                );
-            }
+            user.setStudentCode(studentId.trim());
         }
 
         // =========================

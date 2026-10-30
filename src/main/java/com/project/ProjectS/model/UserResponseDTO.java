@@ -19,7 +19,7 @@ public class UserResponseDTO {
 
     private Long employeeId;
 
-    private Long  studentCode;
+    private String studentCode;
 
 
     private Long collegeId;

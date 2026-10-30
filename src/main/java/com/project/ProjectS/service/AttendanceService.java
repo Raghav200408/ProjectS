@@ -118,9 +118,8 @@ public class AttendanceService {
         return result;
     }
 
-    private Long studentCode(String value) {
-        try { return value == null ? null : Long.valueOf(value.trim()); }
-        catch (NumberFormatException exception) { return null; }
+    private String studentCode(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     @Transactional
@@ -229,12 +228,12 @@ public class AttendanceService {
             throw new AccessDeniedException("Authenticated student is required");
         }
 
-        Long studentCode = details.getUser().getStudentCode();
-        if (studentCode == null) {
+        String studentCode = details.getUser().getStudentCode();
+        if (studentCode == null || studentCode.isBlank()) {
             throw new AccessDeniedException("Student code is not assigned to this user");
         }
 
-        return attendanceRepository.findByStudentId(studentCode.toString())
+        return attendanceRepository.findByStudentId(studentCode)
                 .stream()
                 .map(this::convertToResponseDTO)
                 .collect(Collectors.toList());

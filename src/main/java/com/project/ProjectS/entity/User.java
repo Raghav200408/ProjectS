@@ -31,7 +31,7 @@ public class User {
     private Long employeeId;
 
     @Column(name = "student_id", length = 50)
-    private Long studentCode;
+    private String studentCode;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "college_id")
