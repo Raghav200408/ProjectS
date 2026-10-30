@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 /** Self-profile allowlist: credentials and Google subject IDs are never exposed. */
 public record UserProfileDTO(Long userId, String name, String email, String role,
         Integer roleId, String phoneNumber, String address, String designation,
-        Long employeeId, Long studentCode, String guardianName, String guardianPhoneNumber,
+        Long employeeId, String studentCode, String guardianName, String guardianPhoneNumber,
         Long collegeId, String collegeName, Long branchId, String branchName,
         Long courseId, String courseName, Long sectionId, String sectionName,
         String profilePicture, String loginType, Boolean activeRow,

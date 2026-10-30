@@ -20,7 +20,7 @@ class AttendanceFiltersTest {
         var college = new College(); college.setCollegeId(2L); college.setInstituteName("College Two");
         var branch = new Branch(); branch.setBranchId(4L); branch.setBranchName("Branch Four"); branch.setCollege(college);
         var course = new Course(); course.setCourseId(3L); course.setName("Commerce");
-        var student = new User(); student.setStudentCode(30011L); student.setName("Nikhil");
+        var student = new User(); student.setStudentCode("30011"); student.setName("Nikhil");
         student.setCollege(college); student.setBranch(branch); student.setCourse(course);
         var row = new Attendance(); row.setStudentId("30011"); row.setStudentName("Nikhil");
         var unknown = new Attendance(); unknown.setStudentId("9999");
@@ -54,7 +54,7 @@ class AttendanceFiltersTest {
         var college = new College(); college.setInstituteName("Example College");
         var branch = new Branch(); branch.setBranchName("Commerce Branch"); branch.setCollege(college);
         var course = new Course(); course.setName("MEC");
-        var student = new User(); student.setStudentCode(30011L); student.setName("Nikhil");
+        var student = new User(); student.setStudentCode("30011"); student.setName("Nikhil");
         student.setCollege(college); student.setBranch(branch); student.setCourse(course);
         when(users.findByStudentCodeIn(anyCollection())).thenReturn(List.of(student));
         var role = new Role(); role.setRoleName("SUPER_ADMIN");

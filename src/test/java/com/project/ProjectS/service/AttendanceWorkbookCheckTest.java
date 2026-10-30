@@ -42,7 +42,7 @@ class AttendanceWorkbookCheckTest {
         var file = new MockMultipartFile("file", path.getFileName().toString(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", Files.readAllBytes(path));
         var rows = new ExcelReader().readExcel(file);
-        var codes = rows.stream().map(row -> Long.valueOf(row.get("student_id"))).distinct().toList();
+        var codes = rows.stream().map(row -> row.get("student_id").trim()).distinct().toList();
         var profiles = new ArrayList<User>();
         try (var connection = DriverManager.getConnection(System.getenv("DB_URL"), System.getenv("DB_USERNAME"), System.getenv("DB_PASSWORD"))) {
             connection.setReadOnly(true);
@@ -56,10 +56,10 @@ class AttendanceWorkbookCheckTest {
                     WHERE u.student_id IN (
                     """ + String.join(",", Collections.nCopies(codes.size(), "?")) + ")";
             try (var statement = connection.prepareStatement(sql)) {
-                for (int i=0; i<codes.size(); i++) statement.setLong(i+1, codes.get(i));
+                for (int i=0; i<codes.size(); i++) statement.setString(i+1, codes.get(i));
                 try (var results = statement.executeQuery()) {
                     while (results.next()) {
-                        var user = new User(); user.setStudentCode(results.getLong("student_id")); user.setName(results.getString("name"));
+                        var user = new User(); user.setStudentCode(results.getString("student_id")); user.setName(results.getString("name"));
                         if (results.getObject("college_id") != null) {
                             var college = new College(); college.setCollegeId(results.getLong("college_id"));
                             college.setInstituteName(results.getString("institute_name")); user.setCollege(college);

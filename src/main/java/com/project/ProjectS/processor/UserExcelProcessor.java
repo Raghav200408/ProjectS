@@ -7,6 +7,7 @@ import com.project.ProjectS.model.StudentExcelUploadResponseDTO;
 import com.project.ProjectS.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -17,13 +18,15 @@ import java.util.Map;
 public class UserExcelProcessor {
     private static final Logger log = LogManager.getLogger(UserExcelProcessor.class);
     @Autowired
-    public UserExcelProcessor(UserExcelMapper userMapper, UserRepository userRepository) {
+    public UserExcelProcessor(UserExcelMapper userMapper, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userMapper = userMapper;
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     private final UserExcelMapper userMapper;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public StudentExcelUploadResponseDTO process(List<Map<String, String>> excelData) {
         StudentExcelUploadResponseDTO response = new StudentExcelUploadResponseDTO();
@@ -45,6 +48,10 @@ public class UserExcelProcessor {
             response.setTotalRows(response.getTotalRows() + 1);
             try {
                 User user = userMapper.map(row);
+                if (user.getPassword() == null || user.getPassword().isBlank()) {
+                    throw new IllegalArgumentException("Password is required");
+                }
+                user.setPassword(passwordEncoder.encode(user.getPassword()));
                 userRepository.save(user);
                 response.setStudentsUploaded(response.getStudentsUploaded() + 1);
             } catch (Exception e) {
@@ -55,10 +62,14 @@ public class UserExcelProcessor {
         }
 
         response.setSkippedRows(response.getErrors().size());
-        response.setSuccess(response.getSkippedRows() == 0);
-        response.setMessage(response.getStudentsUploaded() + " students uploaded, "
-                + response.getSkippedRows() + " rows skipped."
-                + (response.getSkippedRows() > 0 ? " Review the errors and retry only skipped rows." : ""));
+        response.setSuccess(response.getStudentsUploaded() > 0 && response.getSkippedRows() == 0);
+        if (response.getTotalRows() == 0) {
+            response.setMessage("No student rows were found in the Excel file.");
+        } else {
+            response.setMessage(response.getStudentsUploaded() + " students uploaded, "
+                    + response.getSkippedRows() + " rows skipped."
+                    + (response.getSkippedRows() > 0 ? " Review the errors and retry only skipped rows." : ""));
+        }
         return response;
     }
 }

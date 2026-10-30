@@ -101,7 +101,7 @@ public class PracticePerformanceRepository {
     }
 
     public record StudentSupportRow(
-            long userId, String studentName, Long studentCode, String sectionName,
+            long userId, String studentName, String studentCode, String sectionName,
             long totalUnits, long attemptedUnits, long correctUnits, java.math.BigDecimal accuracyPercentage) {
     }
 
@@ -247,7 +247,7 @@ public class PracticePerformanceRepository {
                 (rs, rowNum) -> new StudentSupportRow(
                         rs.getLong("user_id"),
                         rs.getString("student_name"),
-                        rs.getObject("student_code", Long.class),
+                        rs.getString("student_code"),
                         rs.getString("section_name"),
                         rs.getLong("total_units"),
                         rs.getLong("attempted_units"),
