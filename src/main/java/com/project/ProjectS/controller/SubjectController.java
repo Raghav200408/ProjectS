@@ -3,11 +3,14 @@ package com.project.ProjectS.controller;
 import com.project.ProjectS.model.SubjectRequestDTO;
 import com.project.ProjectS.model.SubjectResponseDTO;
 import com.project.ProjectS.service.SubjectService;
+import com.project.ProjectS.service.ExcelUploadService;
+import com.project.ProjectS.processor.SubjectExcelProcessor;
 import jakarta.validation.Valid;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -17,9 +20,25 @@ public class SubjectController {
     private static final Logger log = LogManager.getLogger(SubjectController.class);
 
     private final SubjectService service;
+    private final ExcelUploadService excelUploadService;
+    private final SubjectExcelProcessor subjectExcelProcessor;
 
-    public SubjectController(SubjectService service) {
+    public SubjectController(SubjectService service, ExcelUploadService excelUploadService,
+                             SubjectExcelProcessor subjectExcelProcessor) {
         this.service = service;
+        this.excelUploadService = excelUploadService;
+        this.subjectExcelProcessor = subjectExcelProcessor;
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadSubjects(@RequestParam("file") MultipartFile file,
+                                                @RequestParam("courseId") Long courseId) {
+        try {
+            return ResponseEntity.ok(subjectExcelProcessor.process(excelUploadService.readExcel(file), courseId));
+        } catch (Exception error) {
+            log.error("Subject Excel upload failed", error);
+            return ResponseEntity.badRequest().body("Subject Excel upload failed: " + error.getMessage());
+        }
     }
 
     @PostMapping

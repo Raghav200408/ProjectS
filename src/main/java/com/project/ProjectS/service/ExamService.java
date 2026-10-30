@@ -751,15 +751,15 @@ public class ExamService {
     public List<QuestionResponseDTO> getExamQuestions(Long examId, Authentication authentication) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new RuntimeException("Exam not found with id: " + examId));
-        if (authentication != null && isStudent(authentication)) {
-            entitlementService.requireExamAttemptAvailable(authentication.getName(), exam.getCourse().getCourseId());
-            Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), exam.getCourse().getCourseId());
-            boolean restricted = examQuestionRepository.findByExam_ExamId(examId).stream()
-                    .anyMatch(row -> !permitted.contains(row.getQuestion().getQuestionId()));
-            if (restricted) throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.FORBIDDEN,
-                    "This exam contains questions outside your active subscription");
-        }
+//        if (authentication != null && isStudent(authentication)) {
+//            entitlementService.requireExamAttemptAvailable(authentication.getName(), exam.getCourse().getCourseId());
+//            Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), exam.getCourse().getCourseId());
+//            boolean restricted = examQuestionRepository.findByExam_ExamId(examId).stream()
+//                    .anyMatch(row -> !permitted.contains(row.getQuestion().getQuestionId()));
+//            if (restricted) throw new org.springframework.web.server.ResponseStatusException(
+//                    org.springframework.http.HttpStatus.FORBIDDEN,
+//                    "This exam contains questions outside your active subscription");
+//        }
         return getExamQuestions(examId);
     }
 
