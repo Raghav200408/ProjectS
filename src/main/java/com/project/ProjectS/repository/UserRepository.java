@@ -23,7 +23,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.userId = :userId")
     Optional<User> findByUserIdForUpdate(@Param("userId") Long userId);
 
-    @EntityGraph(attributePaths = {"role"})
+    @EntityGraph(attributePaths = {"role", "college", "branch", "branch.college"})
     Optional<User> findByEmail(String email);
 
     boolean existsByEmail(String email);
