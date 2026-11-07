@@ -5,6 +5,8 @@ import com.project.ProjectS.config.AuditLogger;
 import com.project.ProjectS.model.LoginRequestDTO;
 import com.project.ProjectS.model.LoginResponseDTO;
 import com.project.ProjectS.model.UserProfileDTO;
+import com.project.ProjectS.model.PasswordVerificationRequestDTO;
+import com.project.ProjectS.model.ChangePasswordRequestDTO;
 import com.project.ProjectS.repository.UserRepository;
 import com.project.ProjectS.security.jwt.JwtUtil;
 
@@ -23,6 +25,9 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -30,21 +35,23 @@ public class AuthController {
     private static final Logger log = LogManager.getLogger(AuthController.class);
 
     public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository, JwtUtil jwtUtil) {
-        this(authenticationManager, userRepository, jwtUtil, new AuditLogger());
+        this(authenticationManager, userRepository, jwtUtil, new AuditLogger(), new BCryptPasswordEncoder(12));
     }
 
     @Autowired
-    public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository, JwtUtil jwtUtil, AuditLogger auditLogger) {
+    public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository, JwtUtil jwtUtil, AuditLogger auditLogger, PasswordEncoder passwordEncoder) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.auditLogger = auditLogger;
+        this.passwordEncoder = passwordEncoder;
     }
 
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final AuditLogger auditLogger;
+    private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/me")
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
@@ -64,6 +71,47 @@ public class AuthController {
         log.info("Returning current user profile for userId={} email={}", user.getUserId(), user.getEmail());
         auditLogger.log("PROFILE_FETCH", user.getEmail(), "USER", user.getUserId(), "SUCCESS", "/api/auth/me");
         return ResponseEntity.ok(UserProfileDTO.from(user));
+    }
+
+    @PostMapping("/password/verify")
+    public ResponseEntity<Map<String, String>> verifyCurrentPassword(
+            Principal principal, @Valid @RequestBody PasswordVerificationRequestDTO request) {
+        User user = getAuthenticatedUser(principal);
+        if (user.getPassword() == null || user.getPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This account does not have a password.");
+        }
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password");
+        }
+        return ResponseEntity.ok(Map.of("message", "Current password verified."));
+    }
+
+    @PutMapping("/password")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<Map<String, String>> changePassword(
+            Principal principal, @Valid @RequestBody ChangePasswordRequestDTO request) {
+        User user = getAuthenticatedUser(principal);
+        if (user.getPassword() == null || user.getPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This account does not have a password.");
+        }
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect password");
+        }
+        if (request.getNewPassword().equals(request.getCurrentPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose a new password different from your current password.");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        auditLogger.log("PASSWORD_CHANGE", user.getEmail(), "USER", user.getUserId(), "SUCCESS");
+        return ResponseEntity.ok(Map.of("message", "Password changed successfully."));
+    }
+
+    private User getAuthenticatedUser(Principal principal) {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+        return userRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
     }
 
 
