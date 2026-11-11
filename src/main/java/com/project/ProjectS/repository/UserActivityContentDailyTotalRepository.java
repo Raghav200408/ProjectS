@@ -64,6 +64,14 @@ public interface UserActivityContentDailyTotalRepository
               and (:branchId is null or u.branch.branchId = :branchId)
               and (:sectionId is null or u.section.sectionId = :sectionId)
               and (:studentId is null or u.userId = :studentId)
+              and (:courseId is null
+                   or (d.contentLevel = 'CHAPTER' and exists (select c.chapterId from Chapter c where c.chapterId = d.contentId and c.course.courseId = :courseId))
+                   or (d.contentLevel = 'TOPIC' and exists (select t.topicId from Topic t where t.topicId = d.contentId and t.course.courseId = :courseId))
+                   or (d.contentLevel = 'QUESTION' and exists (select q.questionId from Question q where q.questionId = d.contentId and q.course.courseId = :courseId)))
+              and (:subjectId is null
+                   or (d.contentLevel = 'CHAPTER' and exists (select c.chapterId from Chapter c where c.chapterId = d.contentId and c.subject.subjectId = :subjectId))
+                   or (d.contentLevel = 'TOPIC' and exists (select t.topicId from Topic t where t.topicId = d.contentId and t.subject.subjectId = :subjectId))
+                   or (d.contentLevel = 'QUESTION' and exists (select q.questionId from Question q where q.questionId = d.contentId and q.subject.subjectId = :subjectId)))
             group by d.activityDate, d.contentLevel, d.contentId, d.contentName
             order by d.activityDate asc, d.contentName asc
             """)
@@ -74,6 +82,8 @@ public interface UserActivityContentDailyTotalRepository
             @Param("collegeId") Long collegeId,
             @Param("branchId") Long branchId,
             @Param("sectionId") Long sectionId,
-            @Param("studentId") Long studentId
+            @Param("studentId") Long studentId,
+            @Param("courseId") Long courseId,
+            @Param("subjectId") Long subjectId
     );
 }
