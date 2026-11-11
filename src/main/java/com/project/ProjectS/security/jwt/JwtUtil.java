@@ -37,6 +37,10 @@ public class JwtUtil {
      * Generate JWT
      */
     public String generateToken(String email, String role) {
+        return generateToken(email, role, 0L);
+    }
+
+    public String generateToken(String email, String role, long credentialVersion) {
 
         Date now = new Date();
 
@@ -48,6 +52,8 @@ public class JwtUtil {
                 .subject(email)
 
                 .claim("role", role)
+
+                .claim("credentialVersion", credentialVersion)
 
                 .issuedAt(now)
 
@@ -95,6 +101,11 @@ public class JwtUtil {
 
         }
 
+    }
+
+    public long extractCredentialVersion(String token) {
+        Number version = extractClaims(token).get("credentialVersion", Number.class);
+        return version == null ? 0L : version.longValue();
     }
 
     /**

@@ -3,6 +3,7 @@ package com.project.ProjectS.security.filter;
 import com.project.ProjectS.config.AuditLogger;
 import com.project.ProjectS.security.jwt.JwtUtil;
 import com.project.ProjectS.security.service.CustomUserDetailsService;
+import com.project.ProjectS.security.service.CustomUserDetails;
 
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -68,7 +69,9 @@ public class JwtAuthenticationFilter implements Filter {
                     return;
                 }
 
-                if (jwtUtil.isTokenValid(token)) {
+                if (jwtUtil.isTokenValid(token)
+                        && (!(userDetails instanceof CustomUserDetails customUserDetails)
+                        || jwtUtil.extractCredentialVersion(token) == customUserDetails.getUser().getCredentialVersion())) {
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

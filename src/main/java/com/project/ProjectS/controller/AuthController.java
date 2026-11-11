@@ -101,9 +101,16 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose a new password different from your current password.");
         }
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setCredentialVersion(user.getCredentialVersion() + 1);
         userRepository.save(user);
         auditLogger.log("PASSWORD_CHANGE", user.getEmail(), "USER", user.getUserId(), "SUCCESS");
-        return ResponseEntity.ok(Map.of("message", "Password changed successfully."));
+        String role = "ROLE_" + user.getRole().getRoleName();
+        String replacementToken = jwtUtil.generateToken(
+                user.getEmail(), role, user.getCredentialVersion());
+        return ResponseEntity.ok(Map.of(
+                "message", "Password changed successfully.",
+                "token", replacementToken,
+                "tokenType", "Bearer"));
     }
 
     private User getAuthenticatedUser(Principal principal) {
@@ -154,7 +161,8 @@ public class AuthController {
         String token =
                 jwtUtil.generateToken(
                         user.getEmail(),
-                        authority
+                        authority,
+                        user.getCredentialVersion()
                 );
 
         LoginResponseDTO response =

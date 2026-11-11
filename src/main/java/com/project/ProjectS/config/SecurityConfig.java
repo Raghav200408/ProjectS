@@ -60,6 +60,8 @@ public class SecurityConfig {
                         // Public entry points only.
                         .requestMatchers("/api/auth/login", "/api/users/guest/register",
                                 "/oauth2/**", "/login/**", "/error").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/forgot-password",
+                                "/api/auth/reset-password").permitAll()
 
                         .requestMatchers(HttpMethod.POST, "/api/notifications/announcements").hasRole(SA)
 

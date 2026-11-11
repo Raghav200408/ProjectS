@@ -58,6 +58,9 @@ public class User {
     @Column(name = "password", length = 255)
     private String password;
 
+    @Column(name = "credential_version", nullable = false, columnDefinition = "bigint default 0")
+    private long credentialVersion = 0L;
+
     @Column(name = "guardian_name", length = 100)
     private String guardianName;
 
