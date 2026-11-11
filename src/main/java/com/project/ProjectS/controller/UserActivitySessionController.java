@@ -65,9 +65,11 @@ public class UserActivitySessionController {
             @RequestParam(required = false) Long collegeId,
             @RequestParam(required = false) Long branchId,
             @RequestParam(required = false) Long sectionId,
-            @RequestParam(required = false) Long studentId) {
+            @RequestParam(required = false) Long studentId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long subjectId) {
         return ResponseEntity.ok(Map.of("totalActiveSeconds",
-                service.totalTime(principal.getUser(), collegeId, branchId, sectionId, studentId)));
+                service.totalTime(principal.getUser(), collegeId, branchId, sectionId, studentId, courseId, subjectId)));
     }
 
     @GetMapping("/daily-time")
@@ -77,9 +79,11 @@ public class UserActivitySessionController {
             @RequestParam(required = false) Long collegeId,
             @RequestParam(required = false) Long branchId,
             @RequestParam(required = false) Long studentId,
-            @RequestParam(required = false) Long sectionId) {
+            @RequestParam(required = false) Long sectionId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long subjectId) {
         return ResponseEntity.ok(service.dailyTime(
-                principal.getUser(), days, collegeId, branchId, studentId, sectionId));
+                principal.getUser(), days, collegeId, branchId, studentId, sectionId, courseId, subjectId));
     }
 
     @GetMapping("/period-comparison")
@@ -114,8 +118,11 @@ public class UserActivitySessionController {
             @RequestParam(required = false) Long collegeId,
             @RequestParam(required = false) Long branchId,
             @RequestParam(required = false) Long sectionId,
-            @RequestParam(required = false) Long studentId) {
+            @RequestParam(required = false) Long studentId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long subjectId) {
         return ResponseEntity.ok(service.contentDailyTime(
-                principal.getUser(), days, level, collegeId, branchId, sectionId, studentId));
+                principal.getUser(), days, level, collegeId, branchId, sectionId, studentId,
+                courseId, subjectId));
     }
 }

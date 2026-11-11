@@ -190,14 +190,26 @@ public class UserActivitySessionService {
 
     @Transactional(readOnly = true)
     public long totalTime(User user, Long requestedCollegeId, Long requestedBranchId, Long sectionId, Long studentId) {
+        return totalTime(user, requestedCollegeId, requestedBranchId, sectionId, studentId, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public long totalTime(User user, Long requestedCollegeId, Long requestedBranchId,
+                          Long sectionId, Long studentId, Long courseId, Long subjectId) {
         String roleName = user.getRole() == null ? "" : user.getRole().getRoleName();
         if ("STUDENT".equalsIgnoreCase(roleName)) {
             if (requestedCollegeId != null || requestedBranchId != null || sectionId != null || studentId != null) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN);
             }
+            if (courseId != null || subjectId != null) {
+                return hierarchyContentTime(user.getUserId(), courseId, subjectId);
+            }
             return totalTime(user);
         }
         ActivityScope scope = resolveAdminScope(user, requestedCollegeId, requestedBranchId, studentId, sectionId);
+        if (courseId != null || subjectId != null) {
+            return hierarchyContentTime(scope, courseId, subjectId);
+        }
         LocalDateTime now = LocalDateTime.now();
         return repository.findStudentSessionsForScope(
                         scope.collegeId(), scope.branchId(), scope.sectionId(), scope.studentId())
@@ -426,6 +438,14 @@ public class UserActivitySessionService {
             Long requestedBranchId,
             Long studentId,
             Long sectionId) {
+        return dailyTime(user, days, requestedCollegeId, requestedBranchId,
+                studentId, sectionId, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DailyActivityTimeResponseDTO> dailyTime(
+            User user, int days, Long requestedCollegeId, Long requestedBranchId,
+            Long studentId, Long sectionId, Long courseId, Long subjectId) {
         if (days < 1 || days > MAX_DAILY_TIME_RANGE_DAYS) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -437,11 +457,44 @@ public class UserActivitySessionService {
             if (requestedCollegeId != null || requestedBranchId != null || studentId != null || sectionId != null) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN);
             }
+            if (courseId != null || subjectId != null) {
+                return hierarchyDailyTime(days, null, null, null, user.getUserId(), courseId, subjectId);
+            }
             return personalDailyTime(user, days);
         }
         ActivityScope scope = resolveAdminScope(
                 user, requestedCollegeId, requestedBranchId, studentId, sectionId);
+        if (courseId != null || subjectId != null) {
+            return hierarchyDailyTime(days, scope.collegeId(), scope.branchId(), scope.sectionId(),
+                    scope.studentId(), courseId, subjectId);
+        }
         return scopedDailyTime(days, scope.collegeId(), scope.branchId(), scope.studentId(), scope.sectionId());
+    }
+
+    private long hierarchyContentTime(Long userId, Long courseId, Long subjectId) {
+        return hierarchyContentTime(new ActivityScope(null, null, null, userId), courseId, subjectId);
+    }
+
+    private long hierarchyContentTime(ActivityScope scope, Long courseId, Long subjectId) {
+        return contentDailyRepository.sumContentForScope(LocalDate.of(1970, 1, 1), LocalDate.now(), "CHAPTER",
+                        scope.collegeId(), scope.branchId(), scope.sectionId(), scope.studentId(), courseId, subjectId)
+                .stream().mapToLong(row -> row.getActiveSeconds() == null ? 0 : row.getActiveSeconds()).sum();
+    }
+
+    private List<DailyActivityTimeResponseDTO> hierarchyDailyTime(
+            int days, Long collegeId, Long branchId, Long sectionId, Long studentId,
+            Long courseId, Long subjectId) {
+        LocalDate today = LocalDate.now();
+        LocalDate startDate = today.minusDays(days - 1L);
+        return contentDailyRepository.sumContentForScope(startDate, today, "CHAPTER",
+                        collegeId, branchId, sectionId, studentId, courseId, subjectId)
+                .stream().collect(java.util.stream.Collectors.groupingBy(
+                        UserActivityContentDailyTotalRepository.ScopedContentDailyProjection::getActivityDate,
+                        java.util.TreeMap::new,
+                        java.util.stream.Collectors.summingLong(row -> row.getActiveSeconds() == null ? 0 : row.getActiveSeconds())))
+                .entrySet().stream()
+                .map(entry -> new DailyActivityTimeResponseDTO(entry.getKey(), entry.getValue()))
+                .toList();
     }
 
     private ActivityScope resolveAdminScope(
@@ -501,6 +554,15 @@ public class UserActivitySessionService {
     public List<ContentDailyActivityTimeResponseDTO> contentDailyTime(
             User user, int days, String requestedLevel, Long requestedCollegeId,
             Long requestedBranchId, Long sectionId, Long studentId) {
+        return contentDailyTime(user, days, requestedLevel, requestedCollegeId,
+                requestedBranchId, sectionId, studentId, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ContentDailyActivityTimeResponseDTO> contentDailyTime(
+            User user, int days, String requestedLevel, Long requestedCollegeId,
+            Long requestedBranchId, Long sectionId, Long studentId,
+            Long courseId, Long subjectId) {
         if (days < 1 || days > MAX_DAILY_TIME_RANGE_DAYS) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -519,20 +581,18 @@ public class UserActivitySessionService {
             if (requestedCollegeId != null || requestedBranchId != null || sectionId != null) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN);
             }
-            return contentDailyRepository
-                    .findByUser_UserIdAndContentLevelAndActivityDateBetweenOrderByActivityDateAscContentNameAsc(
-                            user.getUserId(), level, startDate, today)
-                    .stream()
-                    .map(item -> new ContentDailyActivityTimeResponseDTO(
+            return contentDailyRepository.sumContentForScope(startDate, today, level,
+                            null, null, null, user.getUserId(), courseId, subjectId)
+                    .stream().map(item -> new ContentDailyActivityTimeResponseDTO(
                             item.getActivityDate(), item.getContentLevel(), item.getContentId(),
-                            item.getContentName(), item.getActiveSeconds()))
-                    .toList();
+                            item.getContentName(), item.getActiveSeconds())).toList();
         }
 
         ActivityScope scope = resolveAdminScope(
                 user, requestedCollegeId, requestedBranchId, studentId, sectionId);
         return contentDailyRepository.sumContentForScope(
-                        startDate, today, level, scope.collegeId(), scope.branchId(), scope.sectionId(), scope.studentId())
+                        startDate, today, level, scope.collegeId(), scope.branchId(), scope.sectionId(),
+                        scope.studentId(), courseId, subjectId)
                 .stream()
                 .map(item -> new ContentDailyActivityTimeResponseDTO(
                         item.getActivityDate(), item.getContentLevel(), item.getContentId(),
