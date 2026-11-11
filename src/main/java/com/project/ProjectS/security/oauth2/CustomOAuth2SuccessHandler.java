@@ -115,7 +115,8 @@ public class CustomOAuth2SuccessHandler
 		String token =
 				jwtUtil.generateToken(
 						user.getEmail(),
-						"ROLE_" + roleName
+						"ROLE_" + roleName,
+						user.getCredentialVersion()
 				);
 
         log.info("Google OAuth2 success redirect created for userId={} email={} role={}", user.getUserId(), user.getEmail(), roleName);
