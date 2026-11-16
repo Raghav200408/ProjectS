@@ -598,6 +598,12 @@ public class UserService {
                 .toList();
     }
 
+    public List<UserResponseDTO> getAllGuests() {
+        return userRepository.findByRole_RoleName("GUEST").stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
+
     public List<UserResponseDTO> getAllUsers() {
 
         List<User> users = userRepository.findAll();
