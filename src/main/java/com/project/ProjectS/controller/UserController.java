@@ -103,6 +103,12 @@ public class UserController {
 
         return ResponseEntity.ok(superAdmins);
     }
+
+    @GetMapping("/guests")
+    public ResponseEntity<List<UserResponseDTO>> getAllGuests() {
+        return ResponseEntity.ok(userService.getAllGuests());
+    }
+
     @GetMapping("/superAdmins")
     public ResponseEntity<List<UserResponseDTO>> getAllSuperAdmins() {
 
