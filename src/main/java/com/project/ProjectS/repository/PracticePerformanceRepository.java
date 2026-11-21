@@ -450,12 +450,16 @@ public class PracticePerformanceRepository {
     private static String currentQuestionUnitsSql() {
         return """
                 WITH active_questions AS (
-                    SELECT q.*, CASE
+                    SELECT q.*,
+                        regexp_replace(lower(COALESCE(qt.question_type, '')), '[^a-z0-9]', '', 'g')
+                            IN ('draganddrop', 'draganddropwithadj') AS is_drag_drop,
+                        CASE
                         WHEN EXISTS (SELECT 1 FROM mcq_questions m WHERE m.question_id = q.question_id AND m.active_row = true) THEN 'MCQ'
                         WHEN EXISTS (SELECT 1 FROM question_matching_pairs m WHERE m.question_id = q.question_id) THEN 'MATCH'
                         WHEN EXISTS (SELECT 1 FROM question_fill_blank_answers f WHERE f.question_id = q.question_id) THEN 'BLANK'
                         ELSE 'ATTRIBUTE' END AS kind
                     FROM questions q
+                    LEFT JOIN question_type qt ON qt.question_type_id = q.question_type_id
                     JOIN courses c ON c.course_id = q.course_id AND COALESCE(c.active_row, true)
                     JOIN subject s ON s.subject_id = q.subject_id AND COALESCE(s.active_row, true)
                     JOIN chapters ch ON ch.chapter_id = q.chapter_id AND COALESCE(ch.active_row, true)
@@ -478,7 +482,11 @@ public class PracticePerformanceRepository {
                         (3, re.table3_id, re.header3_id, re.arithmetic3, re.amount_position3),
                         (4, re.table4_id, re.header4_id, re.arithmetic4, re.amount_position4)
                     ) pos(position, table_id, header_id, arithmetic, amount_position)
-                    WHERE q.kind = 'ATTRIBUTE' AND pos.arithmetic IS NOT NULL
+                    WHERE q.kind = 'ATTRIBUTE'
+                      AND pos.table_id IS NOT NULL
+                      AND pos.header_id IS NOT NULL
+                      AND pos.arithmetic IS NOT NULL
+                      AND lower(trim(pos.amount_position)) IN ('1', 'amount', 'amount1', '2', 'amount2')
                 ), current_events AS (
                     SELECT DISTINCT ON (ae.question_id, q.kind,
                         CASE WHEN q.kind = 'MATCH' THEN COALESCE(
@@ -503,17 +511,21 @@ public class PracticePerformanceRepository {
                     SELECT u.question_id, EXISTS (
                         SELECT 1 FROM question_answers a
                         WHERE a.user_id = :userId AND a.question_id = u.question_id AND a.active_row = true
-                          AND (a.question_attribute_id = u.question_attribute_id OR
-                            (a.question_attribute_id IS NULL AND a.attribute_id = u.attribute_id AND
-                              (SELECT COUNT(*) FROM question_attributes qa
-                               WHERE qa.question_id = u.question_id AND qa.attribute_id = u.attribute_id
-                                 AND COALESCE(qa.active_row, true)) = 1))
-                          AND a.table_name_id = u.table_id AND a.header_id = u.header_id
-                          AND CASE WHEN lower(trim(a.arithmetic)) = 'subtract' THEN 'less'
-                                   ELSE lower(trim(a.arithmetic)) END = u.arithmetic
-                          AND a.amount = u.amount
-                          AND (a.condition_id IS NULL OR a.condition_id = u.position)
+                          AND ((q.is_drag_drop
+                                AND a.question_attribute_id = u.question_attribute_id
+                                AND a.condition_id = u.position)
+                            OR ((a.question_attribute_id = u.question_attribute_id OR
+                                (a.question_attribute_id IS NULL AND a.attribute_id = u.attribute_id AND
+                                  (SELECT COUNT(*) FROM question_attributes qa
+                                   WHERE qa.question_id = u.question_id AND qa.attribute_id = u.attribute_id
+                                     AND COALESCE(qa.active_row, true)) = 1))
+                              AND a.table_name_id = u.table_id AND a.header_id = u.header_id
+                              AND CASE WHEN lower(trim(a.arithmetic)) = 'subtract' THEN 'less'
+                                       ELSE lower(trim(a.arithmetic)) END = u.arithmetic
+                              AND a.amount = u.amount
+                              AND (a.condition_id IS NULL OR a.condition_id = u.position)))
                     ) AS completed FROM attribute_units u
+                    JOIN active_questions q ON q.question_id = u.question_id
                     UNION ALL
                     SELECT q.question_id, EXISTS (SELECT 1 FROM current_events e
                         WHERE e.question_id = q.question_id AND e.kind = 'MCQ'
@@ -570,17 +582,23 @@ public class PracticePerformanceRepository {
                 rs.getLong("id"), rs.getLong("total_questions"), rs.getLong("completed_questions")));
     }
 
-    public record QuestionAnswerStatus(long questionId, long requiredAnswers, long savedAnswers) {
+    public record QuestionAnswerStatus(long questionId, long requiredAnswers, long savedAnswers,
+            boolean attempted) {
         public String status() {
             return requiredAnswers > 0 && savedAnswers >= requiredAnswers ? "ANSWERED"
-                    : savedAnswers > 0 ? "PARTIAL" : "UNANSWERED";
+                    : attempted || savedAnswers > 0 ? "PARTIAL" : "UNANSWERED";
         }
     }
 
     public List<QuestionAnswerStatus> findQuestionAnswerStatuses(Long userId, Long topicId) {
         String sql = currentQuestionUnitsSql() + """
                 SELECT q.question_id, COUNT(u.question_id) AS required_answers,
-                    COUNT(u.question_id) FILTER (WHERE u.completed) AS saved_answers
+                    COUNT(u.question_id) FILTER (WHERE u.completed) AS saved_answers,
+                    -- A wrong-only attempt is still in progress for every question type.
+                    EXISTS (SELECT 1 FROM answer_events ae
+                        WHERE ae.user_id = :userId AND ae.question_id = q.question_id
+                          AND ae.active_row = true AND ae.exam_id IS NULL AND ae.mock_exam_id IS NULL
+                          AND ae.event_type IN ('ANSWER', 'MCQ_ANSWER', 'AUTOFILL')) AS attempted
                 FROM active_questions q LEFT JOIN all_units u ON u.question_id = q.question_id
                 WHERE (:topicId IS NULL OR q.topic_id = :topicId)
                 GROUP BY q.question_id ORDER BY q.question_id
@@ -588,6 +606,7 @@ public class PracticePerformanceRepository {
         return jdbc.query(sql, new MapSqlParameterSource().addValue("userId", userId)
                         .addValue("requireCorrect", true).addValue("topicId", topicId, java.sql.Types.BIGINT),
                 (rs, row) -> new QuestionAnswerStatus(rs.getLong("question_id"),
-                        rs.getLong("required_answers"), rs.getLong("saved_answers")));
+                        rs.getLong("required_answers"), rs.getLong("saved_answers"),
+                        rs.getBoolean("attempted")));
     }
 }

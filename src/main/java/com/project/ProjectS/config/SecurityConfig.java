@@ -169,7 +169,8 @@ public class SecurityConfig {
                         ).hasAnyRole(SA, CA)
                         .requestMatchers("/api/users/student/**", "/api/users/students")
                         .hasAnyRole(SA, CA, BA)
-                        .requestMatchers("/api/users/guest/**", "/api/users/students_Guest/**",
+                        .requestMatchers("/api/users/guest/**", "/api/users/guests",
+                                "/api/users/students_Guest/**",
                                 "/api/users/all/**", "/api/users/excel/upload").hasRole(SA)
 
                         // Attendance: students can only use the self-service endpoint.
