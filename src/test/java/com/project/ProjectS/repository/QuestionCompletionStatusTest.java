@@ -13,10 +13,10 @@ import static org.mockito.Mockito.*;
 class QuestionCompletionStatusTest {
     @Test
     void completionRequiresEveryRequiredAnswerAndEmptyQuestionsAreNotSolved() {
-        assertEquals("ANSWERED", new PracticePerformanceRepository.QuestionAnswerStatus(1, 4, 4).status());
-        assertEquals("PARTIAL", new PracticePerformanceRepository.QuestionAnswerStatus(1, 4, 3).status());
-        assertEquals("UNANSWERED", new PracticePerformanceRepository.QuestionAnswerStatus(1, 4, 0).status());
-        assertEquals("UNANSWERED", new PracticePerformanceRepository.QuestionAnswerStatus(1, 0, 0).status());
+        assertEquals("ANSWERED", new PracticePerformanceRepository.QuestionAnswerStatus(1, 4,4,true).status());
+        assertEquals("PARTIAL", new PracticePerformanceRepository.QuestionAnswerStatus(1, 4, 3,true).status());
+        assertEquals("UNANSWERED", new PracticePerformanceRepository.QuestionAnswerStatus(1, 4, 0,true).status());
+        assertEquals("UNANSWERED", new PracticePerformanceRepository.QuestionAnswerStatus(1, 0, 0,true).status());
     }
 
     @Test
