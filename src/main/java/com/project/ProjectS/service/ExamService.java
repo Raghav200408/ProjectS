@@ -514,6 +514,29 @@ public class ExamService {
         return response;
     }
 
+    @Transactional(readOnly = true)
+    public List<QuestionResponseDTO> getExamReviewQuestions(
+            Long examId, Long resultId, Authentication authentication) {
+        ExamResult result = examResultRepository.findById(resultId)
+                .orElseThrow(() -> new RuntimeException("Exam result not found with id: " + resultId));
+        if (!result.getExam().getExamId().equals(examId)) {
+            throw new RuntimeException("Exam result " + resultId + " does not belong to exam " + examId);
+        }
+
+        User caller = getLoggedInUser(authentication);
+        boolean isOwner = caller != null
+                && caller.getUserId().equals(result.getUser().getUserId());
+        boolean isManager = caller != null
+                && caller.getRole() != null
+                && List.of("SUPER_ADMIN", "COLLEGE_ADMIN", "BRANCH_ADMIN")
+                .contains(caller.getRole().getRoleName().toUpperCase());
+        if (!isOwner && !isManager) {
+            throw new RuntimeException("Not authorised to view this result");
+        }
+
+        return getExamQuestions(examId);
+    }
+
     /**
      * The "What went wrong?" panel for one attribute on one exam attempt -
      * its Rule Engine hint(s) plus the wrong lines this student submitted for
@@ -581,6 +604,11 @@ public class ExamService {
                     .orElseThrow(() -> new RuntimeException("Authenticated user not found"))
                     .getUserId());
             if (isStudent(authentication)) {
+                if (examResultRepository.findByExam_ExamIdAndUser_UserId(examId, request.getUserId()).isPresent()) {
+                    throw new org.springframework.web.server.ResponseStatusException(
+                            org.springframework.http.HttpStatus.CONFLICT,
+                            "This exam has already been completed");
+                }
                 Exam exam = examRepository.findById(examId)
                         .orElseThrow(() -> new RuntimeException("Exam not found with id: " + examId));
                 Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), exam.getCourse().getCourseId());
@@ -751,6 +779,15 @@ public class ExamService {
     public List<QuestionResponseDTO> getExamQuestions(Long examId, Authentication authentication) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new RuntimeException("Exam not found with id: " + examId));
+        if (authentication != null && isStudent(authentication)) {
+            User user = getLoggedInUser(authentication);
+            if (user != null && examResultRepository
+                    .findByExam_ExamIdAndUser_UserId(examId, user.getUserId()).isPresent()) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.CONFLICT,
+                        "This exam has already been completed");
+            }
+        }
 //        if (authentication != null && isStudent(authentication)) {
 //            entitlementService.requireExamAttemptAvailable(authentication.getName(), exam.getCourse().getCourseId());
 //            Set<Long> permitted = entitlementService.accessibleQuestionIds(authentication.getName(), exam.getCourse().getCourseId());
