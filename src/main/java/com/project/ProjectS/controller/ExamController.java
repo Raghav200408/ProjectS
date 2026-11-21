@@ -127,6 +127,15 @@ public class ExamController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{examId}/results/{resultId}/questions")
+    public ResponseEntity<List<QuestionResponseDTO>> getExamReviewQuestions(
+            @PathVariable Long examId,
+            @PathVariable Long resultId,
+            Authentication authentication) {
+        List<QuestionResponseDTO> response = examService.getExamReviewQuestions(examId, resultId, authentication);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/results/me")
     public ResponseEntity<List<ExamAttemptSummaryDTO>> getMyExamAttempts(Authentication authentication) {
         log.info("Fetching my exam attempts for user={}", authentication == null ? "anonymous" : authentication.getName());
