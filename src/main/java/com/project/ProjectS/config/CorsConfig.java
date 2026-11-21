@@ -18,6 +18,8 @@ public class CorsConfig {
         configuration.addAllowedOrigin("http://localhost:5174");
         configuration.addAllowedOrigin("https://hintmatrix-project.onrender.com");
         configuration.addAllowedOrigin("https://hintmatrix-project-j6dm.onrender.com");
+        configuration.addAllowedOrigin("http://hintmatrix.tech");
+        configuration.addAllowedOrigin("https://hintmatrix.tech");
         configuration.addAllowedHeader("*");
 
         configuration.addAllowedMethod("*");
